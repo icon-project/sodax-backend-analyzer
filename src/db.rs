@@ -1,4 +1,5 @@
 use crate::config::get_config;
+use crate::models::OrderbookDocument;
 use mongodb::{
     bson::{doc, Document},
     sync::{Client, Collection},
@@ -87,21 +88,27 @@ pub fn get_collections() -> Vec<String> {
     collection_names
 }
 
-pub fn get_orderbook() -> Result<Vec<Document>, mongodb::error::Error> {
+pub fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::Error> {
     let collection = get_db()
         .database()
         .collection(get_collections_config().orderbook);
-    let mut docs: Vec<Document> = vec![];
+    let mut docs: Vec<OrderbookDocument> = vec![];
     match collection.find(doc! {}).run() {
         Ok(cursor) => {
             for doc_result in cursor {
                 match doc_result {
                     Ok(doc) => docs.push(doc),
-                    Err(e) => return Err(e.into()),
+                    Err(e) => {
+                        eprintln!("Error getting OrderbookDocument. {}", e);
+                        return Err(e);
+                    }
                 };
             }
         }
-        Err(e) => return Err(e),
+        Err(e) => {
+            eprintln!("Error finding OrderbookDocument. {}", e);
+            return Err(e);
+        }
     };
     Ok(docs)
 }

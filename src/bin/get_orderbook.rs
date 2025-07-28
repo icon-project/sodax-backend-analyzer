@@ -9,5 +9,5 @@ fn main() {
         }
     };
 
-    dbg!(orderbook);
+    dbg!(&orderbook[..2]);
 }
