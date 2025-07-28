@@ -4,6 +4,38 @@ use mongodb::{
     sync::{Client, Collection},
 };
 
+struct Collections {
+    orderbook: &'static str,
+    money_market_events: &'static str,
+    money_market_metadata: &'static str,
+    user_positions: &'static str,
+    reserve_tokens: &'static str,
+    orderbook_metadata: &'static str,
+    wallet_factory_events: &'static str,
+    intent_events: &'static str,
+    eventlog_progress_metadata: &'static str,
+}
+
+impl Collections {
+    fn new() -> Self {
+        Collections {
+            orderbook: "orderbook",
+            money_market_events: "moneyMarketEvents",
+            money_market_metadata: "money_market_metadata",
+            user_positions: "user_positions",
+            reserve_tokens: "reserve_tokens",
+            orderbook_metadata: "orderbookMetadata",
+            wallet_factory_events: "walletFactoryEvents",
+            intent_events: "intentEvents",
+            eventlog_progress_metadata: "eventLogProgressMetadata",
+        }
+    }
+}
+
+fn get_collections_config() -> Collections {
+    Collections::new()
+}
+
 struct Database {
     client: Client,
 }
@@ -25,10 +57,16 @@ impl Database {
     }
 }
 
+// Simple function-level initialization - each function creates its own connection
+// This is actually fine for most use cases since MongoDB Client is designed to be efficient
+fn get_db() -> Database {
+    Database::new()
+}
+
 pub fn get_collections() -> Vec<String> {
     let mut collection_names: Vec<String> = vec![];
-    let db = Database::new();
-    let database = db.database();
+    let db = get_db();
+    let database: mongodb::sync::Database = db.database();
 
     match database.list_collections().run() {
         Ok(cursor) => {
@@ -47,4 +85,23 @@ pub fn get_collections() -> Vec<String> {
 
     // dbg!(&collection_names);
     collection_names
+}
+
+pub fn get_orderbook() -> Result<Vec<Document>, mongodb::error::Error> {
+    let collection = get_db()
+        .database()
+        .collection(get_collections_config().orderbook);
+    let mut docs: Vec<Document> = vec![];
+    match collection.find(doc! {}).run() {
+        Ok(cursor) => {
+            for doc_result in cursor {
+                match doc_result {
+                    Ok(doc) => docs.push(doc),
+                    Err(e) => return Err(e.into()),
+                };
+            }
+        }
+        Err(e) => return Err(e),
+    };
+    Ok(docs)
 }
