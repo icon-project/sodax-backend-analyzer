@@ -38,6 +38,12 @@ impl Config {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn get_config() -> Config {
     // println!("Loading configuration...");
     // println!(

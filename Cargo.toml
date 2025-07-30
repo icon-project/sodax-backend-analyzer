@@ -11,6 +11,11 @@ serde = "1.0.188"
 version = "3.2.4"
 features = ["sync"]
 
-[[bin]]
-name = "get_collections"
-path = "src/bin/get_collections.rs"
+[dev-dependencies.cargo-husky]
+version = "1.5.0"
+default-features = false
+features = [
+    "precommit-hook",
+    "run-cargo-check",
+    "run-cargo-clippy",
+]

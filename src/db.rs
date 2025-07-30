@@ -1,19 +1,23 @@
 use crate::config::get_config;
-use crate::models::OrderbookDocument;
-use mongodb::{
-    bson::{doc, Document},
-    sync::{Client, Collection},
-};
+use crate::models::{OrderbookDocument, ReserveTokenDocument};
+use mongodb::{bson::doc, sync::Client};
 
 struct Collections {
     orderbook: &'static str,
+    #[allow(dead_code)]
     money_market_events: &'static str,
+    #[allow(dead_code)]
     money_market_metadata: &'static str,
+    #[allow(dead_code)]
     user_positions: &'static str,
     reserve_tokens: &'static str,
+    #[allow(dead_code)]
     orderbook_metadata: &'static str,
+    #[allow(dead_code)]
     wallet_factory_events: &'static str,
+    #[allow(dead_code)]
     intent_events: &'static str,
+    #[allow(dead_code)]
     eventlog_progress_metadata: &'static str,
 }
 
@@ -111,4 +115,118 @@ pub fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::Error> 
         }
     };
     Ok(docs)
+}
+
+#[derive(Debug)]
+enum ReserveTokenField {
+    Reserve,
+    AToken,
+    VariableDebtToken,
+}
+
+fn find_reserve_for_token(
+    token: &str,
+    token_type: ReserveTokenField,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    let collection = get_db()
+        .database()
+        .collection(get_collections_config().reserve_tokens);
+
+    let filter = match token_type {
+        ReserveTokenField::Reserve => doc! { "reserveAddress": token },
+        ReserveTokenField::AToken => doc! { "aTokenAddress": token },
+        ReserveTokenField::VariableDebtToken => doc! { "variableDebtTokenAddress": token },
+    };
+
+    match collection.find_one(filter).run() {
+        Ok(doc) => Ok(doc),
+        Err(e) => {
+            eprintln!("Error finding reserve for token {}: {}", token, e);
+            Err(e)
+        }
+    }
+}
+
+pub fn get_reserve_data_for_reserve_token(
+    address: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(address, ReserveTokenField::Reserve)
+}
+
+pub fn get_reserve_data_for_a_token(
+    address: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(address, ReserveTokenField::AToken)
+}
+
+pub fn get_reserve_data_for_variable_debt_token(
+    address: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(address, ReserveTokenField::VariableDebtToken)
+}
+
+pub fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
+    let collection = get_db()
+        .database()
+        .collection(get_collections_config().reserve_tokens);
+    let mut reserves: Vec<ReserveTokenDocument> = vec![];
+
+    match collection.find(doc! {}).run() {
+        Ok(cursor) => {
+            for doc_result in cursor {
+                match doc_result {
+                    Ok(doc) => reserves.push(doc),
+                    Err(e) => {
+                        eprintln!("Error getting ReserveTokenDocument. {}", e);
+                        return Err(e);
+                    }
+                };
+            }
+        }
+        Err(e) => {
+            eprintln!("Error finding ReserveTokenDocument. {}", e);
+            return Err(e);
+        }
+    };
+    Ok(reserves)
+}
+
+pub fn find_all_reserve_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().unwrap_or_else(|e| {
+        eprintln!("Failed to find all reserves: {}", e);
+        vec![]
+    });
+
+    let reserve_addresses: Vec<String> =
+        reserves.iter().map(|r| r.reserveAddress.clone()).collect();
+
+    // dbg!(&reserve_addresses);
+    reserve_addresses
+}
+
+pub fn find_all_a_token_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().unwrap_or_else(|e| {
+        eprintln!("Failed to find all reserves: {}", e);
+        vec![]
+    });
+
+    let a_token_addresses: Vec<String> = reserves.iter().map(|r| r.aTokenAddress.clone()).collect();
+
+    // dbg!(&a_token_addresses);
+    a_token_addresses
+}
+
+pub fn find_all_variable_debt_token_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().unwrap_or_else(|e| {
+        eprintln!("Failed to find all reserves: {}", e);
+        vec![]
+    });
+
+    let variable_debt_token_addresses: Vec<String> = reserves
+        .iter()
+        .map(|r| r.variableDebtTokenAddress.clone())
+        .collect();
+
+    // dbg!(&variable_debt_token_addresses);
+    variable_debt_token_addresses
 }
