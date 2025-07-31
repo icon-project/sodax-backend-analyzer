@@ -1,6 +1,8 @@
 use crate::config::get_config;
-use crate::models::{OrderbookDocument, ReserveTokenDocument};
-use mongodb::{bson::doc, sync::Client};
+use crate::models::{OrderbookDocument, ReserveTokenDocument, UserPositionDocument};
+// For async iteration over cursor
+use futures::stream::StreamExt;
+use mongodb::{Client, Collection, bson::doc, options::ClientOptions};
 
 struct Collections {
     orderbook: &'static str,
@@ -46,9 +48,10 @@ struct Database {
 }
 
 impl Database {
-    fn new() -> Self {
+    async fn new() -> Self {
         let uri = get_config().connection_string();
-        let client = match Client::with_uri_str(uri) {
+        let options = ClientOptions::parse(uri).await.unwrap();
+        let client = match Client::with_options(options) {
             Ok(c) => c,
             Err(e) => panic!("Failed to connect to MongoDB: {}", e),
         };
@@ -56,7 +59,7 @@ impl Database {
         Database { client }
     }
 
-    fn database(&self) -> mongodb::sync::Database {
+    fn database(&self) -> mongodb::Database {
         let db_name = get_config().database_name();
         self.client.database(&db_name)
     }
@@ -64,18 +67,18 @@ impl Database {
 
 // Simple function-level initialization - each function creates its own connection
 // This is actually fine for most use cases since MongoDB Client is designed to be efficient
-fn get_db() -> Database {
-    Database::new()
+async fn get_db() -> Database {
+    Database::new().await
 }
 
-pub fn get_collections() -> Vec<String> {
+pub async fn get_collections() -> Vec<String> {
     let mut collection_names: Vec<String> = vec![];
-    let db = get_db();
-    let database: mongodb::sync::Database = db.database();
+    let db = get_db().await;
+    let database: mongodb::Database = db.database();
 
-    match database.list_collections().run() {
-        Ok(cursor) => {
-            for doc_result in cursor {
+    match database.list_collections().await {
+        Ok(mut cursor) => {
+            while let Some(doc_result) = cursor.next().await {
                 match doc_result {
                     Ok(doc) => {
                         let name: String = doc.name;
@@ -92,14 +95,15 @@ pub fn get_collections() -> Vec<String> {
     collection_names
 }
 
-pub fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::Error> {
-    let collection = get_db()
+pub async fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::Error> {
+    let collection: Collection<OrderbookDocument> = get_db()
+        .await
         .database()
         .collection(get_collections_config().orderbook);
     let mut docs: Vec<OrderbookDocument> = vec![];
-    match collection.find(doc! {}).run() {
-        Ok(cursor) => {
-            for doc_result in cursor {
+    match collection.find(doc! {}).await {
+        Ok(mut cursor) => {
+            while let Some(doc_result) = cursor.next().await {
                 match doc_result {
                     Ok(doc) => docs.push(doc),
                     Err(e) => {
@@ -124,11 +128,12 @@ enum ReserveTokenField {
     VariableDebtToken,
 }
 
-fn find_reserve_for_token(
+async fn find_reserve_for_token(
     token: &str,
     token_type: ReserveTokenField,
 ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    let collection = get_db()
+    let collection: Collection<ReserveTokenDocument> = get_db()
+        .await
         .database()
         .collection(get_collections_config().reserve_tokens);
 
@@ -138,7 +143,7 @@ fn find_reserve_for_token(
         ReserveTokenField::VariableDebtToken => doc! { "variableDebtTokenAddress": token },
     };
 
-    match collection.find_one(filter).run() {
+    match collection.find_one(filter).await {
         Ok(doc) => Ok(doc),
         Err(e) => {
             eprintln!("Error finding reserve for token {}: {}", token, e);
@@ -147,52 +152,46 @@ fn find_reserve_for_token(
     }
 }
 
-pub fn get_reserve_data_for_reserve_token(
+pub async fn get_reserve_data_for_reserve_token(
     address: &str,
 ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::Reserve)
+    find_reserve_for_token(address, ReserveTokenField::Reserve).await
 }
 
-pub fn get_reserve_data_for_a_token(
+pub async fn get_reserve_data_for_a_token(
     address: &str,
 ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::AToken)
+    find_reserve_for_token(address, ReserveTokenField::AToken).await
 }
 
-pub fn get_reserve_data_for_variable_debt_token(
+pub async fn get_reserve_data_for_variable_debt_token(
     address: &str,
 ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::VariableDebtToken)
+    find_reserve_for_token(address, ReserveTokenField::VariableDebtToken).await
 }
 
-pub fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
-    let collection = get_db()
+pub async fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
+    let collection: Collection<ReserveTokenDocument> = get_db()
+        .await
         .database()
         .collection(get_collections_config().reserve_tokens);
     let mut reserves: Vec<ReserveTokenDocument> = vec![];
+    let mut cursor = collection.find(doc! {}).await?;
 
-    match collection.find(doc! {}).run() {
-        Ok(cursor) => {
-            for doc_result in cursor {
-                match doc_result {
-                    Ok(doc) => reserves.push(doc),
-                    Err(e) => {
-                        eprintln!("Error getting ReserveTokenDocument. {}", e);
-                        return Err(e);
-                    }
-                };
+    while let Some(doc_result) = cursor.next().await {
+        match doc_result {
+            Ok(doc) => reserves.push(doc),
+            Err(e) => {
+                eprintln!("Error getting ReserveTokenDocument. {}", e);
+                return Err(e);
             }
-        }
-        Err(e) => {
-            eprintln!("Error finding ReserveTokenDocument. {}", e);
-            return Err(e);
-        }
-    };
+        };
+    }
     Ok(reserves)
 }
 
-pub fn find_all_reserve_addresses() -> Vec<String> {
-    let reserves = find_all_reserves().unwrap_or_else(|e| {
+pub async fn find_all_reserve_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().await.unwrap_or_else(|e| {
         eprintln!("Failed to find all reserves: {}", e);
         vec![]
     });
@@ -204,8 +203,8 @@ pub fn find_all_reserve_addresses() -> Vec<String> {
     reserve_addresses
 }
 
-pub fn find_all_a_token_addresses() -> Vec<String> {
-    let reserves = find_all_reserves().unwrap_or_else(|e| {
+pub async fn find_all_a_token_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().await.unwrap_or_else(|e| {
         eprintln!("Failed to find all reserves: {}", e);
         vec![]
     });
@@ -216,8 +215,8 @@ pub fn find_all_a_token_addresses() -> Vec<String> {
     a_token_addresses
 }
 
-pub fn find_all_variable_debt_token_addresses() -> Vec<String> {
-    let reserves = find_all_reserves().unwrap_or_else(|e| {
+pub async fn find_all_variable_debt_token_addresses() -> Vec<String> {
+    let reserves = find_all_reserves().await.unwrap_or_else(|e| {
         eprintln!("Failed to find all reserves: {}", e);
         vec![]
     });
@@ -229,4 +228,23 @@ pub fn find_all_variable_debt_token_addresses() -> Vec<String> {
 
     // dbg!(&variable_debt_token_addresses);
     variable_debt_token_addresses
+}
+
+pub async fn get_user_position(
+    user_address: &str,
+) -> Result<Option<UserPositionDocument>, mongodb::error::Error> {
+    let collection: Collection<UserPositionDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().user_positions);
+
+    let filter = doc! { "userAddress": user_address };
+
+    match collection.find_one(filter).await {
+        Ok(doc) => Ok(doc),
+        Err(e) => {
+            eprintln!("Error finding user position for address {}: {}", user_address, e);
+            Err(e)
+        }
+    }
 }
