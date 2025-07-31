@@ -1,14 +1,16 @@
 # SODAX Backend Analyzer
 
-A Rust CLI tool for analyzing database data for the SODAX backend. This tool provides easy access to MongoDB data for reserve tokens, user positions, and orderbook information.
+A Rust CLI tool for analyzing database data for the SODAX backend. This tool provides easy access to MongoDB data for reserve tokens, user positions, and blockchain information.
 
 ## 🚀 Features
 
 - **Reserve Token Analysis** - Query reserve token data by various token addresses
 - **User Position Tracking** - Get user position data by wallet address
-- **Orderbook Data** - Access orderbook information
+- **Orderbook** - Get the orderbook of pending intents
+- **Blockchain Integration** - Get latest block numbers and token balances
 - **MongoDB Integration** - Direct connection to MongoDB database
 - **CLI Interface** - Simple command-line interface for data queries
+- **EVM Support** - Interact with Ethereum-compatible blockchains
 
 ## 📋 Prerequisites
 
@@ -51,6 +53,15 @@ MONGO_DB=your_database_name
 # Show help
 cargo run -- --help
 
+# Get all reserve tokens
+cargo run -- --all-tokens
+
+# Get latest block number
+cargo run -- --last-block
+
+# Get all orderbook data
+cargo run -- --orderbook
+
 # Get reserve token data by reserve address
 cargo run -- --reserve-token <RESERVE_ADDRESS>
 
@@ -60,24 +71,33 @@ cargo run -- --a-token <ATOKEN_ADDRESS>
 # Get reserve token data by variable debt token address
 cargo run -- --variable-token <VARIABLE_TOKEN_ADDRESS>
 
-# Get user position data (not implemented yet)
+# Get user position data by wallet address
 cargo run -- --user-position <WALLET_ADDRESS>
 
-# Get all tokens
-cargo run -- --all-tokens
+# Get token balance for a user (requires token type flag)
+cargo run -- --balance-of <USER_ADDRESS> --reserve-token <TOKEN_ADDRESS>
 ```
 
 ### Examples
 
 ```bash
+# Get all reserve tokens
+cargo run -- --all-tokens
+
+# Get latest block number
+cargo run -- --last-block
+
+# Get all orderbook data
+cargo run -- --orderbook
+
 # Query a specific reserve token
 cargo run -- --reserve-token 0x1234567890123456789012345678901234567890
 
 # Query by aToken address
 cargo run -- --a-token 0x5c50cf875aebad8d5ba548f229960c90b1c1f8c3
 
-# Get all reserve tokens
-cargo run -- --all-tokens
+# Get user balance for a specific token
+cargo run -- --balance-of 0xuser123... --reserve-token 0xtoken456...
 ```
 
 ## 🏗️ Project Structure
@@ -89,7 +109,7 @@ sodax-backend-analizer/
 │   ├── lib.rs               # Library entry point and CLI logic
 │   ├── config.rs            # Configuration management
 │   ├── db.rs                # Database operations
-│   ├── evm.rs               # EVM-related functionality (NOT IMPLEMENTED YET)
+│   ├── evm.rs               # EVM blockchain integration
 │   └── models.rs            # Data models
 ├── tests/
 │   └── mongodb_integration_tests.rs
@@ -145,8 +165,9 @@ The project uses Git hooks to ensure code quality:
 
 1. **Database Functions**: Add new functions in `src/db.rs`
 2. **CLI Commands**: Update `src/lib.rs` with new flag handling
-3. **Data Models**: Add new models in `src/models.rs`
-4. **Tests**: Add corresponding tests in `tests/`
+3. **EVM Functions**: Add blockchain interactions in `src/evm.rs`
+4. **Data Models**: Add new models in `src/models.rs`
+5. **Tests**: Add corresponding tests in `tests/`
 
 ## 📊 Data Models
 
@@ -174,25 +195,37 @@ pub struct ReserveTokenDocument {
 }
 ```
 
-## 🔍 Database Collections
+## 🔍 Data Sources
 
+### MongoDB Collections
 The tool connects to the following MongoDB collections:
 
 - `reserve_tokens` - Reserve token data
-- `orderbook` - Orderbook information
 - `user_positions` - User position data
+- `orderbook` - Orderbook information
 - `moneyMarketEvents` - Money market events
 - `walletFactoryEvents` - Wallet factory events
 - `intentEvents` - Intent events
+
+### Blockchain Integration
+The tool also connects to Ethereum-compatible blockchains:
+
+- **RPC Endpoint**: `https://rpc.soniclabs.com`
+- **Supported Operations**:
+  - Get latest block number
+  - Query ERC20 token balances
+  - Contract interactions via Solidity bindings
 
 ## 🚨 Error Handling
 
 The application handles various error scenarios:
 
 - **Database connection errors** - Graceful error messages
+- **Blockchain RPC errors** - Network and contract interaction errors
 - **Missing environment variables** - Clear configuration instructions
-- **Invalid CLI arguments** - Helpful usage information
+- **Invalid CLI arguments** - Helpful usage information with validation rules
 - **Data not found** - Appropriate "not found" messages
+- **Address parsing errors** - Invalid Ethereum address format handling
 
 ## 🤝 Contributing
 
@@ -214,6 +247,11 @@ The application handles various error scenarios:
 - Check environment variables
 - Ensure network connectivity
 
+**Blockchain Connection Failed**
+- Verify RPC endpoint is accessible
+- Check network connectivity
+- Ensure valid Ethereum addresses are provided
+
 **Tests Failing**
 - Ensure MongoDB instance is available
 - Check test data exists in database
@@ -224,6 +262,11 @@ The application handles various error scenarios:
 - Ensure all dependencies are up to date
 - Check Rust toolchain version
 
+**CLI Validation Errors**
+- Check flag combinations (see help for restrictions)
+- Ensure required arguments are provided
+- Verify address formats are valid Ethereum addresses
+
 ## 📞 Support
 
 For issues and questions:
@@ -233,4 +276,4 @@ For issues and questions:
 
 ---
 
-**Note**: This tool requires a running MongoDB instance with the appropriate SODAX backend data. Make sure your environment is properly configured before use. 
+**Note**: This tool requires a running MongoDB instance with the appropriate SODAX backend data and internet connectivity for blockchain RPC calls. Make sure your environment is properly configured before use. 
