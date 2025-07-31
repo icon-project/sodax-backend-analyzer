@@ -1,5 +1,6 @@
 pub mod config;
 pub mod db;
+pub mod evm;
 pub mod models;
 
 pub const HELP_MESSAGE: &str = r#"

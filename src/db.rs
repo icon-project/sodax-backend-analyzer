@@ -2,7 +2,7 @@ use crate::config::get_config;
 use crate::models::{OrderbookDocument, ReserveTokenDocument};
 // For async iteration over cursor
 use futures::stream::StreamExt;
-use mongodb::{bson::doc, options::ClientOptions, Client, Collection};
+use mongodb::{Client, Collection, bson::doc, options::ClientOptions};
 
 struct Collections {
     orderbook: &'static str,

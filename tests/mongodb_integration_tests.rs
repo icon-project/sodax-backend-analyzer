@@ -1,11 +1,30 @@
-use sodax_backend_analizer::db::{
-    find_all_a_token_addresses, find_all_reserve_addresses, find_all_reserves,
-    find_all_variable_debt_token_addresses, get_reserve_data_for_a_token,
+use sodax_backend_analizer::{
+    db::{
+        find_all_a_token_addresses, find_all_reserve_addresses, find_all_reserves,
+        find_all_variable_debt_token_addresses, get_reserve_data_for_a_token,
+    },
+    evm::get_last_block,
 };
 
 // For async tests
 use tokio;
 
+// EVM tests
+#[tokio::test]
+async fn test_get_last_block() {
+    let result = get_last_block().await;
+    // dbg!(&result);
+    assert!(
+        result.is_ok(),
+        "Should successfully retrieve the last block"
+    );
+
+    let block = result.unwrap();
+    // Add assertions based on expected block data
+    assert!(block > 0, "Block number should be greater than 0");
+}
+
+// Database tests
 #[tokio::test]
 async fn test_find_all_reserves() {
     let result = find_all_reserves().await;

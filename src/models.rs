@@ -1,4 +1,4 @@
-use mongodb::bson::{oid::ObjectId, DateTime, Decimal128};
+use mongodb::bson::{DateTime, Decimal128, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 
 pub enum CollectionTypes {
