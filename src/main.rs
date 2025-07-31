@@ -2,6 +2,7 @@ use sodax_backend_analizer::{
     db::{
         find_all_reserves, get_orderbook, get_reserve_data_for_a_token,
         get_reserve_data_for_reserve_token, get_reserve_data_for_variable_debt_token,
+        get_user_position,
     },
     evm::{get_balance_of, get_last_block},
     parse_args, Flag, HELP_MESSAGE,
@@ -145,6 +146,27 @@ async fn main() {
             },
             _ => {
                 eprintln!("Error: Unknown token type.");
+            }
+        }
+    // if --user-position was passed
+    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::UserPosition(_))) {
+        let user_address = flags
+            .iter()
+            .find_map(|f| match f {
+                Flag::UserPosition(address) => Some(address.clone()),
+                _ => None,
+            })
+            .unwrap_or_else(|| {
+                eprintln!("Error: --user-position requires a user address to be specified.");
+                std::process::exit(1);
+            });
+
+        match get_user_position(&user_address).await {
+            Ok(Some(position)) => println!("User Position: {:#?}", position),
+            Ok(None) => println!("No user position found for address: {}", user_address),
+            Err(e) => {
+                eprintln!("Error fetching user position: {}", e);
+                std::process::exit(1);
             }
         }
     }

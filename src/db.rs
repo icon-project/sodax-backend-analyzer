@@ -1,5 +1,5 @@
 use crate::config::get_config;
-use crate::models::{OrderbookDocument, ReserveTokenDocument};
+use crate::models::{OrderbookDocument, ReserveTokenDocument, UserPositionDocument};
 // For async iteration over cursor
 use futures::stream::StreamExt;
 use mongodb::{Client, Collection, bson::doc, options::ClientOptions};
@@ -228,4 +228,23 @@ pub async fn find_all_variable_debt_token_addresses() -> Vec<String> {
 
     // dbg!(&variable_debt_token_addresses);
     variable_debt_token_addresses
+}
+
+pub async fn get_user_position(
+    user_address: &str,
+) -> Result<Option<UserPositionDocument>, mongodb::error::Error> {
+    let collection: Collection<UserPositionDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().user_positions);
+
+    let filter = doc! { "userAddress": user_address };
+
+    match collection.find_one(filter).await {
+        Ok(doc) => Ok(doc),
+        Err(e) => {
+            eprintln!("Error finding user position for address {}: {}", user_address, e);
+            Err(e)
+        }
+    }
 }
