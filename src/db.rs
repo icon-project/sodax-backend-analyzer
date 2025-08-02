@@ -2,7 +2,7 @@ use crate::config::get_config;
 use crate::models::{OrderbookDocument, ReserveTokenDocument, UserPositionDocument};
 // For async iteration over cursor
 use futures::stream::StreamExt;
-use mongodb::{Client, Collection, bson::doc, options::ClientOptions};
+use mongodb::{bson::doc, options::ClientOptions, Client, Collection};
 
 struct Collections {
     orderbook: &'static str,
@@ -122,16 +122,16 @@ pub async fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::E
 }
 
 #[derive(Debug)]
-enum ReserveTokenField {
+pub enum ReserveTokenField {
     Reserve,
     AToken,
     VariableDebtToken,
 }
 
-async fn find_reserve_for_token(
+pub async fn find_reserve_for_token(
     token: &str,
     token_type: ReserveTokenField,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+) -> Result<ReserveTokenDocument, mongodb::error::Error> {
     let collection: Collection<ReserveTokenDocument> = get_db()
         .await
         .database()
@@ -144,7 +144,16 @@ async fn find_reserve_for_token(
     };
 
     match collection.find_one(filter).await {
-        Ok(doc) => Ok(doc),
+        Ok(doc) => match doc {
+            Some(reserve) => Ok(reserve),
+            None => {
+                eprintln!("No reserve found for token: {}", token);
+                Err(mongodb::error::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("No reserve found for token: {}", token),
+                )))
+            }
+        },
         Err(e) => {
             eprintln!("Error finding reserve for token {}: {}", token, e);
             Err(e)
@@ -152,23 +161,23 @@ async fn find_reserve_for_token(
     }
 }
 
-pub async fn get_reserve_data_for_reserve_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::Reserve).await
-}
+// async fn get_reserve_data_for_reserve_token(
+//     address: &str,
+// ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+//     find_reserve_for_token(address, ReserveTokenField::Reserve).await
+// }
 
-pub async fn get_reserve_data_for_a_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::AToken).await
-}
+// async fn get_reserve_data_for_a_token(
+//     address: &str,
+// ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+//     find_reserve_for_token(address, ReserveTokenField::AToken).await
+// }
 
-pub async fn get_reserve_data_for_variable_debt_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::VariableDebtToken).await
-}
+// async fn get_reserve_data_for_variable_debt_token(
+//     address: &str,
+// ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+//     find_reserve_for_token(address, ReserveTokenField::VariableDebtToken).await
+// }
 
 pub async fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
     let collection: Collection<ReserveTokenDocument> = get_db()
@@ -243,7 +252,10 @@ pub async fn get_user_position(
     match collection.find_one(filter).await {
         Ok(doc) => Ok(doc),
         Err(e) => {
-            eprintln!("Error finding user position for address {}: {}", user_address, e);
+            eprintln!(
+                "Error finding user position for address {}: {}",
+                user_address, e
+            );
             Err(e)
         }
     }
