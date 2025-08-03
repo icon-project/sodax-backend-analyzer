@@ -243,8 +243,8 @@ pub struct EntryState {
 
 pub struct UserPositionValidation {
     pub reserve_address: String,
-    pub supply_amount: EntryState,
-    pub borrow_amount: EntryState,
+    pub supply: EntryState,
+    pub borrow: EntryState,
     pub error: Option<String>,
 }
 
@@ -255,8 +255,8 @@ pub struct UserEntryState {
 
 pub struct ReserveEntryState {
     pub reserve_address: String,
-    pub supply_amount: EntryState,
-    pub borrow_amount: EntryState,
+    pub supply: EntryState,
+    pub borrow: EntryState,
     pub error: Option<String>,
 }
 ```
