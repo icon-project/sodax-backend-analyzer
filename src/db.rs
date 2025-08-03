@@ -2,7 +2,11 @@ use crate::config::get_config;
 use crate::models::{OrderbookDocument, ReserveTokenDocument, UserPositionDocument};
 // For async iteration over cursor
 use futures::stream::StreamExt;
-use mongodb::{Client, Collection, bson::doc, options::ClientOptions};
+use mongodb::{
+    bson::{doc, Document},
+    options::ClientOptions,
+    Client, Collection,
+};
 
 struct Collections {
     orderbook: &'static str,
@@ -39,8 +43,11 @@ impl Collections {
     }
 }
 
-fn get_collections_config() -> Collections {
-    Collections::new()
+#[derive(Debug)]
+pub enum ReserveTokenField {
+    Reserve,
+    AToken,
+    VariableDebtToken,
 }
 
 struct Database {
@@ -63,6 +70,10 @@ impl Database {
         let db_name = get_config().database_name();
         self.client.database(&db_name)
     }
+}
+
+fn get_collections_config() -> Collections {
+    Collections::new()
 }
 
 // Simple function-level initialization - each function creates its own connection
@@ -100,35 +111,29 @@ pub async fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::E
         .await
         .database()
         .collection(get_collections_config().orderbook);
-    let mut docs: Vec<OrderbookDocument> = vec![];
-    match collection.find(doc! {}).await {
-        Ok(mut cursor) => {
-            while let Some(doc_result) = cursor.next().await {
-                match doc_result {
-                    Ok(doc) => docs.push(doc),
-                    Err(e) => {
-                        eprintln!("Error getting OrderbookDocument. {}", e);
-                        return Err(e);
-                    }
-                };
-            }
-        }
-        Err(e) => {
-            eprintln!("Error finding OrderbookDocument. {}", e);
-            return Err(e);
-        }
-    };
+    let docs: Vec<OrderbookDocument> = collect_all(collection).await?;
     Ok(docs)
 }
 
-#[derive(Debug)]
-enum ReserveTokenField {
-    Reserve,
-    AToken,
-    VariableDebtToken,
+pub async fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
+    let collection: Collection<ReserveTokenDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().reserve_tokens);
+    let reserves: Vec<ReserveTokenDocument> = collect_all(collection).await?;
+    Ok(reserves)
 }
 
-async fn find_reserve_for_token(
+pub async fn find_all_users() -> Result<Vec<UserPositionDocument>, mongodb::error::Error> {
+    let collection: Collection<UserPositionDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().user_positions);
+    let users: Vec<UserPositionDocument> = collect_all(collection).await?;
+    Ok(users)
+}
+
+pub async fn find_reserve_for_token(
     token: &str,
     token_type: ReserveTokenField,
 ) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
@@ -143,51 +148,19 @@ async fn find_reserve_for_token(
         ReserveTokenField::VariableDebtToken => doc! { "variableDebtTokenAddress": token },
     };
 
-    match collection.find_one(filter).await {
-        Ok(doc) => Ok(doc),
-        Err(e) => {
-            eprintln!("Error finding reserve for token {}: {}", token, e);
-            Err(e)
-        }
-    }
+    find_one_as_option(collection, filter).await
 }
 
-pub async fn get_reserve_data_for_reserve_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::Reserve).await
-}
+pub async fn find_all_user_addresses() -> Vec<String> {
+    let users = find_all_users().await.unwrap_or_else(|e| {
+        eprintln!("Failed to find all users: {}", e);
+        vec![]
+    });
 
-pub async fn get_reserve_data_for_a_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::AToken).await
-}
+    let user_addresses: Vec<String> = users.iter().map(|u| u.userAddress.clone()).collect();
 
-pub async fn get_reserve_data_for_variable_debt_token(
-    address: &str,
-) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
-    find_reserve_for_token(address, ReserveTokenField::VariableDebtToken).await
-}
-
-pub async fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
-    let collection: Collection<ReserveTokenDocument> = get_db()
-        .await
-        .database()
-        .collection(get_collections_config().reserve_tokens);
-    let mut reserves: Vec<ReserveTokenDocument> = vec![];
-    let mut cursor = collection.find(doc! {}).await?;
-
-    while let Some(doc_result) = cursor.next().await {
-        match doc_result {
-            Ok(doc) => reserves.push(doc),
-            Err(e) => {
-                eprintln!("Error getting ReserveTokenDocument. {}", e);
-                return Err(e);
-            }
-        };
-    }
-    Ok(reserves)
+    // dbg!(&user_addresses);
+    user_addresses
 }
 
 pub async fn find_all_reserve_addresses() -> Vec<String> {
@@ -232,19 +205,71 @@ pub async fn find_all_variable_debt_token_addresses() -> Vec<String> {
 
 pub async fn get_user_position(
     user_address: &str,
-) -> Result<Option<UserPositionDocument>, mongodb::error::Error> {
+) -> Result<UserPositionDocument, mongodb::error::Error> {
     let collection: Collection<UserPositionDocument> = get_db()
         .await
         .database()
         .collection(get_collections_config().user_positions);
 
     let filter = doc! { "userAddress": user_address };
+    find_one(collection, filter).await
+}
 
+// GENERICS
+//
+async fn find_one<T>(
+    collection: Collection<T>,
+    filter: Document,
+) -> Result<T, mongodb::error::Error>
+where
+    T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
+{
     match collection.find_one(filter).await {
-        Ok(doc) => Ok(doc),
+        Ok(doc) => match doc {
+            Some(document) => Ok(document),
+            None => Err(mongodb::error::Error::from(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "Document not found",
+            ))),
+        },
         Err(e) => {
-            eprintln!("Error finding user position for address {}: {}", user_address, e);
+            eprintln!("Error finding document: {}", e);
             Err(e)
         }
     }
+}
+
+async fn find_one_as_option<T>(
+    collection: Collection<T>,
+    filter: Document,
+) -> Result<Option<T>, mongodb::error::Error>
+where
+    T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
+{
+    match collection.find_one(filter).await {
+        Ok(doc) => Ok(doc),
+        Err(e) => {
+            eprintln!("Error finding document: {}", e);
+            Err(e)
+        }
+    }
+}
+
+async fn collect_all<T>(collection: Collection<T>) -> Result<Vec<T>, mongodb::error::Error>
+where
+    T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
+{
+    let mut docs: Vec<T> = vec![];
+    let mut cursor = collection.find(doc! {}).await?;
+
+    while let Some(doc_result) = cursor.next().await {
+        match doc_result {
+            Ok(doc) => docs.push(doc),
+            Err(e) => {
+                eprintln!("Error collecting documents. {}", e);
+                return Err(e);
+            }
+        };
+    }
+    Ok(docs)
 }

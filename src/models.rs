@@ -1,4 +1,4 @@
-use mongodb::bson::{DateTime, Decimal128, oid::ObjectId};
+use mongodb::bson::{oid::ObjectId, DateTime, Decimal128};
 use serde::{Deserialize, Serialize};
 
 pub enum CollectionTypes {
@@ -6,7 +6,7 @@ pub enum CollectionTypes {
     ReserveTokenDocument,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[allow(non_snake_case)]
 pub struct UserAssetPositionDocument {
     pub reserveAddress: String,
