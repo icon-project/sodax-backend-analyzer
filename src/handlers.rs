@@ -11,6 +11,8 @@ use crate::validation::{
 };
 use crate::models::ReserveTokenDocument;
 use crate::cli::HELP_MESSAGE;
+use futures::future::join_all;
+use tokio::task;
 
 pub async fn handle_help() {
     println!("{}", HELP_MESSAGE);
@@ -378,41 +380,83 @@ pub async fn handle_validate_token_borrow(flags: Vec<Flag>) {
 }
 
 pub async fn handle_validate_token_all() {
-    println!("Validating all reserves...");
-    let all_tokens = find_all_reserves().await;
+    println!("Validating all reserves in parallel...");
 
-    for token in match all_tokens {
-        Ok(tokens) => tokens,
+    // Get all reserves first
+    let reserves = match find_all_reserves().await {
+        Ok(reserves) => reserves,
         Err(e) => {
             eprintln!("Error fetching reserve tokens: {}", e);
             std::process::exit(1);
         }
-    } {
-        println!("Validating reserve {}...", token.reserveAddress);
-        match validate_reserve(&token.reserveAddress).await {
-            Ok(result) => {
-                println!("✅ Reserve {} validated successfully", token.reserveAddress);
-                println!(
-                    "  Supply - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
-                    result.supply.database_amount,
-                    result.supply.on_chain_amount,
-                    result.supply.difference,
-                    result.supply.percentage
-                );
+    };
+
+    // Create tasks for parallel validation
+    let tasks: Vec<_> = reserves
+        .into_iter()
+        .map(|reserve| {
+            let reserve_address = reserve.reserveAddress.clone();
+            task::spawn(async move {
+                match validate_reserve(&reserve_address).await {
+                    Ok(result) => Ok(result),
+                    Err(e) => Err(format!("Failed to validate {}: {}", reserve_address, e))
+                }
+            })
+        })
+        .collect();
+
+    // Wait for all tasks to complete
+    let results = join_all(tasks).await;
+    
+    let mut success_count = 0;
+    let mut error_count = 0;
+
+    for result in results {
+        match result {
+            Ok(Ok(validation_result)) => {
+                success_count += 1;
+                if let Some(error) = &validation_result.error {
+                    error_count += 1;
+                    println!("❌ Reserve {}: ERROR - {}", validation_result.reserve_address, error);
+                } else {
+                    println!("✅ Reserve {} validated successfully", validation_result.reserve_address);
+                    println!(
+                        "  Supply - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
+                        validation_result.supply.database_amount,
+                        validation_result.supply.on_chain_amount,
+                        validation_result.supply.difference,
+                        validation_result.supply.percentage
+                    );
+                    println!(
+                        "  Borrow - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
+                        validation_result.borrow.database_amount,
+                        validation_result.borrow.on_chain_amount,
+                        validation_result.borrow.difference,
+                        validation_result.borrow.percentage
+                    );
+                }
+            }
+            Ok(Err(e)) => {
+                error_count += 1;
+                println!("❌ Validation failed: {}", e);
             }
             Err(e) => {
-                eprintln!(
-                    "❌ Error validating reserve {}: {}",
-                    token.reserveAddress, e
-                );
+                error_count += 1;
+                println!("❌ Task failed: {}", e);
             }
         }
     }
+
+    println!(
+        "\n📊 Summary: {} successful, {} errors",
+        success_count, error_count
+    );
 }
 
 pub async fn handle_validate_users_all() {
-    println!("Validating all users...");
-    // fetch all Users
+    println!("Validating all users in parallel...");
+    
+    // Fetch all users first
     let users = match find_all_users().await {
         Ok(users) => users,
         Err(e) => {
@@ -421,10 +465,41 @@ pub async fn handle_validate_users_all() {
         }
     };
 
-    for user in users {
-        println!("Validating positions for user {}...", user.userAddress);
-        handle_user_validation(&user.userAddress, false).await;
+    // Create tasks for parallel user validation
+    let tasks: Vec<_> = users
+        .into_iter()
+        .map(|user| {
+            let user_address = user.userAddress.clone();
+            task::spawn(async move {
+                // Use handle_user_validation instead of calling validate_user_all_positions directly
+                handle_user_validation(&user_address, false).await;
+                Ok::<(), Box<dyn std::error::Error + Send + Sync>>(()) // handle_user_validation handles its own output
+            })
+        })
+        .collect();
+
+    // Wait for all tasks to complete
+    let results = join_all(tasks).await;
+    
+    let mut success_count = 0;
+    let mut error_count = 0;
+
+    for result in results {
+        match result {
+            Ok(_) => {
+                success_count += 1;
+            }
+            Err(e) => {
+                error_count += 1;
+                println!("❌ Task failed: {}", e);
+            }
+        }
     }
+
+    println!(
+        "\n📊 Summary: {} successful users, {} errors",
+        success_count, error_count
+    );
 }
 
 pub async fn handle_validate_user_all(flags: Vec<Flag>) {

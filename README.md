@@ -12,7 +12,7 @@ A Rust CLI tool for analyzing database data for the SODAX backend. This tool pro
 - **CLI Interface** - Simple command-line interface for data queries
 - **EVM Support** - Interact with Ethereum-compatible blockchains
 - **Data Validation** - Comprehensive validation of database vs on-chain data
-- **Bulk Operations** - Validate all reserves and user positions at once
+- **Bulk Operations** - Validate all reserves and user positions at once with parallel processing
 - **Error Handling** - Robust error handling with graceful degradation
 
 ## 📋 Prerequisites
@@ -295,6 +295,7 @@ The application handles various error scenarios:
 - **Rate limiting** - Graceful handling of RPC rate limits with continued processing
 - **Validation errors** - Position-level error tracking with detailed error messages
 - **Bulk operation failures** - Individual item failures don't stop entire operations
+- **Parallel processing** - Bulk operations run in parallel for optimal performance
 
 ## 🤝 Contributing
 
