@@ -1,11 +1,10 @@
 use crate::constants::RAY;
-use crate::db::{
-    find_reserve_for_token, get_user_position, ReserveTokenField, find_all_users, find_all_reserves,
-};
+use crate::db::{find_reserve_for_token, get_user_position, ReserveTokenField, find_all_reserves};
 use crate::evm::{
     get_atoken_liquidity_index, get_balance_of, get_total_supply, get_variable_borrow_index,
 };
 use crate::models::UserAssetPositionDocument;
+use futures::future::join_all;
 
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -48,8 +47,8 @@ impl EntryState {
 #[derive(Debug, Clone)]
 pub struct UserPositionValidation {
     pub reserve_address: String,
-    pub supply_amount: EntryState,
-    pub borrow_amount: EntryState,
+    pub supply: EntryState,
+    pub borrow: EntryState,
     pub error: Option<String>,
 }
 
@@ -70,8 +69,8 @@ impl UserEntryState {
 #[derive(Debug, Clone)]
 pub struct ReserveEntryState {
     pub reserve_address: String,
-    pub supply_amount: EntryState,
-    pub borrow_amount: EntryState,
+    pub supply: EntryState,
+    pub borrow: EntryState,
     pub error: Option<String>,
 }
 
@@ -79,8 +78,8 @@ impl ReserveEntryState {
     pub fn new(reserve_address: String) -> Self {
         ReserveEntryState {
             reserve_address,
-            supply_amount: EntryState::new(0, 0),
-            borrow_amount: EntryState::new(0, 0),
+            supply: EntryState::new(0, 0),
+            borrow: EntryState::new(0, 0),
             error: None,
         }
     }
@@ -88,8 +87,8 @@ impl ReserveEntryState {
     pub fn with_error(reserve_address: String, error: String) -> Self {
         ReserveEntryState {
             reserve_address,
-            supply_amount: EntryState::new(0, 0),
-            borrow_amount: EntryState::new(0, 0),
+            supply: EntryState::new(0, 0),
+            borrow: EntryState::new(0, 0),
             error: Some(error),
         }
     }
@@ -330,58 +329,85 @@ pub async fn validate_user_all_positions(
 
     let mut results = UserEntryState::new(user_address.to_string());
 
-    for position in user_positions.positions {
-        let reserve_address = position.reserveAddress.clone();
-        let mut position_validation = UserPositionValidation {
-            reserve_address: reserve_address.clone(),
-            supply_amount: EntryState::new(0, 0),
-            borrow_amount: EntryState::new(0, 0),
-            error: None,
-        };
+    // Create tasks for parallel position validation
+    let tasks: Vec<_> = user_positions.positions
+        .into_iter()
+        .map(|position| {
+            let user_address = user_address.to_string();
+            let reserve_address = position.reserveAddress.clone();
+            tokio::task::spawn(async move {
+                let mut position_validation = UserPositionValidation {
+                    reserve_address: reserve_address.clone(),
+                    supply: EntryState::new(0, 0),
+                    borrow: EntryState::new(0, 0),
+                    error: None,
+                };
 
-        // Validate supply amount
-        match validate_user_supply_amount(user_address, &reserve_address).await {
-            Ok(supply_result) => {
-                position_validation.supply_amount = supply_result;
-            }
-            Err(e) => {
-                position_validation.error = Some(format!("Supply validation failed: {}", e));
-                // Continue to try borrow validation
-            }
-        }
-
-        // Validate borrow amount
-        match validate_user_borrow_amount(user_address, &reserve_address).await {
-            Ok(borrow_result) => {
-                position_validation.borrow_amount = borrow_result;
-            }
-            Err(e) => {
-                // If there's already an error, append to it, otherwise create new error
-                if let Some(existing_error) = &position_validation.error {
-                    position_validation.error = Some(format!("{}; Borrow validation failed: {}", existing_error, e));
-                } else {
-                    position_validation.error = Some(format!("Borrow validation failed: {}", e));
+                // Validate supply amount
+                match validate_user_supply_amount(&user_address, &reserve_address).await {
+                    Ok(supply_result) => {
+                        position_validation.supply = supply_result;
+                    }
+                    Err(e) => {
+                        position_validation.error = Some(format!("Supply validation failed: {}", e));
+                        // Continue to try borrow validation
+                    }
                 }
-                // Continue to try other positions
+
+                // Validate borrow amount
+                match validate_user_borrow_amount(&user_address, &reserve_address).await {
+                    Ok(borrow_result) => {
+                        position_validation.borrow = borrow_result;
+                    }
+                    Err(e) => {
+                        // If there's already an error, append to it, otherwise create new error
+                        if let Some(existing_error) = &position_validation.error {
+                            position_validation.error = Some(format!(
+                                "{}; Borrow validation failed: {}",
+                                existing_error, e
+                            ));
+                        } else {
+                            position_validation.error = Some(format!("Borrow validation failed: {}", e));
+                        }
+                        // Continue to try other positions
+                    }
+                }
+
+                Ok::<UserPositionValidation, Box<dyn std::error::Error + Send + Sync>>(position_validation)
+            })
+        })
+        .collect();
+
+    // Wait for all tasks to complete
+    let position_results = join_all(tasks).await;
+
+    // Collect results
+    for result in position_results {
+        match result {
+            Ok(Ok(position_validation)) => {
+                results.positions.push(position_validation);
+            }
+            Ok(Err(e)) => {
+                // Handle validation errors
+                let error_position = UserPositionValidation {
+                    reserve_address: "unknown".to_string(),
+                    supply: EntryState::new(0, 0),
+                    borrow: EntryState::new(0, 0),
+                    error: Some(format!("Position validation failed: {}", e)),
+                };
+                results.positions.push(error_position);
+            }
+            Err(e) => {
+                // Handle task failures
+                let error_position = UserPositionValidation {
+                    reserve_address: "unknown".to_string(),
+                    supply: EntryState::new(0, 0),
+                    borrow: EntryState::new(0, 0),
+                    error: Some(format!("Task failed: {}", e)),
+                };
+                results.positions.push(error_position);
             }
         }
-
-        // Add this position's validation to results
-        results.positions.push(position_validation);
-    }
-
-    Ok(results)
-}
-
-pub async fn validate_all_users_positions()
--> Result<Vec<UserEntryState>, Box<dyn std::error::Error>> {
-    let users = find_all_users().await?;
-    let mut results = Vec::new();
-
-    for user in users {
-        let user_address = user.userAddress.clone();
-        let user_results = validate_user_all_positions(&user_address).await?;
-        results.push(user_results);
     }
 
     Ok(results)
@@ -395,7 +421,7 @@ pub async fn validate_reserve(
     // Validate supply amount
     match validate_token_supply_amount(reserve_address).await {
         Ok(supply_result) => {
-            results.supply_amount = supply_result;
+            results.supply = supply_result;
         }
         Err(e) => {
             results.error = Some(format!("Supply validation failed: {}", e));
@@ -406,7 +432,7 @@ pub async fn validate_reserve(
     // Validate borrow amount
     match validate_token_borrow_amount(reserve_address).await {
         Ok(borrow_result) => {
-            results.borrow_amount = borrow_result;
+            results.borrow = borrow_result;
         }
         Err(e) => {
             results.error = Some(format!("Borrow validation failed: {}", e));
