@@ -11,6 +11,9 @@ A Rust CLI tool for analyzing database data for the SODAX backend. This tool pro
 - **MongoDB Integration** - Direct connection to MongoDB database
 - **CLI Interface** - Simple command-line interface for data queries
 - **EVM Support** - Interact with Ethereum-compatible blockchains
+- **Data Validation** - Comprehensive validation of database vs on-chain data
+- **Bulk Operations** - Validate all reserves and user positions at once
+- **Error Handling** - Robust error handling with graceful degradation
 
 ## 📋 Prerequisites
 
@@ -76,7 +79,18 @@ cargo run -- --user-position <WALLET_ADDRESS>
 
 # Get token balance for a user (requires token type flag)
 cargo run -- --balance-of <USER_ADDRESS> --reserve-token <TOKEN_ADDRESS>
-```
+
+# Individual validation
+cargo run -- --validate-user-supply <USER_ADDRESS> --reserve-token <RESERVE_ADDRESS>
+cargo run -- --validate-user-borrow <USER_ADDRESS> --reserve-token <RESERVE_ADDRESS>
+cargo run -- --validate-token-supply --reserve-token <RESERVE_ADDRESS>
+cargo run -- --validate-token-borrow --reserve-token <RESERVE_ADDRESS>
+
+# Bulk validation
+cargo run -- --validate-user-all <USER_ADDRESS>
+cargo run -- --validate-users-all
+cargo run -- --validate-token-all
+cargo run -- --validate-all
 
 ### Examples
 
@@ -98,6 +112,20 @@ cargo run -- --a-token 0x5c50cf875aebad8d5ba548f229960c90b1c1f8c3
 
 # Get user balance for a specific token
 cargo run -- --balance-of 0xuser123... --reserve-token 0xtoken456...
+
+# Validate user supply and borrow positions
+cargo run -- --validate-user-supply 0xuser123... --reserve-token 0xtoken456...
+cargo run -- --validate-user-borrow 0xuser123... --reserve-token 0xtoken456...
+
+# Validate token total supply and borrow
+cargo run -- --validate-token-supply --reserve-token 0xtoken456...
+cargo run -- --validate-token-borrow --reserve-token 0xtoken456...
+
+# Bulk validation examples
+cargo run -- --validate-user-all 0xuser123...
+cargo run -- --validate-users-all
+cargo run -- --validate-token-all
+cargo run -- --validate-all
 ```
 
 ## 🏗️ Project Structure
@@ -106,12 +134,19 @@ cargo run -- --balance-of 0xuser123... --reserve-token 0xtoken456...
 sodax-backend-analizer/
 ├── src/
 │   ├── main.rs              # CLI entry point
-│   ├── lib.rs               # Library entry point and CLI logic
+│   ├── lib.rs               # Library entry point and re-exports
+│   ├── cli.rs               # CLI argument parsing and help
 │   ├── config.rs            # Configuration management
 │   ├── db.rs                # Database operations
 │   ├── evm.rs               # EVM blockchain integration
+│   ├── handlers.rs          # CLI command handlers
+│   ├── validation.rs        # Data validation logic
+│   ├── constants.rs         # Global constants
 │   └── models.rs            # Data models
 ├── tests/
+│   ├── common.rs            # Common test utilities
+│   ├── evm_integration_tests.rs
+│   ├── general_integration_tests.rs
 │   └── mongodb_integration_tests.rs
 ├── Cargo.toml
 ├── Cargo.lock
@@ -164,10 +199,12 @@ The project uses Git hooks to ensure code quality:
 ### Adding New Features
 
 1. **Database Functions**: Add new functions in `src/db.rs`
-2. **CLI Commands**: Update `src/lib.rs` with new flag handling
+2. **CLI Commands**: Update `src/cli.rs` with new flag definitions and `src/handlers.rs` with handlers
 3. **EVM Functions**: Add blockchain interactions in `src/evm.rs`
-4. **Data Models**: Add new models in `src/models.rs`
-5. **Tests**: Add corresponding tests in `tests/`
+4. **Validation Logic**: Add validation functions in `src/validation.rs`
+5. **Data Models**: Add new models in `src/models.rs`
+6. **Constants**: Add global constants in `src/constants.rs`
+7. **Tests**: Add corresponding tests in `tests/`
 
 ## 📊 Data Models
 
@@ -192,6 +229,35 @@ pub struct ReserveTokenDocument {
     pub createdAt: DateTime,
     pub updatedAt: DateTime,
     pub version: i32,
+}
+```
+
+### Validation Models
+```rust
+pub struct EntryState {
+    pub database_amount: u128,
+    pub on_chain_amount: u128,
+    pub difference: u128,
+    pub percentage: f64,
+}
+
+pub struct UserPositionValidation {
+    pub reserve_address: String,
+    pub supply_amount: EntryState,
+    pub borrow_amount: EntryState,
+    pub error: Option<String>,
+}
+
+pub struct UserEntryState {
+    pub user_address: String,
+    pub positions: Vec<UserPositionValidation>,
+}
+
+pub struct ReserveEntryState {
+    pub reserve_address: String,
+    pub supply_amount: EntryState,
+    pub borrow_amount: EntryState,
+    pub error: Option<String>,
 }
 ```
 
@@ -226,6 +292,9 @@ The application handles various error scenarios:
 - **Invalid CLI arguments** - Helpful usage information with validation rules
 - **Data not found** - Appropriate "not found" messages
 - **Address parsing errors** - Invalid Ethereum address format handling
+- **Rate limiting** - Graceful handling of RPC rate limits with continued processing
+- **Validation errors** - Position-level error tracking with detailed error messages
+- **Bulk operation failures** - Individual item failures don't stop entire operations
 
 ## 🤝 Contributing
 
@@ -276,4 +345,4 @@ For issues and questions:
 
 ---
 
-**Note**: This tool requires a running MongoDB instance with the appropriate SODAX backend data and internet connectivity for blockchain RPC calls. Make sure your environment is properly configured before use. 
+**Note**: This tool requires a running MongoDB instance with the appropriate SODAX backend data and internet connectivity for blockchain RPC calls. Make sure your environment is properly configured before use.

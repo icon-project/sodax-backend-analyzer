@@ -1,5 +1,7 @@
 use crate::constants::RAY;
-use crate::db::{find_reserve_for_token, get_user_position, ReserveTokenField};
+use crate::db::{
+    find_reserve_for_token, get_user_position, ReserveTokenField, find_all_users, find_all_reserves,
+};
 use crate::evm::{
     get_atoken_liquidity_index, get_balance_of, get_total_supply, get_variable_borrow_index,
 };
@@ -20,7 +22,19 @@ impl EntryState {
         } else {
             on_chain_amount - database_amount
         };
-        let percentage = (difference as f64 / on_chain_amount as f64) * 100.0;
+
+        // Handle division by zero and edge cases
+        let percentage = if on_chain_amount == 0 {
+            if database_amount == 0 {
+                0.0 // Both are 0, so 0% difference
+            } else {
+                100.0 // Database has amount but on-chain is 0, so 100% difference
+            }
+        } else if database_amount == 0 {
+            100.0 // Database is 0 but on-chain has amount, so 100% difference
+        } else {
+            (difference as f64 / on_chain_amount as f64) * 100.0
+        };
 
         EntryState {
             database_amount,
@@ -31,14 +45,61 @@ impl EntryState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct UserPositionValidation {
+    pub reserve_address: String,
+    pub supply_amount: EntryState,
+    pub borrow_amount: EntryState,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UserEntryState {
+    pub user_address: String,
+    pub positions: Vec<UserPositionValidation>,
+}
+
+impl UserEntryState {
+    pub fn new(user_address: String) -> Self {
+        UserEntryState {
+            user_address,
+            positions: Vec::new(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ReserveEntryState {
+    pub reserve_address: String,
+    pub supply_amount: EntryState,
+    pub borrow_amount: EntryState,
+    pub error: Option<String>,
+}
+
+impl ReserveEntryState {
+    pub fn new(reserve_address: String) -> Self {
+        ReserveEntryState {
+            reserve_address,
+            supply_amount: EntryState::new(0, 0),
+            borrow_amount: EntryState::new(0, 0),
+            error: None,
+        }
+    }
+
+    pub fn with_error(reserve_address: String, error: String) -> Self {
+        ReserveEntryState {
+            reserve_address,
+            supply_amount: EntryState::new(0, 0),
+            borrow_amount: EntryState::new(0, 0),
+            error: Some(error),
+        }
+    }
+}
+
 async fn find_user_position(
     user_address: &str,
     reserve_address: &str,
 ) -> Result<UserAssetPositionDocument, Box<dyn std::error::Error>> {
-    let reserve_data = match get_user_position(user_address).await? {
-        Some(data) => data,
-        None => return Err("No user position found for user".into()),
-    };
+    let reserve_data = get_user_position(user_address).await?;
 
     // Find the position for the specific reserve
     let position = reserve_data
@@ -67,18 +128,23 @@ pub async fn calculate_user_supply_amount(
     let index = get_atoken_liquidity_index(reserve_address).await?;
 
     // Find the position for the specific token
-    let position = find_user_position(user_address, reserve_address).await?;
+    match find_user_position(user_address, reserve_address).await {
+        Ok(position) => {
+            // Convert Decimal128 to u128 for calculation
+            let a_token_balance = position
+                .aTokenBalance
+                .to_string()
+                .parse::<u128>()
+                .map_err(|_| "Failed to parse aToken balance")?;
 
-    // Convert Decimal128 to u128 for calculation
-    let a_token_balance = position
-        .aTokenBalance
-        .to_string()
-        .parse::<u128>()
-        .map_err(|_| "Failed to parse aToken balance")?;
-
-    let real_balance = calculate_real_balance(a_token_balance, index);
-
-    Ok(real_balance)
+            let real_balance = calculate_real_balance(a_token_balance, index);
+            Ok(real_balance)
+        }
+        Err(_) => {
+            // User has no position for this reserve, return 0
+            Ok(0)
+        }
+    }
 }
 
 pub async fn calculate_user_borrow_amount(
@@ -88,18 +154,23 @@ pub async fn calculate_user_borrow_amount(
     let index = get_variable_borrow_index(reserve_address).await?;
 
     // Find the position for the specific token
-    let position = find_user_position(user_address, reserve_address).await?;
+    match find_user_position(user_address, reserve_address).await {
+        Ok(position) => {
+            // Convert Decimal128 to u128 for calculation
+            let a_token_balance = position
+                .variableDebtTokenBalance
+                .to_string()
+                .parse::<u128>()
+                .map_err(|_| "Failed to parse variable debt token balance")?;
 
-    // Convert Decimal128 to u128 for calculation
-    let a_token_balance = position
-        .variableDebtTokenBalance
-        .to_string()
-        .parse::<u128>()
-        .map_err(|_| "Failed to parse variable debt token balance")?;
-
-    let real_balance = calculate_real_balance(a_token_balance, index);
-
-    Ok(real_balance)
+            let real_balance = calculate_real_balance(a_token_balance, index);
+            Ok(real_balance)
+        }
+        Err(_) => {
+            // User has no position for this reserve, return 0
+            Ok(0)
+        }
+    }
 }
 
 pub async fn get_token_supply_amount(
@@ -107,7 +178,9 @@ pub async fn get_token_supply_amount(
 ) -> Result<u128, Box<dyn std::error::Error>> {
     let index = get_atoken_liquidity_index(reserve_address).await?;
 
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
 
     let scaled_balance = token_data
         .totalATokenBalance
@@ -125,7 +198,9 @@ pub async fn get_token_borrow_amount(
 ) -> Result<u128, Box<dyn std::error::Error>> {
     let index = get_variable_borrow_index(reserve_address).await?;
 
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
 
     let scaled_balance = token_data
         .totalVariableDebtTokenBalance
@@ -185,7 +260,9 @@ pub async fn validate_user_supply_amount(
 ) -> Result<EntryState, Box<dyn std::error::Error>> {
     let calculated_amount = calculate_user_supply_amount(user_address, reserve_address).await?;
 
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
 
     let a_token_address = token_data.aTokenAddress;
     let on_chain_amount = get_balance_of(&a_token_address, user_address).await?;
@@ -200,7 +277,9 @@ pub async fn validate_user_borrow_amount(
 ) -> Result<EntryState, Box<dyn std::error::Error>> {
     let calculated_amount = calculate_user_borrow_amount(user_address, reserve_address).await?;
 
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
 
     let variable_debt_token_address = token_data.variableDebtTokenAddress;
 
@@ -217,7 +296,9 @@ pub async fn validate_token_supply_amount(
 
     // with the reserve address, look for the reserve token document,
     // then use the aTokenAddress to get the on-chain amount
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
     let a_token_address = token_data.aTokenAddress;
     let on_chain_amount = get_total_supply(&a_token_address).await?;
 
@@ -232,10 +313,119 @@ pub async fn validate_token_borrow_amount(
 
     // with the reserve address, look for the reserve token document,
     // then use the aTokenAddress to get the on-chain amount
-    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve).await?;
+    let token_data = find_reserve_for_token(reserve_address, ReserveTokenField::Reserve)
+        .await?
+        .ok_or("No reserve data found for the specified reserve address")?;
     let v_token_address = token_data.variableDebtTokenAddress;
     let on_chain_amount = get_total_supply(&v_token_address).await?;
 
     let result = EntryState::new(calculated_amount, on_chain_amount);
     Ok(result)
+}
+
+pub async fn validate_user_all_positions(
+    user_address: &str,
+) -> Result<UserEntryState, Box<dyn std::error::Error>> {
+    let user_positions = get_user_position(user_address).await?;
+
+    let mut results = UserEntryState::new(user_address.to_string());
+
+    for position in user_positions.positions {
+        let reserve_address = position.reserveAddress.clone();
+        let mut position_validation = UserPositionValidation {
+            reserve_address: reserve_address.clone(),
+            supply_amount: EntryState::new(0, 0),
+            borrow_amount: EntryState::new(0, 0),
+            error: None,
+        };
+
+        // Validate supply amount
+        match validate_user_supply_amount(user_address, &reserve_address).await {
+            Ok(supply_result) => {
+                position_validation.supply_amount = supply_result;
+            }
+            Err(e) => {
+                position_validation.error = Some(format!("Supply validation failed: {}", e));
+                // Continue to try borrow validation
+            }
+        }
+
+        // Validate borrow amount
+        match validate_user_borrow_amount(user_address, &reserve_address).await {
+            Ok(borrow_result) => {
+                position_validation.borrow_amount = borrow_result;
+            }
+            Err(e) => {
+                // If there's already an error, append to it, otherwise create new error
+                if let Some(existing_error) = &position_validation.error {
+                    position_validation.error = Some(format!("{}; Borrow validation failed: {}", existing_error, e));
+                } else {
+                    position_validation.error = Some(format!("Borrow validation failed: {}", e));
+                }
+                // Continue to try other positions
+            }
+        }
+
+        // Add this position's validation to results
+        results.positions.push(position_validation);
+    }
+
+    Ok(results)
+}
+
+pub async fn validate_all_users_positions()
+-> Result<Vec<UserEntryState>, Box<dyn std::error::Error>> {
+    let users = find_all_users().await?;
+    let mut results = Vec::new();
+
+    for user in users {
+        let user_address = user.userAddress.clone();
+        let user_results = validate_user_all_positions(&user_address).await?;
+        results.push(user_results);
+    }
+
+    Ok(results)
+}
+
+pub async fn validate_reserve(
+    reserve_address: &str,
+) -> Result<ReserveEntryState, Box<dyn std::error::Error>> {
+    let mut results = ReserveEntryState::new(reserve_address.to_string());
+
+    // Validate supply amount
+    match validate_token_supply_amount(reserve_address).await {
+        Ok(supply_result) => {
+            results.supply_amount = supply_result;
+        }
+        Err(e) => {
+            results.error = Some(format!("Supply validation failed: {}", e));
+            // Continue to try borrow validation
+        }
+    }
+
+    // Validate borrow amount
+    match validate_token_borrow_amount(reserve_address).await {
+        Ok(borrow_result) => {
+            results.borrow_amount = borrow_result;
+        }
+        Err(e) => {
+            results.error = Some(format!("Borrow validation failed: {}", e));
+            // Both validations attempted, return with any errors
+        }
+    }
+
+    Ok(results)
+}
+
+pub async fn validate_all_reserves() -> Result<Vec<ReserveEntryState>, Box<dyn std::error::Error>> {
+    let reserves = find_all_reserves().await?;
+    let mut results = Vec::new();
+
+    for reserve in reserves {
+        let reserve_address = reserve.reserveAddress.clone();
+        let reserve_results = validate_reserve(&reserve_address).await?;
+        results.push(reserve_results);
+    }
+
+    Ok(results)
 }

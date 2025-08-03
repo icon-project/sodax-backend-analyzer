@@ -2,6 +2,8 @@ use sodax_backend_analizer::{
     handle_all_tokens, handle_help, handle_last_block, handle_orderbook, parse_args, Flag,
     handle_balance_of, handle_user_position, handle_token, handle_validate_user_supply,
     handle_validate_user_borrow, handle_validate_token_supply, handle_validate_token_borrow,
+    handle_validate_token_all, handle_validate_users_all, handle_validate_user_all,
+    handle_validate_all,
 };
 
 #[tokio::main]
@@ -35,6 +37,35 @@ async fn main() {
     // if --last-block was passed
     } else if flags.iter().any(|f: &Flag| matches!(f, Flag::LastBlock)) {
         handle_last_block().await;
+        std::process::exit(0);
+
+    // if the --validate-token-all flag was passed
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateTokenAll))
+    {
+        handle_validate_token_all().await;
+        std::process::exit(0);
+
+    // if the --validate-users-all flag was passed
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateUsersAll))
+    {
+        handle_validate_users_all().await;
+        std::process::exit(0);
+
+    // if the --validate-user-all flag was passed
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateUserAll(_)))
+    {
+        handle_validate_user_all(flags).await;
+        std::process::exit(0);
+
+    // if the --validate-all flag was passed
+    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateAll)) {
+        handle_validate_all().await;
         std::process::exit(0);
     }
 

@@ -5,7 +5,8 @@ use crate::db::{
 use crate::evm::{get_last_block, get_balance_of};
 use crate::validation::{
     compare_and_report_diff, validate_user_supply_amount, validate_user_borrow_amount,
-    validate_token_supply_amount, validate_token_borrow_amount,
+    validate_token_supply_amount, validate_token_borrow_amount, validate_user_all_positions,
+    validate_all_reserves, validate_all_users_positions,
 };
 use crate::models::ReserveTokenDocument;
 use crate::cli::HELP_MESSAGE;
@@ -137,9 +138,16 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
                 token_address
             );
             std::process::exit(1);
+        })
+        .unwrap_or_else(|| {
+            eprintln!(
+                "Error: No reserve data found for token address {}",
+                token_address
+            );
+            std::process::exit(1);
         });
     match get_user_position(&user_address).await {
-        Ok(Some(user_data)) => {
+        Ok(user_data) => {
             let position = user_data
                 .positions
                 .iter()
@@ -152,10 +160,6 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
                 "User position for {} on reserve {}: {:?}",
                 user_address, token_address, position
             );
-        }
-        Ok(None) => {
-            eprintln!("Error: No user position found for user {}", user_address);
-            std::process::exit(1);
         }
         Err(e) => {
             eprintln!("Error fetching user position: {}", e);
@@ -370,4 +374,221 @@ pub async fn handle_validate_token_borrow(flags: Vec<Flag>) {
             std::process::exit(1);
         }
     }
+}
+
+pub async fn handle_validate_token_all() {
+    println!("Validating all reserves...");
+
+    match validate_all_reserves().await {
+        Ok(results) => {
+            let mut success_count = 0;
+            let mut error_count = 0;
+
+            for result in results {
+                if let Some(error) = &result.error {
+                    error_count += 1;
+                    println!("❌ Reserve {}: ERROR - {}", result.reserve_address, error);
+                } else {
+                    success_count += 1;
+                    println!(
+                        "✅ Reserve {}: Supply={}, Borrow={}",
+                        result.reserve_address,
+                        result.supply_amount.percentage,
+                        result.borrow_amount.percentage
+                    );
+                }
+            }
+
+            println!(
+                "\n📊 Summary: {} successful, {} errors",
+                success_count, error_count
+            );
+        }
+        Err(e) => {
+            eprintln!("Error during bulk validation: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+pub async fn handle_validate_users_all() {
+    println!("Validating all users...");
+
+    match validate_all_users_positions().await {
+        Ok(results) => {
+            let mut success_count = 0;
+            let mut error_count = 0;
+
+            for result in results {
+                for position in &result.positions {
+                    if let Some(error) = &position.error {
+                        error_count += 1;
+                        println!(
+                            "❌ User {} - Reserve {}: ERROR - {}",
+                            result.user_address, position.reserve_address, error
+                        );
+                    } else {
+                        success_count += 1;
+                        println!("✅ User {} - Reserve {}:", result.user_address, position.reserve_address);
+                        println!("  Supply - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                            position.supply_amount.database_amount,
+                            position.supply_amount.on_chain_amount,
+                            position.supply_amount.difference,
+                            position.supply_amount.percentage);
+                        println!("  Borrow - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                            position.borrow_amount.database_amount,
+                            position.borrow_amount.on_chain_amount,
+                            position.borrow_amount.difference,
+                            position.borrow_amount.percentage);
+                    }
+                }
+            }
+
+            println!(
+                "\n📊 Summary: {} successful, {} errors",
+                success_count, error_count
+            );
+        }
+        Err(e) => {
+            eprintln!("Error during bulk validation: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+pub async fn handle_validate_user_all(flags: Vec<Flag>) {
+    let user_address = flags
+        .iter()
+        .find_map(|f| {
+            if let Flag::ValidateUserAll(address) = f {
+                Some(address.clone())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| {
+            eprintln!("Error: --validate-user-all requires a user address to be specified.");
+            std::process::exit(1);
+        });
+
+    println!("Validating all positions for user {}...", user_address);
+
+    match validate_user_all_positions(&user_address).await {
+        Ok(result) => {
+            println!(
+                "✅ User {}: {} positions validated",
+                result.user_address,
+                result.positions.len()
+            );
+            for position in &result.positions {
+                if let Some(error) = &position.error {
+                    println!(
+                        "  ❌ Reserve {}: ERROR - {}",
+                        position.reserve_address, error
+                    );
+                } else {
+                    println!("  📊 Reserve {}:", position.reserve_address);
+                    println!("    Supply - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                        position.supply_amount.database_amount,
+                        position.supply_amount.on_chain_amount,
+                        position.supply_amount.difference,
+                        position.supply_amount.percentage);
+                    println!("    Borrow - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                        position.borrow_amount.database_amount,
+                        position.borrow_amount.on_chain_amount,
+                        position.borrow_amount.difference,
+                        position.borrow_amount.percentage);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error validating user {}: {}", user_address, e);
+            std::process::exit(1);
+        }
+    }
+}
+
+pub async fn handle_validate_all() {
+    println!("Validating everything...");
+
+    // Validate all reserves
+    println!("\n🔍 Validating all reserves...");
+    match validate_all_reserves().await {
+        Ok(results) => {
+            let mut success_count = 0;
+            let mut error_count = 0;
+
+            for result in results {
+                if let Some(error) = &result.error {
+                    error_count += 1;
+                    println!("❌ Reserve {}: ERROR - {}", result.reserve_address, error);
+                } else {
+                    success_count += 1;
+                    println!("✅ Reserve {}:", result.reserve_address);
+                    println!("  Supply - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                        result.supply_amount.database_amount,
+                        result.supply_amount.on_chain_amount,
+                        result.supply_amount.difference,
+                        result.supply_amount.percentage);
+                    println!("  Borrow - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                        result.borrow_amount.database_amount,
+                        result.borrow_amount.on_chain_amount,
+                        result.borrow_amount.difference,
+                        result.borrow_amount.percentage);
+                }
+            }
+
+            println!(
+                "📊 Reserves: {} successful, {} errors",
+                success_count, error_count
+            );
+        }
+        Err(e) => {
+            eprintln!("Error validating reserves: {}", e);
+        }
+    }
+
+    // Validate all users
+    println!("\n🔍 Validating all users...");
+    match validate_all_users_positions().await {
+        Ok(results) => {
+            let mut success_count = 0;
+            let mut error_count = 0;
+
+            for result in results {
+                for position in &result.positions {
+                    if let Some(error) = &position.error {
+                        error_count += 1;
+                        println!(
+                            "❌ User {} - Reserve {}: ERROR - {}",
+                            result.user_address, position.reserve_address, error
+                        );
+                    } else {
+                        success_count += 1;
+                        println!("✅ User {} - Reserve {}:", result.user_address, position.reserve_address);
+                        println!("  Supply - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                            position.supply_amount.database_amount,
+                            position.supply_amount.on_chain_amount,
+                            position.supply_amount.difference,
+                            position.supply_amount.percentage);
+                        println!("  Borrow - DB: {}, On-Chain: {}, Diff: {}, %: {:.2}%", 
+                            position.borrow_amount.database_amount,
+                            position.borrow_amount.on_chain_amount,
+                            position.borrow_amount.difference,
+                            position.borrow_amount.percentage);
+                    }
+                }
+            }
+
+            println!(
+                "📊 Users: {} successful, {} errors",
+                success_count, error_count
+            );
+        }
+        Err(e) => {
+            eprintln!("Error validating users: {}", e);
+        }
+    }
+
+    println!("\n🎉 Complete validation finished!");
 }

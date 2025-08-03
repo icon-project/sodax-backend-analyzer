@@ -1,77 +1,65 @@
-# TODO: Validation Features Implementation
+# TODO: SODAX Backend Analyzer
 
-## Overview
-This document outlines the validation features that need to be implemented for the sodax backend analyzer to validate token balances against on-chain data.
+## 🧪 Testing
 
-## Features to Implement
+### Update Tests for New Features
+- [ ] **Update integration tests** to cover new validation features
+  - [ ] Test individual validation commands (`--validate-user-supply`, `--validate-user-borrow`, etc.)
+  - [ ] Test bulk validation commands (`--validate-user-all`, `--validate-users-all`, `--validate-token-all`, `--validate-all`)
+  - [ ] Test error handling scenarios (rate limits, missing data, etc.)
+  - [ ] Test the new data structures (`UserPositionValidation`, `UserEntryState`, `ReserveEntryState`)
+  - [ ] Test position-level error tracking
+  - [ ] Test graceful degradation when individual validations fail
 
-### 1. aToken Balance Validation for User
-- **Flag**: `--validate-atoken-balance-of-user`
-- **Parameter**: User address
-- **Functionality**: 
-  - Get the scaled aToken balance of a given user
-  - Compare with real on-chain data
-  - Fetch current related index for the specified token in the marketplace
-  - Calculate real balance using the index
-  - Fetch `balanceOf` from chain
-  - Compare calculated vs on-chain balance
+## 🚀 Performance & UX Improvements
 
-### 2. Variable Debt Token Balance Validation for User
-- **Flag**: `--validate-debt-token-balance-of-user`
-- **Parameter**: User address
-- **Functionality**:
-  - Same logic as aToken validation but for variable debt tokens
-  - Get scaled debt token balance
-  - Compare with on-chain data using appropriate index
+### Real-time Console Updates
+- [ ] **Implement progress indicators** for bulk validation operations
+  - [ ] Show progress bar or percentage for large operations
+  - [ ] Print validation results as they complete (not just at the end)
+  - [ ] Add timing information for each validation
+  - [ ] Show current item being processed (e.g., "Validating user 45/100...")
+  - [ ] Consider using async streams or channels for real-time updates
 
-### 3. Token Total Balance Validation (aToken)
-- **Flag**: `--validate-atoken-balance`
-- **Parameter**: aToken address
-- **Functionality**:
-  - Query reserve position with the aToken address
-  - Fetch the index for calculation
-  - Fetch supply on chain
-  - Compare calculated total balance with on-chain supply
+### Validation Summary Function
+- [ ] **Create comprehensive summary function** that analyzes validation results
+  - [ ] Define validation conditions/thresholds (e.g., acceptable percentage differences)
+  - [ ] Count passed vs failed validations based on conditions
+  - [ ] Print only failed validations with details
+  - [ ] Show summary statistics (total, passed, failed, success rate)
+  - [ ] Support different summary formats (brief, detailed, error-only)
+  - [ ] Add configurable thresholds via CLI flags or config file
 
-### 4. Token Total Balance Validation (Debt Token)
-- **Flag**: `--validate-debt-token-balance`
-- **Parameter**: Debt token address
-- **Functionality**:
-  - Same logic as aToken total balance validation but for debt tokens
-  - Query reserve position with debt token address
-  - Compare calculated vs on-chain total debt
+## 🔧 Technical Improvements
 
-### 5. Marketplace-wide Validation
-- **Flag**: `--validate-all-tokens`
-- **Functionality**:
-  - Apply validation logic to all tokens in the marketplace
-  - Output results showing:
-    - Our calculated values
-    - Real on-chain data
-    - Comparison results
-  - Define thresholds/conditions to determine if values are within accepted margin
-  - Provide clear indicators for validation status
+### Code Quality
+- [ ] **Add comprehensive error handling** for edge cases
+- [ ] **Improve logging** for debugging and monitoring
+- [ ] **Add performance benchmarks** for bulk operations
+- [ ] **Consider parallel processing** for large datasets
 
-## Implementation Notes
+### Configuration
+- [ ] **Add configuration system** for validation thresholds
+- [ ] **Add retry logic** for failed RPC calls
+- [ ] **Add rate limiting configuration** for RPC endpoints
 
-### Required Components
-- Index calculation logic for different token types
-- On-chain data fetching mechanisms
-- Balance calculation utilities
-- Comparison and threshold validation logic
-- Output formatting for validation results
+## 📊 Future Enhancements
 
-### Considerations
-- Define appropriate thresholds for acceptable margins
-- Handle edge cases (zero balances, new tokens, etc.)
-- Provide clear error messages for validation failures
-- Consider performance implications for marketplace-wide validation
-- Ensure proper error handling for network issues
+### Output Formats
+- [ ] **Add JSON output** for programmatic use
+- [ ] **Add CSV export** for data analysis
+- [ ] **Add structured logging** for monitoring
 
-### Output Format
-Each validation should provide:
-- Calculated balance/value
-- On-chain balance/value
-- Difference/percentage difference
-- Validation status (PASS/FAIL)
-- Threshold information used for validation 
+### Advanced Features
+- [ ] **Add validation history** tracking
+- [ ] **Add caching** for frequently accessed data
+- [ ] **Add parallel processing** for performance
+- [ ] **Add validation scheduling** (periodic validation)
+
+## 🎯 Priority Order
+
+1. **High Priority**: Update tests for new features
+2. **High Priority**: Real-time console updates for bulk operations
+3. **High Priority**: Validation summary function
+4. **Medium Priority**: Configuration system
+5. **Low Priority**: Advanced features and output formats 

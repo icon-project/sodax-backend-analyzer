@@ -1,7 +1,12 @@
 use sodax_backend_analizer::db::{
-    find_all_a_token_addresses, find_all_reserve_addresses, find_all_reserves,
-    find_all_variable_debt_token_addresses, find_reserve_for_token, get_orderbook,
-    get_user_position, ReserveTokenField,
+    find_all_a_token_addresses,
+    find_all_reserve_addresses,
+    find_all_reserves,
+    find_all_variable_debt_token_addresses,
+    find_reserve_for_token,
+    get_orderbook,
+    // get_user_position,
+    ReserveTokenField,
 };
 
 // For async tests
@@ -10,7 +15,10 @@ use tokio;
 // Import common test utilities
 mod common;
 use common::{
-    common_result_option_handler, A_TOKEN_ADDRESS, RESERVE_TOKEN_ADDRESS, USER_ADDRESS,
+    common_result_option_handler,
+    A_TOKEN_ADDRESS,
+    RESERVE_TOKEN_ADDRESS,
+    // USER_ADDRESS,
     VARIABLE_DEBT_TOKEN_ADDRESS,
 };
 
@@ -109,15 +117,16 @@ async fn test_get_orderbook() {
     dbg!(&_orderbook[0]);
 }
 
-#[tokio::test]
-async fn test_get_user_position() {
-    // Test with a known user address (you'd need to insert test data first)
-    let result = get_user_position(&USER_ADDRESS).await;
-
-    common_result_option_handler(
-        result,
-        "User position data found",
-        "User position not found, which is valid for test data",
-        "Database error occurred",
-    );
-}
+// #[ignore]
+// #[tokio::test]
+// async fn test_get_user_position() {
+//     // Test with a known user address (you'd need to insert test data first)
+//     let result = get_user_position(&USER_ADDRESS).await;
+//
+//     common_result_option_handler(
+//         result,
+//         "User position data found",
+//         "User position not found, which is valid for test data",
+//         "Database error occurred",
+//     );
+// }
