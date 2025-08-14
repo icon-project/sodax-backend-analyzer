@@ -2,14 +2,16 @@ use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
     sol,
+    eips::BlockNumberOrTag,
 };
 
 sol! {
     #[sol(rpc)]
-    contract ERC20 {
+    contract A_TOKEN {
         function balanceOf(address owner) public view returns (uint256);
-
         function totalSupply() public view returns (uint256);
+        function scaledTotalSupply() public view returns (uint256);
+        function scaledBalanceOf(address user) public view returns (uint256);
     }
 }
 
@@ -61,8 +63,23 @@ pub async fn get_balance_of(
     let token_address = token_address.parse::<Address>()?;
     let owner_address = owner_address.parse::<Address>()?;
 
-    let contract = ERC20::new(token_address, provider);
+    let contract = A_TOKEN::new(token_address, provider);
     match contract.balanceOf(owner_address).call().await {
+        Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
+        Err(e) => Err(Box::new(e)),
+    }
+}
+
+pub async fn get_scaled_balance_of(
+    token_address: &str,
+    owner_address: &str,
+) -> Result<u128, Box<dyn std::error::Error>> {
+    let provider = get_provider().await?;
+    let token_address = token_address.parse::<Address>()?;
+    let owner_address = owner_address.parse::<Address>()?;
+
+    let contract = A_TOKEN::new(token_address, provider);
+    match contract.scaledBalanceOf(owner_address).call().await {
         Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
         Err(e) => Err(Box::new(e)),
     }
@@ -71,8 +88,20 @@ pub async fn get_balance_of(
 pub async fn get_total_supply(token_address: &str) -> Result<u128, Box<dyn std::error::Error>> {
     let provider = get_provider().await.unwrap();
     let token_address = token_address.parse::<Address>()?;
-    let contract = ERC20::new(token_address, provider);
+    let contract = A_TOKEN::new(token_address, provider);
     match contract.totalSupply().call().await {
+        Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
+        Err(e) => Err(Box::new(e)),
+    }
+}
+
+pub async fn get_scaled_total_supply(
+    token_address: &str,
+) -> Result<u128, Box<dyn std::error::Error>> {
+    let provider = get_provider().await.unwrap();
+    let token_address = token_address.parse::<Address>()?;
+    let contract = A_TOKEN::new(token_address, provider);
+    match contract.scaledTotalSupply().call().await {
         Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
         Err(e) => Err(Box::new(e)),
     }
@@ -83,6 +112,24 @@ pub async fn get_last_block() -> Result<u64, Box<dyn std::error::Error>> {
 
     match provider.get_block_number().await {
         Ok(block_number) => Ok(block_number),
+        Err(e) => Err(Box::new(e)),
+    }
+}
+
+pub async fn get_block_timestamp(block_number: u64) -> Result<u64, Box<dyn std::error::Error>> {
+    let provider = get_provider().await?;
+
+    match provider
+        .get_block_by_number(BlockNumberOrTag::Number(block_number))
+        .await
+    {
+        Ok(block) => match block {
+            Some(b) => {
+                let header = b.into_header();
+                Ok(header.timestamp)
+            }
+            None => Err("Block not found".into()),
+        },
         Err(e) => Err(Box::new(e)),
     }
 }

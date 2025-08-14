@@ -1,54 +1,17 @@
 use crate::config::get_config;
-use crate::models::{OrderbookDocument, ReserveTokenDocument, UserPositionDocument};
+use crate::models::{
+    OrderbookDocument, ReserveTokenDocument, UserPositionDocument, SolverVolumeDocument,
+    SolverVolumeTimestampAndBlock,
+};
 // For async iteration over cursor
 use futures::stream::StreamExt;
 use mongodb::{
     bson::{doc, Document},
     options::ClientOptions,
     Client, Collection,
+    options::FindOptions,
 };
-
-struct Collections {
-    orderbook: &'static str,
-    #[allow(dead_code)]
-    money_market_events: &'static str,
-    #[allow(dead_code)]
-    money_market_metadata: &'static str,
-    #[allow(dead_code)]
-    user_positions: &'static str,
-    reserve_tokens: &'static str,
-    #[allow(dead_code)]
-    orderbook_metadata: &'static str,
-    #[allow(dead_code)]
-    wallet_factory_events: &'static str,
-    #[allow(dead_code)]
-    intent_events: &'static str,
-    #[allow(dead_code)]
-    eventlog_progress_metadata: &'static str,
-}
-
-impl Collections {
-    fn new() -> Self {
-        Collections {
-            orderbook: "orderbook",
-            money_market_events: "moneyMarketEvents",
-            money_market_metadata: "money_market_metadata",
-            user_positions: "user_positions",
-            reserve_tokens: "reserve_tokens",
-            orderbook_metadata: "orderbookMetadata",
-            wallet_factory_events: "walletFactoryEvents",
-            intent_events: "intentEvents",
-            eventlog_progress_metadata: "eventLogProgressMetadata",
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum ReserveTokenField {
-    Reserve,
-    AToken,
-    VariableDebtToken,
-}
+use crate::structs::{Collections, ReserveTokenField};
 
 struct Database {
     client: Client,
@@ -115,6 +78,41 @@ pub async fn get_orderbook() -> Result<Vec<OrderbookDocument>, mongodb::error::E
     Ok(docs)
 }
 
+pub async fn get_solver_volume() -> Result<Vec<SolverVolumeDocument>, mongodb::error::Error> {
+    let collection: Collection<SolverVolumeDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().solver_volume);
+    let docs: Vec<SolverVolumeDocument> = collect_all(collection).await?;
+    Ok(docs)
+}
+
+pub async fn find_docs_with_non_null_timestamp()
+-> Result<Vec<SolverVolumeDocument>, mongodb::error::Error> {
+    let collection: Collection<SolverVolumeDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().solver_volume);
+
+    let filter = doc! { "timestamp": { "$exists": true } };
+    let docs: Vec<SolverVolumeDocument> = collect_all_with_filter(collection, filter).await?;
+    Ok(docs)
+}
+
+pub async fn find_timestamp_and_block_from_solver_volume()
+-> Result<Vec<SolverVolumeTimestampAndBlock>, mongodb::error::Error> {
+    let collection: Collection<SolverVolumeTimestampAndBlock> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().solver_volume);
+
+    let filter = doc! { "timestamp": { "$exists": true } };
+    let projection = doc! {"_id":1, "timestamp": 1, "blockNumber": 1 };
+    let docs: Vec<SolverVolumeTimestampAndBlock> =
+        collect_helper(collection, filter, Some(projection)).await?;
+    Ok(docs)
+}
+
 pub async fn find_all_reserves() -> Result<Vec<ReserveTokenDocument>, mongodb::error::Error> {
     let collection: Collection<ReserveTokenDocument> = get_db()
         .await
@@ -161,6 +159,18 @@ pub async fn find_all_user_addresses() -> Vec<String> {
 
     // dbg!(&user_addresses);
     user_addresses
+}
+
+pub async fn find_all_block_numbers_from_solver_volume() -> Vec<u64> {
+    let solver_volume = get_solver_volume().await.unwrap_or_else(|e| {
+        eprintln!("Failed to get solver volume: {}", e);
+        vec![]
+    });
+
+    let block_numbers: Vec<u64> = solver_volume.iter().map(|s| s.blockNumber).collect();
+
+    // dbg!(&block_numbers);
+    block_numbers
 }
 
 pub async fn find_all_reserve_addresses() -> Vec<String> {
@@ -257,16 +267,69 @@ where
 
 async fn collect_all<T>(collection: Collection<T>) -> Result<Vec<T>, mongodb::error::Error>
 where
-    T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
+    T: serde::de::DeserializeOwned + serde::Serialize + std::marker::Send + std::marker::Sync,
+{
+    collect_all_with_filter(collection, doc! {}).await
+}
+
+async fn collect_all_with_filter<T>(
+    collection: Collection<T>,
+    filter: Document,
+) -> Result<Vec<T>, mongodb::error::Error>
+where
+    T: serde::de::DeserializeOwned + serde::Serialize + std::marker::Send + std::marker::Sync,
+{
+    collect_helper(collection, filter, None).await
+}
+
+// async fn _collect_all_with_filter<T>(
+//     collection: Collection<T>,
+//     filter: Document,
+// ) -> Result<Vec<T>, mongodb::error::Error>
+// where
+//     T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
+// {
+//     let mut docs: Vec<T> = vec![];
+//     let mut cursor = collection.find(filter).await?;
+//
+//     while let Some(doc_result) = cursor.next().await {
+//         match doc_result {
+//             Ok(doc) => docs.push(doc),
+//             Err(e) => {
+//                 eprintln!("Error collecting documents with filter. {}", e);
+//                 return Err(e);
+//             }
+//         };
+//     }
+//     Ok(docs)
+// }
+
+async fn collect_helper<T>(
+    collection: Collection<T>,
+    search_filter: Document,
+    some_return_filter: Option<Document>,
+) -> Result<Vec<T>, mongodb::error::Error>
+where
+    T: serde::de::DeserializeOwned + serde::Serialize + std::marker::Send + std::marker::Sync,
 {
     let mut docs: Vec<T> = vec![];
-    let mut cursor = collection.find(doc! {}).await?;
+    let apply_return_filter = some_return_filter.is_some();
+    let mut cursor = if apply_return_filter {
+        let return_filter = some_return_filter.unwrap();
+        let find_options = FindOptions::builder().projection(return_filter).build();
+        collection
+            .find(search_filter)
+            .with_options(find_options)
+            .await?
+    } else {
+        collection.find(search_filter).await?
+    };
 
     while let Some(doc_result) = cursor.next().await {
         match doc_result {
             Ok(doc) => docs.push(doc),
             Err(e) => {
-                eprintln!("Error collecting documents. {}", e);
+                eprintln!("Error collecting documents with filter. {}", e);
                 return Err(e);
             }
         };

@@ -1,11 +1,11 @@
-use sodax_backend_analizer::{
-    calculate_user_borrow_amount, calculate_user_supply_amount, get_token_borrow_amount,
-    get_token_supply_amount, validate_token_borrow_amount, validate_token_supply_amount,
-    validate_user_borrow_amount, validate_user_supply_amount,
+use sodax_backend_analizer::helpers::{
+    calculate_user_borrow_amount, calculate_user_supply_amount, calculate_token_borrow_amount,
+    calculate_token_supply_amount,
 };
-
-// For async tests
-use tokio;
+use sodax_backend_analizer::validators::{
+    validate_token_borrow_amount, validate_token_supply_amount, validate_user_borrow_amount,
+    validate_user_supply_amount,
+};
 
 // Import common test utilities
 mod common;
@@ -39,8 +39,8 @@ async fn test_calculate_user_borrow_amount() {
 }
 
 #[tokio::test]
-async fn test_get_token_supply_amount() {
-    let result = get_token_supply_amount(RESERVE_TOKEN_ADDRESS).await;
+async fn test_calculate_token_supply_amount() {
+    let result = calculate_token_supply_amount(RESERVE_TOKEN_ADDRESS).await;
 
     common_handler(
         result,
@@ -50,8 +50,8 @@ async fn test_get_token_supply_amount() {
 }
 
 #[tokio::test]
-async fn test_get_token_borrow_amount() {
-    let result = get_token_borrow_amount(RESERVE_TOKEN_ADDRESS).await;
+async fn test_calculate_token_borrow_amount() {
+    let result = calculate_token_borrow_amount(RESERVE_TOKEN_ADDRESS).await;
 
     common_handler(
         result,

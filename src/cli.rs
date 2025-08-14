@@ -1,93 +1,5 @@
 use std::env;
-
-pub const HELP_MESSAGE: &str = r#"
-sodax-backend-analizer - A CLI tool for analyzing database data for the SODAX backend
-
-USAGE:
-    sodax-backend-analizer [OPTIONS]
-
-OPTIONS:
-    --help                  Show this help message
-    --all-tokens            List all reserve tokens in the database
-    --last-block            Get the latest block number from the blockchain
-    --orderbook             Get all orderbook data from the database
-    --reserve-token <TOKEN_ADDRESS>  Returns the reserve token data for the given reserve token address
-    --a-token <TOKEN_ADDRESS>         Returns the reserve token data for the given aToken address
-    --variable-token <TOKEN_ADDRESS>  Returns the reserve token data for the given variable token address
-    --user-position <WALLET_ADDRESS>  Returns the user position data for the given wallet address
-    --balance-of <USER_ADDRESS>       Get token balance for a user (requires one of: --reserve-token, --a-token, or --variable-token)
-
-INDIVIDUAL VALIDATION OPTIONS:
-    --validate-user-supply <USER_ADDRESS>  Validate user's aToken supply balance (requires --reserve-token)
-    --validate-user-borrow <USER_ADDRESS>  Validate user's debt token balance (requires --reserve-token)
-    --validate-token-supply               Validate total aToken supply for a reserve (requires --reserve-token)
-    --validate-token-borrow              Validate total debt token supply for a reserve (requires --reserve-token)
-
-BULK VALIDATION OPTIONS:
-    --validate-user-all <USER_ADDRESS>    Validate all positions for a specific user
-    --validate-users-all                  Validate all positions for all users
-    --validate-token-all                 Validate all reserves in the marketplace
-    --validate-all                       Validate everything (all reserves + all users)
-
-RESTRICTIONS:
-    - You cannot combine --last-block, --help, --all-tokens, --orderbook, --validate-users-all, --validate-token-all, or --validate-all with other flags
-    - You cannot combine --reserve-token, --a-token, and --variable-token together
-    - --balance-of requires exactly one token type flag (--reserve-token, --a-token, or --variable-token)
-    - Individual validation flags require --reserve-token to be specified
-    - --validate-user-all can be combined with --reserve-token for specific reserve validation
-
-EXAMPLES:
-    # Basic operations
-    sodax-backend-analizer --help
-    sodax-backend-analizer --all-tokens
-    sodax-backend-analizer --last-block
-    sodax-backend-analizer --orderbook
-    sodax-backend-analizer --reserve-token 0x1234567890abcdef...
-    sodax-backend-analizer --a-token 0x1234567890abcdef...
-    sodax-backend-analizer --variable-token 0x1234567890abcdef...
-    sodax-backend-analizer --user-position 0x1234567890abcdef...
-    sodax-backend-analizer --balance-of 0xuser123... --reserve-token 0xtoken456...
-
-    # Individual validation
-    sodax-backend-analizer --validate-user-supply 0xuser123... --reserve-token 0xtoken456...
-    sodax-backend-analizer --validate-user-borrow 0xuser123... --reserve-token 0xtoken456...
-    sodax-backend-analizer --validate-token-supply --reserve-token 0xtoken456...
-    sodax-backend-analizer --validate-token-borrow --reserve-token 0xtoken456...
-
-    # Bulk validation
-    sodax-backend-analizer --validate-user-all 0xuser123...
-    sodax-backend-analizer --validate-users-all
-    sodax-backend-analizer --validate-token-all
-    sodax-backend-analizer --validate-all
-
-OUTPUT FORMAT:
-    Validation results show:
-    - Database amount vs On-chain amount
-    - Difference and percentage
-    - Error messages for failed validations
-    - Summary statistics for bulk operations
-"#;
-
-#[allow(dead_code)]
-pub enum Flag {
-    Help,
-    ReserveToken(String),
-    AToken(String),
-    VariableToken(String),
-    UserPosition(String),
-    AllTokens,
-    BalanceOf(String),
-    LastBlock,
-    Orderbook,
-    ValidateUserSupply(String),
-    ValidateUserBorrow(String),
-    ValidateTokenSupply,
-    ValidateTokenBorrow,
-    ValidateUserAll(String),
-    ValidateUsersAll,
-    ValidateTokenAll,
-    ValidateAll,
-}
+use crate::structs::Flag;
 
 pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -99,68 +11,109 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
 
     let mut i: usize = 1; // Start from 1 to skip the program name
     while i < args.len() {
+        // Track whether this flag consumed the following argument
+        let mut consumed_next_arg = false;
         let arg: &String = &args[i];
         match arg.as_str() {
             "--help" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::Help);
                 break;
             }
             "--all-tokens" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::AllTokens);
                 break;
             }
             "--last-block" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::LastBlock);
                 break;
             }
             "--orderbook" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::Orderbook);
                 break;
             }
             "--validate-users-all" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::ValidateUsersAll);
-                break;
             }
             "--validate-token-all" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::ValidateTokenAll);
-                break;
             }
             "--validate-all" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::ValidateAll);
+            }
+            "--timestamp-coverage" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::TimestampCoverage);
                 break;
+            }
+            "--validate-timestamps" => {
+                // Optional argument: if next token is missing or a flag, treat as None
+                if i + 1 >= args.len() || args[i + 1].starts_with("--") {
+                    flags.push(Flag::ValidateTimestamps(None));
+                    // no next arg consumed
+                    break;
+                }
+                flags.push(Flag::ValidateTimestamps(Some(args[i + 1].clone())));
+                // No need to consume next arg because we break out of the loop
+                break;
+            }
+            "--scaled" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::Scaled);
             }
             "--validate-user-all" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::ValidateUserAll(args[i + 1].clone()));
-                break;
+                consumed_next_arg = true;
             }
             "--reserve-token" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::ReserveToken(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--a-token" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::AToken(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--variable-token" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::VariableToken(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--user-position" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::UserPosition(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--balance-of" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::BalanceOf(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--validate-user-supply" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::ValidateUserSupply(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--validate-user-borrow" => {
                 validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
                 flags.push(Flag::ValidateUserBorrow(args[i + 1].clone()));
+                consumed_next_arg = true;
             }
             "--validate-token-supply" => {
                 flags.push(Flag::ValidateTokenSupply);
@@ -171,15 +124,18 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
             _ => return Err(format!("Unknown argument: {}", arg).into()),
         }
         // Move to the next argument
-        // For flags with arguments, increment by 2 (current arg + value)
-        // For flags without arguments, increment by 1 (current arg only)
+        // - For flags with arguments, increment by 2 (current arg + value)
+        // - For flags without arguments, increment by 1 (current arg only)
+        // - For optional-argument flags, increment based on whether the next arg was consumed
         if matches!(
             arg.as_str(),
             "--validate-token-supply" | "--validate-token-borrow"
         ) {
             i += 1;
-        } else {
+        } else if consumed_next_arg {
             i += 2;
+        } else {
+            i += 1;
         }
     }
 
@@ -226,6 +182,9 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         .iter()
         .any(|flag| matches!(flag, Flag::ValidateTokenBorrow));
 
+    // boolean for --scaled
+    let has_scaled = flags.iter().any(|flag| matches!(flag, Flag::Scaled));
+
     // if no flags were added, add the help flag
     if flags.is_empty() {
         flags.push(Flag::Help);
@@ -239,10 +198,8 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     // --help
     // --orderbook
     // --all-tokens
-    // --validate-users-all
-    // --validate-user-all
-    // --validate-token-all
-    // --validate-all
+    // --validate-timestamps
+    // --timestamp-coverage
     if flags.iter().any(|flag| {
         (matches!(
             flag,
@@ -250,16 +207,32 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
                 | Flag::Help
                 | Flag::AllTokens
                 | Flag::Orderbook
-                | Flag::ValidateUsersAll
-                | Flag::ValidateTokenAll
-                | Flag::ValidateAll
+                | Flag::TimestampCoverage
         ) && flags.len() > 1)
-                    || (matches!(
-            flag,
-            Flag::ValidateUserAll(_)
-        ) && flags.len() > 2)
+            || (matches!(flag, Flag::ValidateTimestamps(_)) && flags.len() > 2)
     }) {
-        return Err("You cannot combine --last-block, --help, --orderbook, --all-tokens, --validate-[user|users|token]-all with other flags. Use --help for more information.".into());
+        return Err("You cannot combine --last-block, --help, --orderbook, --all-tokens, --validate-token-timestamp, --timestamp-coverage with other flags. Use --help for more information.".into());
+    }
+
+    // the following flags can only be combined with --scaled
+    //
+    // --validate-users-all
+    // --validate-user-all
+    // --validate-token-all
+    // --validate-all
+    if flags.iter().any(|flag| {
+        (matches!(
+            flag,
+            Flag::ValidateUsersAll | Flag::ValidateTokenAll | Flag::ValidateAll
+        ) && flags.len() > 2)
+            || (matches!(flag, Flag::ValidateUserAll(_)) && flags.len() > 3)
+    }) {
+        if !has_scaled {
+            return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all with --scaled. Use --help for more information.".into());
+        }
+        if flags.len() > 4 {
+            return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all with --scaled. Use --help for more information.".into());
+        }
     }
 
     // the following flags need to be used acompanied by
@@ -270,7 +243,12 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     // --validate-token-borrow
     // --balance-of (can use aToken or variable token)
     // --user-position (can use aToken or variable token)
-    if (has_balance_of || has_user_position || has_validate_user_supply || has_validate_user_borrow)
+    if (has_balance_of
+        || has_user_position
+        || has_validate_user_supply
+        || has_validate_user_borrow
+        || has_validate_token_supply
+        || has_validate_token_borrow)
         && flags.len() == 1
     {
         return Err("Missing --reserve-token address flag".into());
@@ -318,10 +296,29 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
 
 #[allow(dead_code)]
 fn validate_flag_accepts_argument(i: usize, len: usize) -> Result<(), Box<dyn std::error::Error>> {
-    if i >= len {
+    if i >= len || i + 1 >= len {
         return Err("Missing arguments".to_string().into());
     }
 
     Ok(())
 }
 
+fn validate_flag_does_not_accept_argument(
+    i: usize,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
+    if i + 1 < args.len() && !args[i + 1].starts_with("--") {
+        return Err("This flag does not accept arguments".to_string().into());
+    }
+    Ok(())
+}
+
+fn validate_next_argument_is_not_flag(
+    i: usize,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error>> {
+    if args[i + 1].starts_with("--") {
+        return Err(format!("Expected an argument after '{}', but found a flag", args[i]).into());
+    }
+    Ok(())
+}
