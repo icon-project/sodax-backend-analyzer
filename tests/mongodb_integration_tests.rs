@@ -5,16 +5,15 @@ use sodax_backend_analizer::db::{
     find_all_variable_debt_token_addresses,
     find_reserve_for_token,
     get_orderbook,
+    find_timestamp_and_block_from_solver_volume,
     // get_user_position,
-    ReserveTokenField,
 };
-
-// For async tests
-use tokio;
+use sodax_backend_analizer::structs::ReserveTokenField;
 
 // Import common test utilities
 mod common;
 use common::{
+    common_handler,
     common_result_option_handler,
     A_TOKEN_ADDRESS,
     RESERVE_TOKEN_ADDRESS,
@@ -29,7 +28,7 @@ async fn test_find_all_reserves() {
     assert!(result.is_ok(), "Should successfully retrieve reserves");
 
     let reserves = result.unwrap();
-    dbg!(&reserves[0]);
+    // dbg!(&reserves[0]);
     // Add assertions based on expected data
     assert!(!reserves.is_empty(), "Should have some reserves");
 }
@@ -37,10 +36,10 @@ async fn test_find_all_reserves() {
 #[tokio::test]
 async fn test_find_all_reserve_addresses() {
     let addresses = find_all_reserve_addresses().await;
-    println!(
-        "✅ Reserve addresses retrieved successfully: {:?}",
-        addresses
-    );
+    // println!(
+    //     "✅ Reserve addresses retrieved successfully: {:?}",
+    //     addresses
+    // );
     // Should return a Vec<String> even if empty
     assert!(addresses.is_empty() || !addresses.is_empty());
 }
@@ -49,14 +48,14 @@ async fn test_find_all_reserve_addresses() {
 async fn test_find_all_a_token_addresses() {
     let addresses = find_all_a_token_addresses().await;
     // Should return a Vec<String> even if empty
-    dbg!(&addresses[0]);
+    // dbg!(&addresses[0]);
     assert!(addresses.is_empty() || !addresses.is_empty());
 }
 
 #[tokio::test]
 async fn test_find_all_variable_debt_token_addresses() {
     let addresses = find_all_variable_debt_token_addresses().await;
-    dbg!(&addresses[0]);
+    // dbg!(&addresses[0]);
     // Should return a Vec<String> even if empty
     assert!(addresses.is_empty() || !addresses.is_empty());
 }
@@ -64,7 +63,7 @@ async fn test_find_all_variable_debt_token_addresses() {
 #[tokio::test]
 async fn test_get_reserve_data_for_reserve_token() {
     // Test with a known token address (you'd need to insert test data first)
-    let result = find_reserve_for_token(&RESERVE_TOKEN_ADDRESS, ReserveTokenField::Reserve).await;
+    let result = find_reserve_for_token(RESERVE_TOKEN_ADDRESS, ReserveTokenField::Reserve).await;
 
     common_result_option_handler(
         result,
@@ -77,7 +76,7 @@ async fn test_get_reserve_data_for_reserve_token() {
 #[tokio::test]
 async fn test_get_reserve_data_for_a_token() {
     // Test with a known token address (you'd need to insert test data first)
-    let result = find_reserve_for_token(&A_TOKEN_ADDRESS, ReserveTokenField::AToken).await;
+    let result = find_reserve_for_token(A_TOKEN_ADDRESS, ReserveTokenField::AToken).await;
 
     common_result_option_handler(
         result,
@@ -91,7 +90,7 @@ async fn test_get_reserve_data_for_a_token() {
 async fn test_get_reserve_data_for_variable_debt_token() {
     // Test with a known token address (you'd need to insert test data first)
     let result = find_reserve_for_token(
-        &VARIABLE_DEBT_TOKEN_ADDRESS,
+        VARIABLE_DEBT_TOKEN_ADDRESS,
         ReserveTokenField::VariableDebtToken,
     )
     .await;
@@ -107,14 +106,23 @@ async fn test_get_reserve_data_for_variable_debt_token() {
 #[tokio::test]
 async fn test_get_orderbook() {
     let result = get_orderbook().await;
-    assert!(
-        result.is_ok(),
-        "Should successfully retrieve orderbook data"
-    );
 
-    let _orderbook = result.unwrap();
-    // Orderbook can be empty, which is valid
-    dbg!(&_orderbook[0]);
+    common_handler(
+        result,
+        "Orderbook data found",
+        "Orderbook data not found, which is valid for test data",
+    );
+}
+
+#[tokio::test]
+async fn test_find_timestamp_and_block_from_solver_volume() {
+    let result = find_timestamp_and_block_from_solver_volume().await;
+
+    common_handler(
+        result,
+        "Timestamp and block data found",
+        "Timestamp and block data not found, which is valid for test data",
+    );
 }
 
 // #[ignore]

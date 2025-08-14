@@ -1,10 +1,15 @@
-use sodax_backend_analizer::{
-    handle_all_tokens, handle_help, handle_last_block, handle_orderbook, parse_args, Flag,
-    handle_balance_of, handle_user_position, handle_token, handle_validate_user_supply,
-    handle_validate_user_borrow, handle_validate_token_supply, handle_validate_token_borrow,
-    handle_validate_token_all, handle_validate_users_all, handle_validate_user_all,
-    handle_validate_all,
+use sodax_backend_analizer::handlers::{
+    handle_all_tokens, handle_help, handle_last_block, handle_orderbook, handle_balance_of,
+    handle_user_position, handle_token, handle_validate_user_scaled_supply,
+    handle_validate_user_scaled_borrow, handle_validate_token_scaled_supply,
+    handle_validate_token_scaled_borrow, handle_validate_user_supply, handle_validate_user_borrow,
+    handle_validate_token_supply, handle_validate_token_borrow, handle_validate_token_all,
+    handle_validate_token_all_scaled, handle_validate_users_all, handle_validate_users_all_scaled,
+    handle_validate_user_all, handle_validate_user_all_scaled, handle_validate_all,
+    handle_validate_all_scaled, handle_timestamp_coverage, handle_validate_timestamp,
 };
+use sodax_backend_analizer::cli::parse_args;
+use sodax_backend_analizer::structs::Flag;
 
 #[tokio::main]
 async fn main() {
@@ -44,7 +49,11 @@ async fn main() {
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateTokenAll))
     {
-        handle_validate_token_all().await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_token_all_scaled().await;
+        } else {
+            handle_validate_token_all().await;
+        }
         std::process::exit(0);
 
     // if the --validate-users-all flag was passed
@@ -52,7 +61,11 @@ async fn main() {
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateUsersAll))
     {
-        handle_validate_users_all().await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_users_all_scaled().await;
+        } else {
+            handle_validate_users_all().await;
+        }
         std::process::exit(0);
 
     // if the --validate-user-all flag was passed
@@ -60,12 +73,36 @@ async fn main() {
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateUserAll(_)))
     {
-        handle_validate_user_all(flags).await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_user_all_scaled(flags).await;
+        } else {
+            handle_validate_user_all(flags).await;
+        }
         std::process::exit(0);
 
     // if the --validate-all flag was passed
     } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateAll)) {
-        handle_validate_all().await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_all_scaled().await;
+        } else {
+            handle_validate_all().await;
+        }
+        std::process::exit(0);
+
+    // if the --timestamp-coverage flag was passed
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::TimestampCoverage))
+    {
+        handle_timestamp_coverage().await;
+        std::process::exit(0);
+
+    // if the --validate-timestamps flag was passed
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateTimestamps(_)))
+    {
+        handle_validate_timestamp(flags).await;
         std::process::exit(0);
     }
 
@@ -95,36 +132,52 @@ async fn main() {
         handle_user_position(flags).await;
         std::process::exit(0);
 
-    // if the --validate-user-supply flag was passed
+    // if the --validate-user-supply [--scaled] flag was passed
     } else if flags
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateUserSupply(_)))
     {
-        handle_validate_user_supply(flags).await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_user_scaled_supply(flags).await;
+        } else {
+            handle_validate_user_supply(flags).await;
+        }
         std::process::exit(0);
 
-    // if the --validate-user-borrow flag was passed
+    // if the --validate-user-borrow [--scaled] flag was passed
     } else if flags
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateUserBorrow(_)))
     {
-        handle_validate_user_borrow(flags).await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_user_scaled_borrow(flags).await;
+        } else {
+            handle_validate_user_borrow(flags).await;
+        }
         std::process::exit(0);
 
-    // if the --validate-token-supply flag was passed
+    // if the --validate-token-supply [--scaled] flag was passed
     } else if flags
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateTokenSupply))
     {
-        handle_validate_token_supply(flags).await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_token_scaled_supply(flags).await;
+        } else {
+            handle_validate_token_supply(flags).await;
+        }
         std::process::exit(0);
 
-    // if the --validate-token-borrow flag was passed
+    // if the --validate-token-borrow [--scaled] flag was passed
     } else if flags
         .iter()
         .any(|f: &Flag| matches!(f, Flag::ValidateTokenBorrow))
     {
-        handle_validate_token_borrow(flags).await;
+        if flags.iter().any(|f: &Flag| matches!(f, Flag::Scaled)) {
+            handle_validate_token_scaled_borrow(flags).await;
+        } else {
+            handle_validate_token_borrow(flags).await;
+        }
         std::process::exit(0);
     }
 

@@ -42,6 +42,22 @@
 - [ ] **Add retry logic** for failed RPC calls
 - [ ] **Add rate limiting configuration** for RPC endpoints
 
+## 📊 Data Analysis & Calculations
+
+### Scaled Balance Rolling Calculations
+- [ ] **Calculate scaled balance rolling from money_market_event collection**
+  - [ ] For a given reserve_token, calculate rolling scaled balance
+  - [ ] Add balance on every mint event
+  - [ ] Decrease balance on every burn event
+  - [ ] Maintain running total in chronological order
+  - [ ] Handle edge cases (missing events, invalid data)
+- [ ] **Calculate scaled balance rolling for user positions**
+  - [ ] For a given user_position, calculate rolling scaled balance
+  - [ ] Add balance on every mint event for that user
+  - [ ] Decrease balance on every burn event for that user
+  - [ ] Maintain running total in chronological order
+  - [ ] Handle edge cases (missing events, invalid data)
+
 ## 📊 Future Enhancements
 
 ### Output Formats
@@ -60,4 +76,5 @@
 2. **High Priority**: Real-time console updates for bulk operations
 3. **High Priority**: Validation summary function
 4. **Medium Priority**: Configuration system
-5. **Low Priority**: Advanced features and output formats 
+5. **Medium Priority**: Scaled balance rolling calculations
+6. **Low Priority**: Advanced features and output formats 
