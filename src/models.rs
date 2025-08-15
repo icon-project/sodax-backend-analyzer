@@ -5,6 +5,7 @@ mod serde_helpers {
     use mongodb::bson::Decimal128;
     use serde::{Deserialize, Deserializer};
 
+    #[allow(dead_code)]
     pub(super) fn decimal128_to_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
     where
         D: Deserializer<'de>,
@@ -110,11 +111,10 @@ pub struct IntentData {
     pub solver: String,
     pub data: String,
     pub intentHash: String,
-    #[serde(deserialize_with = "serde_helpers::decimal128_to_u64")]
     pub blockNumber: u64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[allow(non_snake_case)]
 pub struct SolverVolumeDocument {
     #[serde(rename = "_id")]
@@ -125,9 +125,8 @@ pub struct SolverVolumeDocument {
     pub outputToken: String,
     pub amount: Decimal128,
     pub chainId: u64,
-    #[serde(deserialize_with = "serde_helpers::decimal128_to_u64")]
     pub blockNumber: u64,
-    timestamp: Option<DateTime>,
+    pub timestamp: Option<DateTime>,
     data: String,
     #[serde(rename = "__v")]
     pub version: i32,
@@ -138,7 +137,6 @@ pub struct SolverVolumeDocument {
 pub struct SolverVolumeTimestampAndBlock {
     #[serde(rename = "_id")]
     pub id: ObjectId,
-    #[serde(deserialize_with = "serde_helpers::decimal128_to_u64")]
     pub blockNumber: u64,
     pub timestamp: Option<DateTime>,
 }

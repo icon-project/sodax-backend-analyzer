@@ -282,28 +282,6 @@ where
     collect_helper(collection, filter, None).await
 }
 
-// async fn _collect_all_with_filter<T>(
-//     collection: Collection<T>,
-//     filter: Document,
-// ) -> Result<Vec<T>, mongodb::error::Error>
-// where
-//     T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
-// {
-//     let mut docs: Vec<T> = vec![];
-//     let mut cursor = collection.find(filter).await?;
-//
-//     while let Some(doc_result) = cursor.next().await {
-//         match doc_result {
-//             Ok(doc) => docs.push(doc),
-//             Err(e) => {
-//                 eprintln!("Error collecting documents with filter. {}", e);
-//                 return Err(e);
-//             }
-//         };
-//     }
-//     Ok(docs)
-// }
-
 async fn collect_helper<T>(
     collection: Collection<T>,
     search_filter: Document,

@@ -1,9 +1,9 @@
 use crate::db::{
-    find_all_reserves, find_reserve_for_token, get_orderbook, get_user_position, find_all_users,
-    get_solver_volume, find_docs_with_non_null_timestamp,
+    find_all_reserves, find_reserve_for_token, get_orderbook, find_all_users, get_solver_volume,
+    find_docs_with_non_null_timestamp,
 };
-use crate::evm::{get_last_block, get_balance_of};
-use crate::helpers::compare_and_report_diff;
+use crate::evm::{get_last_block, get_balance_of, get_block_timestamp};
+use crate::helpers::{compare_and_report_diff, find_user_scaled_position};
 use crate::validators::{
     validate_user_supply_amount, validate_user_borrow_amount, validate_token_supply_amount,
     validate_token_borrow_amount, validate_user_all_positions, validate_user_all_positions_scaled,
@@ -13,10 +13,12 @@ use crate::validators::{
 };
 use crate::functions::{extract_value_from_flags_or_exit, extract_optional_value_from_flags};
 use crate::structs::{ReserveTokenField, Flag, FlagType};
-use crate::models::ReserveTokenDocument;
+use crate::models::{ReserveTokenDocument, SolverVolumeDocument};
 use crate::constants::HELP_MESSAGE;
 use futures::future::join_all;
 use tokio::task;
+use rand::seq::index::sample;
+use std::cmp::min;
 
 pub async fn handle_help() {
     println!("{}", HELP_MESSAGE);
@@ -105,25 +107,57 @@ pub async fn handle_last_block() {
     }
 }
 
+async fn handle_compare_timestamp(doc: SolverVolumeDocument) -> Result<u64, String> {
+    let timestamp = doc.timestamp;
+    #[allow(non_snake_case)]
+    let blockNumber = doc.blockNumber;
+    let block_timestamp = match get_block_timestamp(blockNumber).await {
+        Ok(ts) => ts,
+        Err(e) => {
+            eprintln!("Error fetching timestamp for block {}: {}", blockNumber, e);
+            return Err(format!(
+                "Error fetching timestamp for block {}: {}",
+                blockNumber, e
+            ));
+        }
+    };
+    let timestamp = match timestamp {
+        Some(ts) => ts,
+        None => {
+            eprintln!("Document ID {} has a null timestamp.", doc.id);
+            return Err("Document has a null timestamp".to_string());
+        }
+    };
+    let timestamp = timestamp.timestamp_millis() / 1000; // Convert to seconds
+    let diff = (block_timestamp as i64) - timestamp;
+    println!(
+        "Document ID: {}\n Block Number: {}\n Timestamp:       {}\n Block Timestamp: {}\n Diff: {} seconds",
+        doc.id, blockNumber, timestamp, block_timestamp, diff
+    );
+    Ok(diff.unsigned_abs())
+}
+
 pub async fn handle_validate_timestamp(flags: Vec<Flag>) {
     // Optional numeric argument: if present, validate only that many entries; otherwise, validate all
     let maybe_count_str = extract_optional_value_from_flags(&flags, FlagType::ValidateTimestamps);
 
-    match maybe_count_str {
+    // create count amount of random indexes that are within the range of all_docs
+    let all_docs = match find_docs_with_non_null_timestamp().await {
+        Ok(docs) => docs,
+        Err(e) => {
+            eprintln!("Error fetching documents with non-null timestamp: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let docs_to_validate = match maybe_count_str {
         None => {
             // Validate all timestamp entries
-            let all_docs = match find_docs_with_non_null_timestamp().await {
-                Ok(docs) => docs,
-                Err(e) => {
-                    eprintln!("Error fetching documents with non-null timestamp: {}", e);
-                    std::process::exit(1);
-                }
-            };
             println!(
                 "Validating all timestamp entries ({} found)...",
                 all_docs.len()
             );
-            // TODO: add actual validation logic here
+            all_docs
         }
         Some(count_str) => {
             let count: usize = match count_str.parse() {
@@ -136,18 +170,56 @@ pub async fn handle_validate_timestamp(flags: Vec<Flag>) {
                 }
             };
             // Cap to a maximum of 100 entries
-            let count = std::cmp::min(count, 100);
-            let all_docs = match find_docs_with_non_null_timestamp().await {
-                Ok(docs) => docs,
-                Err(e) => {
-                    eprintln!("Error fetching documents with non-null timestamp: {}", e);
-                    std::process::exit(1);
-                }
-            };
-            let to_validate = std::cmp::min(count, all_docs.len());
+            let count = min(count, 100);
+            let to_validate = min(count, all_docs.len());
             println!("Validating {} timestamp entries...", to_validate);
-            // TODO: add actual validation logic over the first `to_validate` entries
+            let indexes = sample(&mut rand::rng(), all_docs.len(), to_validate);
+            let mut selected_docs = Vec::new();
+            for idx in indexes.iter() {
+                selected_docs.push(all_docs[idx].clone());
+            }
+            selected_docs
         }
+    };
+
+    // Process documents in parallel using tokio tasks
+    let tasks: Vec<_> = docs_to_validate
+        .into_iter()
+        .map(|doc| task::spawn(async move { handle_compare_timestamp(doc).await }))
+        .collect();
+
+    // Wait for all tasks to complete and collect results
+    let results = join_all(tasks).await;
+
+    // Process results and collect diffs
+    let mut all_diffs: Vec<u64> = Vec::new();
+    for result in results {
+        match result {
+            Ok(Ok(diff)) => all_diffs.push(diff),
+            Ok(Err(e)) => {
+                eprintln!("Error processing document: {}", e);
+            }
+            Err(e) => {
+                eprintln!("Task join error: {}", e);
+            }
+        }
+    }
+
+    // Print summary of average difference and max difference
+    if all_diffs.is_empty() {
+        println!("No valid timestamps found to compare.");
+    } else {
+        let total_diff: u64 = all_diffs.iter().sum();
+        let average_diff = total_diff as f64 / all_diffs.len() as f64;
+        let max_diff = all_diffs.iter().max().unwrap_or(&0);
+        let min_diff = all_diffs.iter().min().unwrap_or(&0);
+        println!(
+            "Average difference: {:.2} seconds\nMax difference: {} seconds\nMin difference: {} seconds\n (over {} entries)",
+            average_diff,
+            max_diff,
+            min_diff,
+            all_diffs.len()
+        );
     }
 }
 
@@ -221,16 +293,9 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
             );
             std::process::exit(1);
         });
-    match get_user_position(&user_address).await {
-        Ok(user_data) => {
-            let position = user_data
-                .positions
-                .iter()
-                .find(|position| position.reserveAddress == reserve_data.reserveAddress)
-                .unwrap_or_else(|| {
-                    eprintln!("Error: No position found for the specified reserve");
-                    std::process::exit(1);
-                });
+
+    match find_user_scaled_position(&user_address, &reserve_data.reserveAddress).await {
+        Ok(position) => {
             println!(
                 "User position for {} on reserve {}: {:?}",
                 user_address, token_address, position
