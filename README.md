@@ -305,9 +305,9 @@ The tool connects to the following MongoDB collections:
 - `reserve_tokens` - Reserve token data
 - `user_positions` - User position data
 - `orderbook` - Orderbook information
-- `moneyMarketEvents` - Money market events
-- `walletFactoryEvents` - Wallet factory events
-- `intentEvents` - Intent events
+- `money_market_events` - Money market events
+- `wallet_factory_events` - Wallet factory events
+- `intent_events` - Intent events
 
 ## 🆘 Troubleshooting
 
