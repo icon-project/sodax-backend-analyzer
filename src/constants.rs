@@ -12,11 +12,17 @@ OPTIONS:
     --all-tokens            List all reserve tokens in the database
     --last-block            Get the latest block number from the blockchain
     --orderbook             Get all orderbook data from the database
+    --get-all-users         Print all user addresses from the database
+    --get-all-reserves      Print all reserve token addresses and symbols
+    --get-all-a-token       Print all aToken addresses and symbols
+    --get-all-debt-token    Print all debt token addresses and symbols
     --reserve-token <TOKEN_ADDRESS>  Returns the reserve token data for the given reserve token address
     --a-token <TOKEN_ADDRESS>         Returns the reserve token data for the given aToken address
-    --variable-token <TOKEN_ADDRESS>  Returns the reserve token data for the given variable token address
+    --debt-token <TOKEN_ADDRESS>      Returns the reserve token data for the given debt token address
     --user-position <WALLET_ADDRESS>  Returns the user position data for the given wallet address
-    --balance-of <USER_ADDRESS>       Get token balance for a user (requires one of: --reserve-token, --a-token, or --variable-token)
+    --balance-of <USER_ADDRESS>       Get token balance for a user (requires one of: --reserve-token, --a-token, or --debt-token)
+    --get-token-events <TOKEN_ADDRESS> Get events for a specific token (reserve, aToken, or debt token)
+    --get-user-events <USER_ADDRESS>  Get events for a specific user
     --scaled                 Use scaled balances instead of real balances for validation (adds to validation flags)
 
 INDIVIDUAL VALIDATION OPTIONS:
@@ -24,12 +30,14 @@ INDIVIDUAL VALIDATION OPTIONS:
     --validate-user-borrow <USER_ADDRESS>  Validate user's debt token balance (requires --reserve-token)
     --validate-token-supply               Validate total aToken supply for a reserve (requires --reserve-token)
     --validate-token-borrow              Validate total debt token supply for a reserve (requires --reserve-token)
+    --validate-reserve-indexes <RESERVE_ADDRESS> Validate liquidity and borrow indexes for a specific reserve
 
 BULK VALIDATION OPTIONS:
     --validate-user-all <USER_ADDRESS>    Validate all positions for a specific user
     --validate-users-all                  Validate all positions for all users
     --validate-token-all                 Validate all reserves in the marketplace
     --validate-all                       Validate everything (all reserves + all users)
+    --validate-all-reserve-indexes       Validate indexes for all reserves
 
 SCALED VALIDATION:
     The --scaled flag can be combined with validation flags to compare scaled balances instead of real balances:
@@ -38,9 +46,9 @@ SCALED VALIDATION:
     - Use --scaled when you want to validate the raw database values against on-chain scaled balances
 
 RESTRICTIONS:
-    - You cannot combine --last-block, --help, --all-tokens, --orderbook, --validate-users-all, --validate-token-all, or --validate-all with other flags
-    - You cannot combine --reserve-token, --a-token, and --variable-token together
-    - --balance-of requires exactly one token type flag (--reserve-token, --a-token, or --variable-token)
+    - You cannot combine --last-block, --help, --all-tokens, --orderbook, --get-all-users, --get-all-reserves, --get-all-a-token, --get-all-debt-token, --validate-users-all, --validate-token-all, --validate-all, or --validate-all-reserve-indexes with other flags
+    - You cannot combine --reserve-token, --a-token, and --debt-token together
+    - --balance-of requires exactly one token type flag (--reserve-token, --a-token, or --debt-token)
     - Individual validation flags require --reserve-token to be specified
     - --validate-user-all can be combined with --reserve-token for specific reserve validation
     - --scaled can only be combined with validation flags
@@ -51,11 +59,19 @@ EXAMPLES:
     sodax-backend-analizer --all-tokens
     sodax-backend-analizer --last-block
     sodax-backend-analizer --orderbook
+    sodax-backend-analizer --get-all-users
+    sodax-backend-analizer --get-all-reserves
+    sodax-backend-analizer --get-all-a-token
+    sodax-backend-analizer --get-all-debt-token
     sodax-backend-analizer --reserve-token 0x1234567890abcdef...
     sodax-backend-analizer --a-token 0x1234567890abcdef...
-    sodax-backend-analizer --variable-token 0x1234567890abcdef...
+    sodax-backend-analizer --debt-token 0x1234567890abcdef...
     sodax-backend-analizer --user-position 0x1234567890abcdef...
     sodax-backend-analizer --balance-of 0xuser123... --reserve-token 0xtoken456...
+    sodax-backend-analizer --get-token-events 0x1234567890abcdef...
+    sodax-backend-analizer --get-user-events 0xuser123...
+    sodax-backend-analizer --validate-reserve-indexes 0x1234567890abcdef...
+    sodax-backend-analizer --validate-all-reserve-indexes
 
     # Individual validation (real balances)
     sodax-backend-analizer --validate-user-supply 0xuser123... --reserve-token 0xtoken456...

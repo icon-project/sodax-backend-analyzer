@@ -3,7 +3,7 @@ pub enum Flag {
     Help,
     ReserveToken(String),
     AToken(String),
-    VariableToken(String),
+    DebtToken(String),
     UserPosition(String),
     AllTokens,
     BalanceOf(String),
@@ -20,6 +20,14 @@ pub enum Flag {
     ValidateAll,
     TimestampCoverage,
     ValidateTimestamps(Option<String>),
+    GetAllUsers,
+    GetAllReserves,
+    GetAllATokens,
+    GetAllDebtTokens,
+    GetTokenEvents(String),
+    GetUserEvents(String),
+    ValidateReserveIndexes(String),
+    ValidateAllReserveIndexes,
 }
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -156,11 +164,14 @@ pub enum ReserveTokenField {
 pub enum FlagType {
     ReserveToken,
     AToken,
-    VariableToken,
+    DebtToken,
     UserPosition,
     BalanceOf,
     ValidateUserSupply,
     ValidateUserBorrow,
     ValidateUserAll,
     ValidateTimestamps,
+    ValidateReserveIndexes,
+    GetTokenEvents,
+    GetUserEvents,
 }

@@ -63,6 +63,49 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
                 // No need to consume next arg because we break out of the loop
                 break;
             }
+            "--get-all-users" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::GetAllUsers);
+                break;
+            }
+            "--get-all-reserves" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::GetAllReserves);
+                break;
+            }
+            "--get-all-a-token" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::GetAllATokens);
+                break;
+            }
+            "--get-all-debt-token" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::GetAllDebtTokens);
+                break;
+            }
+            "--get-token-events" => {
+                validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
+                flags.push(Flag::GetTokenEvents(args[i + 1].clone()));
+                break;
+            }
+            "--get-user-events" => {
+                validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
+                flags.push(Flag::GetUserEvents(args[i + 1].clone()));
+                break;
+            }
+            "--validate-reserve-indexes" => {
+                validate_flag_accepts_argument(i, args.len())?;
+                validate_next_argument_is_not_flag(i, &args)?;
+                flags.push(Flag::ValidateReserveIndexes(args[i + 1].clone()));
+                break;
+            }
+            "--validate-all-reserve-indexes" => {
+                validate_flag_does_not_accept_argument(i, &args)?;
+                flags.push(Flag::ValidateAllReserveIndexes);
+                break;
+            }
             "--scaled" => {
                 validate_flag_does_not_accept_argument(i, &args)?;
                 flags.push(Flag::Scaled);
@@ -85,10 +128,10 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
                 flags.push(Flag::AToken(args[i + 1].clone()));
                 consumed_next_arg = true;
             }
-            "--variable-token" => {
+            "--debt-token" => {
                 validate_flag_accepts_argument(i, args.len())?;
                 validate_next_argument_is_not_flag(i, &args)?;
-                flags.push(Flag::VariableToken(args[i + 1].clone()));
+                flags.push(Flag::DebtToken(args[i + 1].clone()));
                 consumed_next_arg = true;
             }
             "--user-position" => {
@@ -157,10 +200,8 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     // boolean for --a-token
     let has_a_token = flags.iter().any(|flag| matches!(flag, Flag::AToken(_)));
 
-    // boolean for --variable-token
-    let has_variable_token = flags
-        .iter()
-        .any(|flag| matches!(flag, Flag::VariableToken(_)));
+    // boolean for --debt-token
+    let has_debt_token = flags.iter().any(|flag| matches!(flag, Flag::DebtToken(_)));
 
     // boolean for --validate-user-supply
     let has_validate_user_supply = flags
@@ -200,6 +241,12 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     // --all-tokens
     // --validate-timestamps
     // --timestamp-coverage
+    // --get-all-users
+    // --get-all-reserves
+    // --get-all-a-token
+    // --get-all-debt-token
+    // --validate-reserve-indexes
+    // --validate-all-reserve-indexes
     if flags.iter().any(|flag| {
         (matches!(
             flag,
@@ -208,10 +255,21 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
                 | Flag::AllTokens
                 | Flag::Orderbook
                 | Flag::TimestampCoverage
+                | Flag::GetAllUsers
+                | Flag::GetAllReserves
+                | Flag::GetAllATokens
+                | Flag::GetAllDebtTokens
+                | Flag::ValidateAllReserveIndexes
         ) && flags.len() > 1)
-            || (matches!(flag, Flag::ValidateTimestamps(_)) && flags.len() > 2)
+            || (matches!(
+                flag,
+                Flag::ValidateTimestamps(_)
+                    | Flag::GetTokenEvents(_)
+                    | Flag::GetUserEvents(_)
+                    | Flag::ValidateReserveIndexes(_)
+            ) && flags.len() > 2)
     }) {
-        return Err("You cannot combine --last-block, --help, --orderbook, --all-tokens, --validate-token-timestamp, --timestamp-coverage with other flags. Use --help for more information.".into());
+        return Err("You cannot combine --last-block, --help, --orderbook, --all-tokens, --validate-token-timestamp, --timestamp-coverage, --get-all-users, --get-all-reserves, --get-all-a-token, --get-all-debt-token, --validate-all-reserve-indexes with other flags. Use --help for more information.".into());
     }
 
     // the following flags can only be combined with --scaled
@@ -260,11 +318,11 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         let has_required_token = flags.iter().any(|flag| {
             matches!(
                 flag,
-                Flag::ReserveToken(_) | Flag::AToken(_) | Flag::VariableToken(_)
+                Flag::ReserveToken(_) | Flag::AToken(_) | Flag::DebtToken(_)
             )
         });
         if !has_required_token {
-            return Err("You must provide a reserve token, aToken, or variable token address with --balance-of or --user-position".into());
+            return Err("You must provide a reserve token, aToken, or debt token address with --balance-of or --user-position".into());
         }
     }
 
@@ -273,6 +331,7 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     // --validate-user-borrow
     // --validate-token-supply
     // --validate-token-borrow
+    // --get-token-events
     //
     // the user must provide a --reserve-token flag
     if (has_validate_user_supply
@@ -284,11 +343,9 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         return Err("You must use --reserve-token with --validate-user-supply, --validate-user-borrow, --validate-token-supply or --validate-token-borrow".into());
     }
 
-    // cant combine --reserve-token, --a-token and --variable-token
-    if (has_variable_token || has_a_token) && has_reserve_token
-        || (has_a_token && has_variable_token)
-    {
-        return Err("You cannot combine --reserve-token, --a-token and --variable-token".into());
+    // cant combine --reserve-token, --a-token and --debt-token
+    if (has_debt_token || has_a_token) && has_reserve_token || (has_a_token && has_debt_token) {
+        return Err("You cannot combine --reserve-token, --a-token and --debt-token".into());
     }
 
     Ok(flags)

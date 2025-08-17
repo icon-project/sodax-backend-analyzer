@@ -7,12 +7,15 @@ pub fn extract_optional_value_from_flags(flags: &[Flag], flag_type: FlagType) ->
     flags.iter().find_map(|f| match (f, &flag_type) {
         (Flag::ReserveToken(value), FlagType::ReserveToken) => Some(value.clone()),
         (Flag::AToken(value), FlagType::AToken) => Some(value.clone()),
-        (Flag::VariableToken(value), FlagType::VariableToken) => Some(value.clone()),
+        (Flag::DebtToken(value), FlagType::DebtToken) => Some(value.clone()),
         (Flag::UserPosition(value), FlagType::UserPosition) => Some(value.clone()),
         (Flag::BalanceOf(value), FlagType::BalanceOf) => Some(value.clone()),
         (Flag::ValidateUserSupply(value), FlagType::ValidateUserSupply) => Some(value.clone()),
         (Flag::ValidateUserBorrow(value), FlagType::ValidateUserBorrow) => Some(value.clone()),
         (Flag::ValidateUserAll(value), FlagType::ValidateUserAll) => Some(value.clone()),
+        (Flag::ValidateReserveIndexes(value), FlagType::ValidateReserveIndexes) => Some(value.clone()),
+        (Flag::GetTokenEvents(value), FlagType::GetTokenEvents) => Some(value.clone()),
+        (Flag::GetUserEvents(value), FlagType::GetUserEvents) => Some(value.clone()),
         (Flag::ValidateTimestamps(value_opt), FlagType::ValidateTimestamps) => value_opt.clone(),
         _ => None,
     })

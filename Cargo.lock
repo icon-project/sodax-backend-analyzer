@@ -3527,6 +3527,7 @@ dependencies = [
  "futures",
  "mongodb",
  "primitive-types 0.13.1",
+ "rand 0.9.2",
  "serde",
  "tokio",
 ]

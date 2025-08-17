@@ -1,7 +1,13 @@
 use crate::config::get_config;
+use std::str::FromStr;
 use crate::models::{
-    OrderbookDocument, ReserveTokenDocument, UserPositionDocument, SolverVolumeDocument,
+    OrderbookDocument,
+    ReserveTokenDocument,
+    UserPositionDocument,
+    SolverVolumeDocument,
     SolverVolumeTimestampAndBlock,
+    MoneyMarketEventDocument,
+    // IntentEventDocument
 };
 // For async iteration over cursor
 use futures::stream::StreamExt;
@@ -16,6 +22,7 @@ use crate::structs::{Collections, ReserveTokenField};
 struct Database {
     client: Client,
 }
+use alloy::primitives::Address;
 
 impl Database {
     async fn new() -> Self {
@@ -131,6 +138,24 @@ pub async fn find_all_users() -> Result<Vec<UserPositionDocument>, mongodb::erro
     Ok(users)
 }
 
+pub async fn find_reserve_for_debt_token(
+    token: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(token, ReserveTokenField::VariableDebtToken).await
+}
+
+pub async fn find_reserve_for_a_token(
+    token: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(token, ReserveTokenField::AToken).await
+}
+
+pub async fn find_reserve_for_reserve_address(
+    token: &str,
+) -> Result<Option<ReserveTokenDocument>, mongodb::error::Error> {
+    find_reserve_for_token(token, ReserveTokenField::Reserve).await
+}
+
 pub async fn find_reserve_for_token(
     token: &str,
     token_type: ReserveTokenField,
@@ -225,6 +250,61 @@ pub async fn get_user_position(
     find_one(collection, filter).await
 }
 
+pub async fn find_user_events(
+    user_address: &str,
+) -> Result<Vec<MoneyMarketEventDocument>, mongodb::error::Error> {
+    let collection: Collection<MoneyMarketEventDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().money_market_events);
+
+    let filter = doc! { "$or": [
+        { "user": user_address },
+        { "from": user_address },
+        { "to": user_address },
+        { "onBehalfOf": user_address },
+        { "repayer": user_address },
+        { "target": user_address }
+    ]};
+    collect_all_with_filter(collection, filter).await
+}
+
+pub async fn find_token_events(
+    token_address: &str,
+) -> Result<Vec<MoneyMarketEventDocument>, mongodb::error::Error> {
+    let collection: Collection<MoneyMarketEventDocument> = get_db()
+        .await
+        .database()
+        .collection(get_collections_config().money_market_events);
+
+    let reserve_from_a_token = find_reserve_for_a_token(token_address).await?;
+    let reserve_from_debt_token = find_reserve_for_debt_token(token_address).await?;
+
+    let reserve_address = match reserve_from_a_token {
+        Some(reserve) => reserve.reserveAddress,
+        None => match reserve_from_debt_token {
+            Some(reserve) => reserve.reserveAddress,
+            None => {
+                eprintln!("No reserve found for token address: {}", token_address);
+                std::process::exit(1) // No matching reserve found
+            }
+        },
+    };
+
+    // parse to valid eip55 Address
+    let token_address_eip: Address =
+        Address::from_str(&reserve_address).expect("Invalid token address format");
+    let checksummed = token_address_eip.to_checksum(None);
+
+    // Create filter to match either tokenAddress or reserve
+    let filter = doc! { "$or": [
+        { "tokenAddress": token_address },
+        { "reserve": checksummed },
+    ]};
+
+    collect_all_with_filter(collection, filter).await
+}
+
 // GENERICS
 //
 async fn find_one<T>(
@@ -281,28 +361,6 @@ where
 {
     collect_helper(collection, filter, None).await
 }
-
-// async fn _collect_all_with_filter<T>(
-//     collection: Collection<T>,
-//     filter: Document,
-// ) -> Result<Vec<T>, mongodb::error::Error>
-// where
-//     T: serde::de::DeserializeOwned + std::marker::Send + std::marker::Sync,
-// {
-//     let mut docs: Vec<T> = vec![];
-//     let mut cursor = collection.find(filter).await?;
-//
-//     while let Some(doc_result) = cursor.next().await {
-//         match doc_result {
-//             Ok(doc) => docs.push(doc),
-//             Err(e) => {
-//                 eprintln!("Error collecting documents with filter. {}", e);
-//                 return Err(e);
-//             }
-//         };
-//     }
-//     Ok(docs)
-// }
 
 async fn collect_helper<T>(
     collection: Collection<T>,

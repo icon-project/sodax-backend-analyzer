@@ -8,6 +8,7 @@ alloy = "1.0.23"
 dotenv = "0.15.0"
 futures = "0.3.31"
 primitive-types = "0.13.1"
+rand = "0.9.2"
 serde = "1.0.188"
 tokio = {version = "1.47.0", features = ["full"]}
 
