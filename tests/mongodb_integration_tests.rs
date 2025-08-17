@@ -6,6 +6,8 @@ use sodax_backend_analizer::db::{
     find_reserve_for_token,
     get_orderbook,
     find_timestamp_and_block_from_solver_volume,
+    find_user_events,
+    find_token_events,
     // get_user_position,
 };
 use sodax_backend_analizer::structs::ReserveTokenField;
@@ -14,10 +16,12 @@ use sodax_backend_analizer::structs::ReserveTokenField;
 mod common;
 use common::{
     common_handler,
+    common_vec_handler,
     common_result_option_handler,
     A_TOKEN_ADDRESS,
     RESERVE_TOKEN_ADDRESS,
-    // USER_ADDRESS,
+    //
+    USER_ADDRESS,
     VARIABLE_DEBT_TOKEN_ADDRESS,
 };
 
@@ -118,13 +122,33 @@ async fn test_get_orderbook() {
 async fn test_find_timestamp_and_block_from_solver_volume() {
     let result = find_timestamp_and_block_from_solver_volume().await;
 
-    common_handler(
+    common_vec_handler(
         result,
         "Timestamp and block data found",
         "Timestamp and block data not found, which is valid for test data",
     );
 }
 
+#[tokio::test]
+async fn test_find_user_events() {
+    let result = find_user_events(USER_ADDRESS).await;
+
+    common_vec_handler(
+        result,
+        "User events data found",
+        "User events not found, which is valid for test data",
+    );
+}
+
+#[tokio::test]
+async fn test_find_token_events() {
+    let result = find_token_events(A_TOKEN_ADDRESS).await;
+    common_vec_handler(
+        result,
+        "Token events data found",
+        "Token events not found, which is valid for test data",
+    );
+}
 // #[ignore]
 // #[tokio::test]
 // async fn test_get_user_position() {

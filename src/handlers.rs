@@ -1,8 +1,20 @@
 use crate::db::{
-    find_all_reserves, find_reserve_for_token, get_orderbook, find_all_users, get_solver_volume,
+    find_all_reserves,
+    find_reserve_for_token,
+    get_orderbook,
+    find_all_users,
+    get_solver_volume,
     find_docs_with_non_null_timestamp,
+    //
+    find_all_user_addresses,
+    find_all_reserve_addresses,
+    find_user_events,
+    find_token_events,
 };
-use crate::evm::{get_last_block, get_balance_of, get_block_timestamp};
+use crate::evm::{
+    get_last_block, get_balance_of, get_block_timestamp, get_atoken_liquidity_index,
+    get_variable_borrow_index,
+};
 use crate::helpers::{compare_and_report_diff, find_user_scaled_position};
 use crate::validators::{
     validate_user_supply_amount, validate_user_borrow_amount, validate_token_supply_amount,
@@ -13,7 +25,7 @@ use crate::validators::{
 };
 use crate::functions::{extract_value_from_flags_or_exit, extract_optional_value_from_flags};
 use crate::structs::{ReserveTokenField, Flag, FlagType};
-use crate::models::{ReserveTokenDocument, SolverVolumeDocument};
+use crate::models::{ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument};
 use crate::constants::HELP_MESSAGE;
 use futures::future::join_all;
 use tokio::task;
@@ -232,7 +244,7 @@ pub async fn handle_balance_of(flags: Vec<Flag>) {
         .find_map(|f| match f {
             Flag::ReserveToken(_) => Some(FlagType::ReserveToken),
             Flag::AToken(_) => Some(FlagType::AToken),
-            Flag::VariableToken(_) => Some(FlagType::VariableToken),
+            Flag::DebtToken(_) => Some(FlagType::DebtToken),
             _ => None,
         })
         .unwrap_or_else(|| {
@@ -267,7 +279,7 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
         .find_map(|f| match f {
             Flag::ReserveToken(address) => Some((address.clone(), ReserveTokenField::Reserve)),
             Flag::AToken(address) => Some((address.clone(), ReserveTokenField::AToken)),
-            Flag::VariableToken(address) => {
+            Flag::DebtToken(address) => {
                 Some((address.clone(), ReserveTokenField::VariableDebtToken))
             }
             _ => None,
@@ -314,13 +326,13 @@ pub async fn handle_token(flags: Vec<Flag>) {
         .find_map(|f| match f {
             Flag::ReserveToken(address) => Some((address.clone(), ReserveTokenField::Reserve)),
             Flag::AToken(address) => Some((address.clone(), ReserveTokenField::AToken)),
-            Flag::VariableToken(address) => {
+            Flag::DebtToken(address) => {
                 Some((address.clone(), ReserveTokenField::VariableDebtToken))
             }
             _ => None,
         })
         .unwrap_or_else(|| {
-            eprintln!("Error: --reserve-token, --a-token or --variable-token is required.");
+            eprintln!("Error: --reserve-token, --a-token or --debt-token is required.");
             std::process::exit(1);
         });
     let (token_address, field) = token_address_tuple;
@@ -866,4 +878,285 @@ pub async fn handle_validate_all_scaled() {
     handle_validate_users_all_scaled().await;
 
     println!("\n🎉 Complete validation finished!");
+}
+
+// New handlers for the additional CLI features
+
+pub async fn handle_get_all_users() {
+    let users = find_all_user_addresses().await;
+
+    if users.is_empty() {
+        println!("No users found.");
+    } else {
+        println!("All user addresses:");
+        for user in &users {
+            println!("{}", user);
+        }
+        println!("Total users: {}", users.len());
+    }
+}
+
+pub async fn handle_get_all_reserves() {
+    let reserves = match find_all_reserves().await {
+        Ok(reserves) => reserves,
+        Err(e) => {
+            eprintln!("Error fetching reserves: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if reserves.is_empty() {
+        println!("No reserves found.");
+    } else {
+        println!("All reserve tokens:");
+        for reserve in &reserves {
+            println!(
+                "Address: {}, Symbol: {}",
+                reserve.reserveAddress, reserve.symbol
+            );
+        }
+        println!("Total reserves: {}", reserves.len());
+    }
+}
+
+pub async fn handle_get_all_a_tokens() {
+    let reserves = match find_all_reserves().await {
+        Ok(reserves) => reserves,
+        Err(e) => {
+            eprintln!("Error fetching reserves: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if reserves.is_empty() {
+        println!("No aTokens found.");
+    } else {
+        println!("All aToken addresses:");
+        for reserve in &reserves {
+            println!(
+                "Address: {}, Symbol: {}",
+                reserve.aTokenAddress, reserve.symbol
+            );
+        }
+        println!("Total aTokens: {}", reserves.len());
+    }
+}
+
+pub async fn handle_get_all_debt_tokens() {
+    let reserves = match find_all_reserves().await {
+        Ok(reserves) => reserves,
+        Err(e) => {
+            eprintln!("Error fetching reserves: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if reserves.is_empty() {
+        println!("No debt tokens found.");
+    } else {
+        println!("All debt token addresses:");
+        for reserve in &reserves {
+            println!(
+                "Address: {}, Symbol: {}",
+                reserve.variableDebtTokenAddress, reserve.symbol
+            );
+        }
+        println!("Total debt tokens: {}", reserves.len());
+    }
+}
+
+pub async fn handle_get_token_events(flags: Vec<Flag>) {
+    let token_address = extract_value_from_flags_or_exit(
+        flags.clone(),
+        FlagType::GetTokenEvents,
+        "Error: --get-token-events requires a token address to be specified.",
+    );
+
+    let events = match find_token_events(&token_address).await {
+        Ok(events) => events,
+        Err(e) => {
+            eprintln!("Error fetching token events: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if events.is_empty() {
+        println!("No events found for token: {}", token_address);
+    } else {
+        handle_money_market_event_output(events);
+    }
+}
+
+pub async fn handle_get_user_events(flags: Vec<Flag>) {
+    let user_address = extract_value_from_flags_or_exit(
+        flags.clone(),
+        FlagType::GetUserEvents,
+        "Error: --get-user-events requires a user address to be specified.",
+    );
+
+    let events = match find_user_events(&user_address).await {
+        Ok(events) => events,
+        Err(e) => {
+            eprintln!("Error fetching user events: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if events.is_empty() {
+        println!("No events found for user: {}", user_address);
+    } else {
+        handle_money_market_event_output(events);
+    }
+}
+
+fn handle_money_market_event_output(event_vector: Vec<MoneyMarketEventDocument>) {
+    for event in event_vector {
+        match event {
+            MoneyMarketEventDocument::ATokenBalanceTransfer(doc) => {
+                println!("AToken Balance Transfer Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::ATokenTransfer(doc) => {
+                println!("AToken Transfer Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::ATokenBurn(doc) => {
+                println!("AToken Burn Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::ATokenMint(doc) => {
+                println!("AToken Mint Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::Borrow(doc) => {
+                println!("Borrow Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::DebtTokenBurn(doc) => {
+                println!("Debt Token Burn Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::DebtTokenMint(doc) => {
+                println!("Debt Token Mint Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::Repay(doc) => {
+                println!("Repay Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::ReserveDataUpdated(doc) => {
+                println!("Reserve Data Updated Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::Supply(doc) => {
+                println!("Supply Event:");
+                println!("  Doc: {:?}", doc);
+            }
+            MoneyMarketEventDocument::Withdraw(doc) => {
+                println!("Withdraw Event:");
+                println!("  Doc: {:?}", doc);
+            }
+        }
+    }
+}
+
+async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
+    println!("Validating reserve indexes for: {}", reserve_address);
+    // Get database values
+    let reserve_data =
+        match find_reserve_for_token(&reserve_address, ReserveTokenField::Reserve).await {
+            Ok(Some(data)) => data,
+            Ok(None) => {
+                eprintln!("Reserve not found in database: {}", reserve_address);
+                std::process::exit(1);
+            }
+            Err(e) => {
+                eprintln!("Error fetching reserve data: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+    println!("Reserve: {}", reserve_address);
+    println!("Token: {}", reserve_data.symbol);
+    // Get on-chain values
+    let on_chain_liquidity_index = match get_atoken_liquidity_index(&reserve_address).await {
+        Ok(index) => index,
+        Err(e) => {
+            eprintln!("Error fetching on-chain liquidity index: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let on_chain_variable_borrow_index = match get_variable_borrow_index(&reserve_address).await {
+        Ok(index) => index,
+        Err(e) => {
+            eprintln!("Error fetching on-chain variable borrow index: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Convert database values to u128 for comparison
+    let db_liquidity_index = reserve_data
+        .liquidityIndex
+        .to_string()
+        .parse::<u128>()
+        .unwrap_or(0);
+    let db_variable_borrow_index = reserve_data
+        .variableBorrowIndex
+        .to_string()
+        .parse::<u128>()
+        .unwrap_or(0);
+
+    println!("Liquidity Index:");
+    println!("  Database: {}", db_liquidity_index);
+    println!("  On-Chain: {}", on_chain_liquidity_index);
+    println!(
+        "  Difference: {}",
+        if db_liquidity_index > on_chain_liquidity_index {
+            db_liquidity_index - on_chain_liquidity_index
+        } else {
+            on_chain_liquidity_index - db_liquidity_index
+        }
+    );
+
+    println!("Variable Borrow Index:");
+    println!("  Database: {}", db_variable_borrow_index);
+    println!("  On-Chain: {}", on_chain_variable_borrow_index);
+    println!(
+        "  Difference: {}",
+        if db_variable_borrow_index > on_chain_variable_borrow_index {
+            db_variable_borrow_index - on_chain_variable_borrow_index
+        } else {
+            on_chain_variable_borrow_index - db_variable_borrow_index
+        }
+    );
+}
+
+pub async fn handle_validate_reserve_indexes(flags: Vec<Flag>) {
+    let reserve_address = extract_value_from_flags_or_exit(
+        flags.clone(),
+        FlagType::ValidateReserveIndexes,
+        "Error: --validate-reserve-indexes requires a reserve address to be specified.",
+    );
+
+    handle_validate_reserve_indexes_generic(reserve_address).await;
+}
+
+pub async fn handle_validate_all_reserve_indexes() {
+    println!("Validating indexes for all reserves...");
+
+    let reserves = find_all_reserve_addresses().await;
+
+    if reserves.is_empty() {
+        println!("No reserves found.");
+        return;
+    }
+
+    println!("Found {} reserves to validate", reserves.len());
+
+    for reserve in reserves {
+        handle_validate_reserve_indexes_generic(reserve).await;
+    }
+
+    println!("\n🎉 Reserve index validation complete!");
 }

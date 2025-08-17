@@ -14,13 +14,18 @@ A Rust CLI tool for analyzing database data for the SODAX backend. This tool pro
 - **Data Validation** - Comprehensive validation of database vs on-chain data
 - **Scaled Balance Validation** - Validate raw database values against on-chain scaled balances using the `--scaled` flag
 - **Bulk Operations** - Validate all reserves and user positions at once with parallel processing
+- **Data Fetching** - Get all users, reserves, aTokens, and debt tokens from the database
+- **Event Retrieval** - Get events for specific tokens and users
+- **Index Validation** - Validate liquidity and borrow indexes for reserves
 - **Error Handling** - Robust error handling with graceful degradation
 
 ## 📋 Prerequisites
 
 - **Rust** (latest stable version)
-- **MongoDB** instance running (a copy of the database is necessary)
+- **Local MongoDB instance** running on your machine with a copy of the SODAX backend database
 - **Environment variables** configured (see Configuration section)
+
+> **Important**: This tool requires a local MongoDB instance with the SODAX backend database. You cannot use this tool without having the database running locally on your machine.
 
 ## 🛠️ Installation
 
@@ -78,20 +83,44 @@ cargo run -- --last-block
 # Get all orderbook data
 cargo run -- --orderbook
 
+# Get all user addresses
+cargo run -- --get-all-users
+
+# Get all reserve tokens with addresses and symbols
+cargo run -- --get-all-reserves
+
+# Get all aToken addresses and symbols
+cargo run -- --get-all-a-token
+
+# Get all debt token addresses and symbols
+cargo run -- --get-all-debt-token
+
 # Get reserve token data by reserve address
 cargo run -- --reserve-token <RESERVE_ADDRESS>
 
 # Get reserve token data by aToken address
 cargo run -- --a-token <ATOKEN_ADDRESS>
 
-# Get reserve token data by variable debt token address
-cargo run -- --variable-token <VARIABLE_TOKEN_ADDRESS>
+# Get reserve token data by debt token address
+cargo run -- --debt-token <DEBT_TOKEN_ADDRESS>
 
 # Get user position data by wallet address
 cargo run -- --user-position <WALLET_ADDRESS>
 
 # Get token balance for a user (requires token type flag)
 cargo run -- --balance-of <USER_ADDRESS> --reserve-token <TOKEN_ADDRESS>
+
+# Get events for a specific token
+cargo run -- --get-token-events <TOKEN_ADDRESS>
+
+# Get events for a specific user
+cargo run -- --get-user-events <USER_ADDRESS>
+
+# Validate reserve indexes for a specific reserve
+cargo run -- --validate-reserve-indexes <RESERVE_ADDRESS>
+
+# Validate indexes for all reserves
+cargo run -- --validate-all-reserve-indexes
 
 # Individual validation (real balances)
 cargo run -- --validate-user-supply <USER_ADDRESS> --reserve-token <RESERVE_ADDRESS>
@@ -134,6 +163,33 @@ cargo run -- --reserve-token 0x1234567890123456789012345678901234567890
 
 # Query by aToken address
 cargo run -- --a-token 0x5c50cf875aebad8d5ba548f229960c90b1c1f8c3
+
+# Query by debt token address
+cargo run -- --debt-token 0x5c50cf875aebad8d5ba548f229960c90b1c1f8c3
+
+# Get all user addresses
+cargo run -- --get-all-users
+
+# Get all reserve tokens
+cargo run -- --get-all-reserves
+
+# Get all aToken addresses
+cargo run -- --get-all-a-token
+
+# Get all debt token addresses
+cargo run -- --get-all-debt-token
+
+# Get events for a specific token
+cargo run -- --get-token-events 0x1234567890abcdef...
+
+# Get events for a specific user
+cargo run -- --get-user-events 0xuser123...
+
+# Validate reserve indexes
+cargo run -- --validate-reserve-indexes 0x1234567890abcdef...
+
+# Validate all reserve indexes
+cargo run -- --validate-all-reserve-indexes
 
 # Get user balance for a specific token
 cargo run -- --balance-of 0xuser123... --reserve-token 0xtoken456...
@@ -180,17 +236,23 @@ sodax-backend-analizer/
 │   ├── evm.rs               # EVM blockchain integration
 │   ├── handlers.rs          # CLI command handlers
 │   ├── helpers.rs           # Helper functions
-│   ├── constants.rs         # Global constants
-│   └── models.rs            # Data models
+│   ├── functions.rs         # Flag extraction and utility functions
+│   ├── validators.rs        # Data validation logic
+│   ├── constants.rs         # Global constants and help message
+│   ├── structs.rs           # Data structures and enums
+│   └── models.rs            # Data models and MongoDB schemas
 ├── tests/
 │   ├── common.rs            # Common test utilities
 │   ├── evm_integration_tests.rs
 │   ├── general_integration_tests.rs
 │   └── mongodb_integration_tests.rs
-├── Cargo.toml
-├── Cargo.lock
-├── Makefile
-└── README.md
+├── Cargo.toml               # Rust project configuration
+├── Cargo.lock               # Dependency lock file
+├── Makefile                 # Build and development commands
+├── rustfmt.toml             # Rust code formatting configuration
+├── .gitignore               # Git ignore patterns
+├── TODO.md                  # Development roadmap and tasks
+└── README.md                # Project documentation
 ```
 
 ## 🧪 Testing
@@ -235,61 +297,6 @@ The project uses Git hooks to ensure code quality:
 - **Pre-commit**: Runs `cargo check` and `cargo clippy`
 - **Automatic setup**: Hooks are configured via cargo-husky
 
-## 📊 Data Models
-
-### ReserveTokenDocument
-```rust
-pub struct ReserveTokenDocument {
-    pub id: ObjectId,
-    pub totalATokenBalance: Decimal128,
-    pub totalVariableDebtTokenBalance: Decimal128,
-    pub suppliers: Vec<String>,
-    pub borrowers: Vec<String>,
-    pub aTokenAddress: String,
-    pub variableDebtTokenAddress: String,
-    pub reserveAddress: String,
-    pub symbol: String,
-    pub liquidityRate: Decimal128,
-    pub stableBorrowRate: Decimal128,
-    pub variableBorrowRate: Decimal128,
-    pub liquidityIndex: Decimal128,
-    pub variableBorrowIndex: Decimal128,
-    pub blockNumber: u64,
-    pub createdAt: DateTime,
-    pub updatedAt: DateTime,
-    pub version: i32,
-}
-```
-
-### Validation Models
-```rust
-pub struct EntryState {
-    pub database_amount: u128,
-    pub on_chain_amount: u128,
-    pub difference: u128,
-    pub percentage: f64,
-}
-
-pub struct UserPositionValidation {
-    pub reserve_address: String,
-    pub supply: EntryState,
-    pub borrow: EntryState,
-    pub error: Option<String>,
-}
-
-pub struct UserEntryState {
-    pub user_address: String,
-    pub positions: Vec<UserPositionValidation>,
-}
-
-pub struct ReserveEntryState {
-    pub reserve_address: String,
-    pub supply: EntryState,
-    pub borrow: EntryState,
-    pub error: Option<String>,
-}
-```
-
 ## 🔍 Data Sources
 
 ### MongoDB Collections
@@ -301,41 +308,6 @@ The tool connects to the following MongoDB collections:
 - `moneyMarketEvents` - Money market events
 - `walletFactoryEvents` - Wallet factory events
 - `intentEvents` - Intent events
-
-### Blockchain Integration
-The tool also connects to Ethereum-compatible blockchains:
-
-- **RPC Endpoint**: `https://rpc.soniclabs.com`
-- **Supported Operations**:
-  - Get latest block number
-  - Query ERC20 token balances
-  - Contract interactions via Solidity bindings
-
-## 🚨 Error Handling
-
-The application handles various error scenarios:
-
-- **Database connection errors** - Graceful error messages
-- **Blockchain RPC errors** - Network and contract interaction errors
-- **Missing environment variables** - Clear configuration instructions
-- **Invalid CLI arguments** - Helpful usage information with validation rules
-- **Data not found** - Appropriate "not found" messages
-- **Address parsing errors** - Invalid Ethereum address format handling
-- **Rate limiting** - Graceful handling of RPC rate limits with continued processing
-- **Validation errors** - Position-level error tracking with detailed error messages
-- **Bulk operation failures** - Individual item failures don't stop entire operations
-- **Parallel processing** - Bulk operations run in parallel for optimal performance
-
-## 🤝 Contributing
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/new-feature`
-3. **Make your changes**
-4. **Run tests**: `cargo test`
-5. **Check code quality**: `cargo clippy`
-6. **Commit your changes**: `git commit -m "Add new feature"`
-7. **Push to the branch**: `git push origin feature/new-feature`
-8. **Submit a pull request**
 
 ## 🆘 Troubleshooting
 
@@ -366,13 +338,10 @@ The application handles various error scenarios:
 - Ensure required arguments are provided
 - Verify address formats are valid Ethereum addresses
 
-## 📞 Support
-
-For issues and questions:
-- Create an issue in the repository
-- Check existing issues for solutions
-- Review the documentation
-
 ---
 
-**Note**: This tool requires a running MongoDB instance with the appropriate SODAX backend data and internet connectivity for blockchain RPC calls. Make sure your environment is properly configured before use.
+**Important Notes**:
+- This tool requires a **local MongoDB instance** running on your machine with the SODAX backend database
+- You cannot use this tool without having the database running locally
+- Internet connectivity is required for blockchain RPC calls
+- Make sure your environment is properly configured before use
