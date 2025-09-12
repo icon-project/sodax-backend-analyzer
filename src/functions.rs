@@ -1,6 +1,14 @@
 use crate::constants::{RAY, HALF_RAY};
 use crate::structs::{Flag, FlagType};
 use primitive_types::U256;
+use mongodb::bson::Decimal128;
+
+pub fn decimal128_to_u128(d: Decimal128) -> u128 {
+    // Convert Decimal128 to u128
+    d.to_string()
+        .parse::<u128>()
+        .expect("Failed to parse Decimal128 to u128")
+}
 
 // Returns an optional value for flags that may or may not carry a value (e.g., ValidateTimestamps)
 pub fn extract_optional_value_from_flags(flags: &[Flag], flag_type: FlagType) -> Option<String> {
@@ -13,7 +21,9 @@ pub fn extract_optional_value_from_flags(flags: &[Flag], flag_type: FlagType) ->
         (Flag::ValidateUserSupply(value), FlagType::ValidateUserSupply) => Some(value.clone()),
         (Flag::ValidateUserBorrow(value), FlagType::ValidateUserBorrow) => Some(value.clone()),
         (Flag::ValidateUserAll(value), FlagType::ValidateUserAll) => Some(value.clone()),
-        (Flag::ValidateReserveIndexes(value), FlagType::ValidateReserveIndexes) => Some(value.clone()),
+        (Flag::ValidateReserveIndexes(value), FlagType::ValidateReserveIndexes) => {
+            Some(value.clone())
+        }
         (Flag::GetTokenEvents(value), FlagType::GetTokenEvents) => Some(value.clone()),
         (Flag::GetUserEvents(value), FlagType::GetUserEvents) => Some(value.clone()),
         (Flag::ValidateTimestamps(value_opt), FlagType::ValidateTimestamps) => value_opt.clone(),

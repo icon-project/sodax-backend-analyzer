@@ -6,7 +6,6 @@ use crate::db::{
     get_solver_volume,
     find_docs_with_non_null_timestamp,
     //
-    find_all_user_addresses,
     find_all_reserve_addresses,
     find_user_events,
     find_token_events,
@@ -23,7 +22,9 @@ use crate::validators::{
     validate_user_scaled_supply_amount, validate_token_scaled_borrow_amount,
     validate_token_scaled_supply_amount,
 };
-use crate::functions::{extract_value_from_flags_or_exit, extract_optional_value_from_flags};
+use crate::functions::{
+    extract_value_from_flags_or_exit, extract_optional_value_from_flags, decimal128_to_u128,
+};
 use crate::structs::{ReserveTokenField, Flag, FlagType};
 use crate::models::{ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument};
 use crate::constants::HELP_MESSAGE;
@@ -883,14 +884,37 @@ pub async fn handle_validate_all_scaled() {
 // New handlers for the additional CLI features
 
 pub async fn handle_get_all_users() {
-    let users = find_all_user_addresses().await;
+    let users = find_all_users().await.unwrap_or_else(|e| {
+        eprintln!("Error fetching users: {}", e);
+        std::process::exit(1);
+    });
 
     if users.is_empty() {
         println!("No users found.");
     } else {
-        println!("All user addresses:");
+        println!("All user:");
         for user in &users {
-            println!("{}", user);
+            let count_of_positions = user.positions.len();
+            println!(
+                "User: {}\n  positions on tokens: {}",
+                user.userAddress, count_of_positions
+            );
+            let mut as_borrower = 0;
+            let mut as_supplier = 0;
+            for position in &user.positions {
+                let borrow = decimal128_to_u128(position.variableDebtTokenBalance);
+                let supply = decimal128_to_u128(position.aTokenBalance);
+                if borrow > 0 {
+                    as_borrower += 1;
+                }
+                if supply > 0 {
+                    as_supplier += 1;
+                }
+            }
+            println!(
+                "  Borrower positions:  {}\n  Supplier positions:  {}\n",
+                as_borrower, as_supplier
+            );
         }
         println!("Total users: {}", users.len());
     }
