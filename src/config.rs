@@ -28,8 +28,8 @@ impl Config {
 
     pub fn connection_string(&self) -> String {
         format!(
-            "mongodb://{}:{}@{}:{}",
-            self.mongo_user, self.mongo_password, self.mongo_host, self.mongo_port
+            "mongodb://{}:{}@{}:{}/{}?directConnection=true&authSource=admin&readPreference=primaryPreferred&serverSelectionTimeoutMS=5000",
+            self.mongo_user, self.mongo_password, self.mongo_host, self.mongo_port, self.mongo_db
         )
     }
 
