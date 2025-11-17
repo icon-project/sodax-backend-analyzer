@@ -221,7 +221,12 @@ pub async fn validate_user_all_positions_generic(
       let semaphore = Arc::clone(&semaphore);
       tokio::task::spawn(async move {
         // Acquire permit before processing
-        let _permit = semaphore.acquire().await.unwrap();
+        let _permit = match semaphore.acquire().await {
+          Ok(permit) => permit,
+          Err(e) => {
+            return Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>);
+          }
+        };
 
         let mut position_validation = UserPositionValidation {
           reserve_address: reserve_address.clone(),

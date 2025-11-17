@@ -742,7 +742,16 @@ pub async fn handle_validate_users_all_generic(scaled: bool) {
       let semaphore = Arc::clone(&semaphore);
       task::spawn(async move {
         // Acquire permit before processing
-        let _permit = semaphore.acquire().await.unwrap();
+        let _permit = match semaphore.acquire().await {
+          Ok(permit) => permit,
+          Err(e) => {
+            eprintln!(
+              "Failed to acquire semaphore permit for user {}: {}",
+              user_address, e
+            );
+            return;
+          }
+        };
 
         // Use handle_user_validation instead of calling validate_user_all_positions directly
         if scaled {
