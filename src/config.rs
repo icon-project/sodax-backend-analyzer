@@ -3,58 +3,58 @@ use std::env;
 
 #[derive(Debug)]
 pub struct Config {
-    pub mongo_user: String,
-    pub mongo_password: String,
-    pub mongo_host: String,
-    pub mongo_port: u32,
-    pub mongo_db: String,
-    pub rpc_provider: String,
+  pub mongo_user: String,
+  pub mongo_password: String,
+  pub mongo_host: String,
+  pub mongo_port: u32,
+  pub mongo_db: String,
+  pub rpc_provider: String,
 }
 
 impl Config {
-    pub fn new() -> Self {
-        dotenv().ok();
+  pub fn new() -> Self {
+    dotenv().ok();
 
-        Config {
-            mongo_user: env::var("MONGO_USER").expect("MONGO_USER must be set"),
-            mongo_password: env::var("MONGO_PASSWORD").expect("MONGO_PASSWORD must be set"),
-            mongo_host: env::var("MONGO_HOST").expect("MONGO_HOST must be set"),
-            mongo_port: env::var("MONGO_PORT")
-                .expect("MONGO_PORT must be set")
-                .parse()
-                .expect("MONGO_PORT must be a valid number"),
-            mongo_db: env::var("MONGO_DB").expect("MONGO_DB must be set"),
-            rpc_provider: env::var("RPC_PROVIDER").expect("RPC_PROVIDER must be set"),
-        }
+    Config {
+      mongo_user: env::var("MONGO_USER").expect("MONGO_USER must be set"),
+      mongo_password: env::var("MONGO_PASSWORD").expect("MONGO_PASSWORD must be set"),
+      mongo_host: env::var("MONGO_HOST").expect("MONGO_HOST must be set"),
+      mongo_port: env::var("MONGO_PORT")
+        .expect("MONGO_PORT must be set")
+        .parse()
+        .expect("MONGO_PORT must be a valid number"),
+      mongo_db: env::var("MONGO_DB").expect("MONGO_DB must be set"),
+      rpc_provider: env::var("RPC_PROVIDER").expect("RPC_PROVIDER must be set"),
     }
+  }
 
-    pub fn connection_string(&self) -> String {
-        format!(
-            "mongodb://{}:{}@{}:{}/{}?directConnection=true&authSource=admin&readPreference=primaryPreferred&serverSelectionTimeoutMS=5000",
-            self.mongo_user, self.mongo_password, self.mongo_host, self.mongo_port, self.mongo_db
-        )
-    }
+  pub fn connection_string(&self) -> String {
+    format!(
+      "mongodb://{}:{}@{}:{}/{}?directConnection=true&authSource=admin&readPreference=primaryPreferred&serverSelectionTimeoutMS=5000",
+      self.mongo_user, self.mongo_password, self.mongo_host, self.mongo_port, self.mongo_db
+    )
+  }
 
-    pub fn database_name(&self) -> String {
-        self.mongo_db.clone()
-    }
+  pub fn database_name(&self) -> String {
+    self.mongo_db.clone()
+  }
 
-    pub fn rpc_provider(&self) -> String {
-        self.rpc_provider.clone()
-    }
+  pub fn rpc_provider(&self) -> String {
+    self.rpc_provider.clone()
+  }
 }
 
 impl Default for Config {
-    fn default() -> Self {
-        Self::new()
-    }
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 pub fn get_config() -> Config {
-    // println!("Loading configuration...");
-    // println!(
-    //     "Using MongoDB connection string: {}",
-    //     Config::new().connection_string()
-    // );
-    Config::new()
+  // println!("Loading configuration...");
+  // println!(
+  //     "Using MongoDB connection string: {}",
+  //     Config::new().connection_string()
+  // );
+  Config::new()
 }

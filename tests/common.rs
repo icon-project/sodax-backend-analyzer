@@ -13,73 +13,73 @@ pub const VARIABLE_DEBT_TOKEN_ADDRESS: &'static str = "0x96a4197803ac8b21a1b7aef
 
 // Common handler for Result types in tests
 pub fn common_handler<T, E: std::fmt::Display>(
-    result: Result<T, E>,
-    success_msg: &str,
-    error_msg: &str,
+  result: Result<T, E>,
+  success_msg: &str,
+  error_msg: &str,
 ) where
-    T: std::fmt::Debug,
+  T: std::fmt::Debug,
 {
-    match result {
-        Ok(value) => {
-            println!("✅ {}: {:?}", success_msg, value);
-        }
-        Err(e) => {
-            println!("❌ {}: {}", error_msg, e);
-        }
+  match result {
+    Ok(value) => {
+      println!("✅ {}: {:?}", success_msg, value);
     }
+    Err(e) => {
+      println!("❌ {}: {}", error_msg, e);
+    }
+  }
 }
 
 pub fn common_vec_handler<T, E: std::fmt::Display>(
-    result: Result<Vec<T>, E>,
-    success_msg: &str,
-    error_msg: &str,
+  result: Result<Vec<T>, E>,
+  success_msg: &str,
+  error_msg: &str,
 ) where
-    T: std::fmt::Debug,
+  T: std::fmt::Debug,
 {
-    match result {
-        Ok(value) => {
-            println!("✅ {}: {:?}", success_msg, value[0]);
-        }
-        Err(e) => {
-            println!("❌ {}: {}", error_msg, e);
-        }
+  match result {
+    Ok(value) => {
+      println!("✅ {}: {:?}", success_msg, value[0]);
     }
+    Err(e) => {
+      println!("❌ {}: {}", error_msg, e);
+    }
+  }
 }
 // Common handler for Option types in tests
 #[allow(dead_code)]
 pub fn common_option_handler<T>(option: Option<T>, found_msg: &str, not_found_msg: &str)
 where
-    T: std::fmt::Debug,
+  T: std::fmt::Debug,
 {
-    match option {
-        Some(value) => {
-            println!("✅ {}: {:?}", found_msg, value);
-        }
-        None => {
-            println!("ℹ️ {}", not_found_msg);
-        }
+  match option {
+    Some(value) => {
+      println!("✅ {}: {:?}", found_msg, value);
     }
+    None => {
+      println!("ℹ️ {}", not_found_msg);
+    }
+  }
 }
 
 // Common handler for Result<Option<T>, E> types in tests
 #[allow(dead_code)]
 pub fn common_result_option_handler<T, E: std::fmt::Debug>(
-    result: Result<Option<T>, E>,
-    found_msg: &str,
-    not_found_msg: &str,
-    error_msg: &str,
+  result: Result<Option<T>, E>,
+  found_msg: &str,
+  not_found_msg: &str,
+  error_msg: &str,
 ) where
-    T: std::fmt::Debug,
+  T: std::fmt::Debug,
 {
-    match result {
-        Ok(Some(value)) => {
-            println!("✅ {}: {:?}", found_msg, value);
-        }
-        Ok(None) => {
-            println!("ℹ️ {}", not_found_msg);
-        }
-        Err(e) => {
-            println!("❌ {}: {:?}", error_msg, e);
-        }
+  match result {
+    Ok(Some(value)) => {
+      println!("✅ {}: {:?}", found_msg, value);
     }
+    Ok(None) => {
+      println!("ℹ️ {}", not_found_msg);
+    }
+    Err(e) => {
+      println!("❌ {}: {:?}", error_msg, e);
+    }
+  }
 }
