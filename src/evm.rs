@@ -1,9 +1,10 @@
 use alloy::{
-    primitives::Address,
-    providers::{Provider, ProviderBuilder},
-    sol,
-    eips::BlockNumberOrTag,
+  primitives::Address,
+  providers::{Provider, ProviderBuilder},
+  sol,
+  eips::BlockNumberOrTag,
 };
+use crate::config::get_config;
 
 sol! {
     #[sol(rpc)]
@@ -49,123 +50,122 @@ sol! {
 const POOL_ADDRESS: &str = "0x553434896d39f867761859d0fe7189d2af70514e";
 
 async fn get_provider() -> Result<impl Provider, Box<dyn std::error::Error>> {
-    let provider = ProviderBuilder::new()
-        .connect("https://rpc.soniclabs.com")
-        .await?;
-    Ok(provider)
+  let rpc_provider = get_config().rpc_provider();
+  let provider = ProviderBuilder::new().connect(&rpc_provider).await?;
+  Ok(provider)
 }
 
 pub async fn get_balance_of(
-    token_address: &str,
-    owner_address: &str,
+  token_address: &str,
+  owner_address: &str,
 ) -> Result<u128, Box<dyn std::error::Error>> {
-    let provider = get_provider().await?;
-    let token_address = token_address.parse::<Address>()?;
-    let owner_address = owner_address.parse::<Address>()?;
+  let provider = get_provider().await?;
+  let token_address = token_address.parse::<Address>()?;
+  let owner_address = owner_address.parse::<Address>()?;
 
-    let contract = A_TOKEN::new(token_address, provider);
-    match contract.balanceOf(owner_address).call().await {
-        Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
-        Err(e) => Err(Box::new(e)),
-    }
+  let contract = A_TOKEN::new(token_address, provider);
+  match contract.balanceOf(owner_address).call().await {
+    Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_scaled_balance_of(
-    token_address: &str,
-    owner_address: &str,
+  token_address: &str,
+  owner_address: &str,
 ) -> Result<u128, Box<dyn std::error::Error>> {
-    let provider = get_provider().await?;
-    let token_address = token_address.parse::<Address>()?;
-    let owner_address = owner_address.parse::<Address>()?;
+  let provider = get_provider().await?;
+  let token_address = token_address.parse::<Address>()?;
+  let owner_address = owner_address.parse::<Address>()?;
 
-    let contract = A_TOKEN::new(token_address, provider);
-    match contract.scaledBalanceOf(owner_address).call().await {
-        Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
-        Err(e) => Err(Box::new(e)),
-    }
+  let contract = A_TOKEN::new(token_address, provider);
+  match contract.scaledBalanceOf(owner_address).call().await {
+    Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_total_supply(token_address: &str) -> Result<u128, Box<dyn std::error::Error>> {
-    let provider = get_provider().await.unwrap();
-    let token_address = token_address.parse::<Address>()?;
-    let contract = A_TOKEN::new(token_address, provider);
-    match contract.totalSupply().call().await {
-        Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
-        Err(e) => Err(Box::new(e)),
-    }
+  let provider = get_provider().await.unwrap();
+  let token_address = token_address.parse::<Address>()?;
+  let contract = A_TOKEN::new(token_address, provider);
+  match contract.totalSupply().call().await {
+    Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_scaled_total_supply(
-    token_address: &str,
+  token_address: &str,
 ) -> Result<u128, Box<dyn std::error::Error>> {
-    let provider = get_provider().await.unwrap();
-    let token_address = token_address.parse::<Address>()?;
-    let contract = A_TOKEN::new(token_address, provider);
-    match contract.scaledTotalSupply().call().await {
-        Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
-        Err(e) => Err(Box::new(e)),
-    }
+  let provider = get_provider().await.unwrap();
+  let token_address = token_address.parse::<Address>()?;
+  let contract = A_TOKEN::new(token_address, provider);
+  match contract.scaledTotalSupply().call().await {
+    Ok(total_supply) => Ok(u128::try_from(total_supply).unwrap_or(0)),
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_last_block() -> Result<u64, Box<dyn std::error::Error>> {
-    let provider = get_provider().await?;
+  let provider = get_provider().await?;
 
-    match provider.get_block_number().await {
-        Ok(block_number) => Ok(block_number),
-        Err(e) => Err(Box::new(e)),
-    }
+  match provider.get_block_number().await {
+    Ok(block_number) => Ok(block_number),
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_block_timestamp(block_number: u64) -> Result<u64, Box<dyn std::error::Error>> {
-    let provider = get_provider().await?;
+  let provider = get_provider().await?;
 
-    match provider
-        .get_block_by_number(BlockNumberOrTag::Number(block_number))
-        .await
-    {
-        Ok(block) => match block {
-            Some(b) => {
-                let header = b.into_header();
-                Ok(header.timestamp)
-            }
-            None => Err("Block not found".into()),
-        },
-        Err(e) => Err(Box::new(e)),
-    }
+  match provider
+    .get_block_by_number(BlockNumberOrTag::Number(block_number))
+    .await
+  {
+    Ok(block) => match block {
+      Some(b) => {
+        let header = b.into_header();
+        Ok(header.timestamp)
+      }
+      None => Err("Block not found".into()),
+    },
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_reserve_data(
-    asset_address: &str,
+  asset_address: &str,
 ) -> Result<ReserveDataLegacy, Box<dyn std::error::Error>> {
-    let provider = get_provider().await?;
-    let asset_address = asset_address.parse::<Address>()?;
+  let provider = get_provider().await?;
+  let asset_address = asset_address.parse::<Address>()?;
 
-    let contract = Pool::new(POOL_ADDRESS.parse::<Address>()?, provider);
-    match contract.getReserveData(asset_address).call().await {
-        Ok(reserve_data) => {
-            // Validate that the reserve data is not empty/default
-            if reserve_data.liquidityIndex == 0
-                && reserve_data.variableBorrowIndex == 0
-                && reserve_data.aTokenAddress == Address::ZERO
-            {
-                return Err("Invalid asset address: reserve not found in pool".into());
-            }
-            Ok(reserve_data)
-        }
-        Err(e) => Err(Box::new(e)),
+  let contract = Pool::new(POOL_ADDRESS.parse::<Address>()?, provider);
+  match contract.getReserveData(asset_address).call().await {
+    Ok(reserve_data) => {
+      // Validate that the reserve data is not empty/default
+      if reserve_data.liquidityIndex == 0
+        && reserve_data.variableBorrowIndex == 0
+        && reserve_data.aTokenAddress == Address::ZERO
+      {
+        return Err("Invalid asset address: reserve not found in pool".into());
+      }
+      Ok(reserve_data)
     }
+    Err(e) => Err(Box::new(e)),
+  }
 }
 
 pub async fn get_atoken_liquidity_index(
-    reserve_address: &str,
+  reserve_address: &str,
 ) -> Result<u128, Box<dyn std::error::Error>> {
-    let reserve_data = get_reserve_data(reserve_address).await?;
-    Ok(reserve_data.liquidityIndex)
+  let reserve_data = get_reserve_data(reserve_address).await?;
+  Ok(reserve_data.liquidityIndex)
 }
 
 pub async fn get_variable_borrow_index(
-    reserve_address: &str,
+  reserve_address: &str,
 ) -> Result<u128, Box<dyn std::error::Error>> {
-    let reserve_data = get_reserve_data(reserve_address).await?;
-    Ok(reserve_data.variableBorrowIndex)
+  let reserve_data = get_reserve_data(reserve_address).await?;
+  Ok(reserve_data.variableBorrowIndex)
 }

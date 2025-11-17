@@ -47,12 +47,29 @@ A Rust CLI tool for analyzing database data for the SODAX backend. This tool pro
 Create a `.env` file in the project root with the following variables:
 
 ```env
+# MongoDB Configuration
 MONGO_USER=your_mongo_username
 MONGO_PASSWORD=your_mongo_password
 MONGO_HOST=your_mongo_host
 MONGO_PORT=27017
 MONGO_DB=your_database_name
+
+# RPC Provider Configuration
+RPC_PROVIDER=https://rpc.soniclabs.com/
 ```
+
+### Environment Variables
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `MONGO_USER` | MongoDB username | Yes | `admin` |
+| `MONGO_PASSWORD` | MongoDB password | Yes | `your_password` |
+| `MONGO_HOST` | MongoDB host address | Yes | `127.0.0.1` or `localhost` |
+| `MONGO_PORT` | MongoDB port number | Yes | `27017` |
+| `MONGO_DB` | Database name | Yes | `sodax_backend` |
+| `RPC_PROVIDER` | Ethereum-compatible RPC endpoint URL | Yes | `https://rpc.soniclabs.com/` |
+
+> **Note**: The `RPC_PROVIDER` is used for all on-chain queries including balance validations, block information, and contract interactions. Make sure the RPC endpoint is accessible and supports the network you're validating against.
 
 ## 🎯 Usage
 
@@ -297,6 +314,49 @@ The project uses Git hooks to ensure code quality:
 - **Pre-commit**: Runs `cargo check` and `cargo clippy`
 - **Automatic setup**: Hooks are configured via cargo-husky
 
+## ⚡ Performance & Concurrency
+
+The tool uses intelligent concurrency limiting to balance performance with resource constraints:
+
+### Concurrency Limits
+
+- **User Validation**: Maximum 10 users validated concurrently
+- **Position Validation**: Maximum 5 positions per user validated concurrently
+- **Total Concurrent Operations**: ~150 file descriptors used at peak
+
+### Why These Limits?
+
+When validating all users with `--validate-all` or `--validate-users-all`, the tool:
+1. Connects to MongoDB for each user's position data
+2. Makes RPC calls to the blockchain for on-chain validation
+3. Each operation opens file descriptors for network connections
+
+Without limits, validating hundreds of users with multiple positions each would:
+- Open thousands of simultaneous connections
+- Exceed the OS file descriptor limit (typically 1024 on Linux)
+- Result in "Too many open files" errors
+
+### Tuning Performance
+
+You can adjust these limits based on your system resources:
+
+**In `src/handlers.rs` (line ~734)**:
+```rust
+let max_concurrent_users = 10;  // Increase for faster processing
+```
+
+**In `src/validators.rs` (line ~211)**:
+```rust
+let max_concurrent_positions = 5;  // Increase for faster processing
+```
+
+**Safe Formula**:
+```
+max_concurrent_users × max_concurrent_positions × 3 < (ulimit -n / 2)
+```
+
+Example: With `ulimit -n` of 1024, use `10 × 5 × 3 = 150` (safe!)
+
 ## 🔍 Data Sources
 
 ### MongoDB Collections
@@ -319,8 +379,10 @@ The tool connects to the following MongoDB collections:
 - Ensure network connectivity
 
 **Blockchain Connection Failed**
-- Verify RPC endpoint is accessible
-- Check network connectivity
+- Verify `RPC_PROVIDER` is set correctly in your `.env` file
+- Ensure the RPC endpoint is accessible and supports the target network
+- Check network connectivity and firewall settings
+- Test the RPC endpoint manually (e.g., using `curl` or a web browser)
 - Ensure valid Ethereum addresses are provided
 
 **Tests Failing**
@@ -337,6 +399,16 @@ The tool connects to the following MongoDB collections:
 - Check flag combinations (see help for restrictions)
 - Ensure required arguments are provided
 - Verify address formats are valid Ethereum addresses
+
+**"Too many open files" Error**
+- The tool uses concurrency limits to prevent file descriptor exhaustion
+- Default limits: 10 concurrent users, 5 concurrent positions per user
+- If you still encounter this error:
+  - Check your system's file descriptor limit: `ulimit -n`
+  - Increase the limit if needed: `ulimit -n 4096`
+  - Or adjust concurrency limits in the source code:
+    - `src/handlers.rs` line ~734: `max_concurrent_users`
+    - `src/validators.rs` line ~211: `max_concurrent_positions`
 
 ---
 
