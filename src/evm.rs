@@ -58,15 +58,27 @@ async fn get_provider() -> Result<impl Provider, Box<dyn std::error::Error>> {
 pub async fn get_balance_of(
   token_address: &str,
   owner_address: &str,
+  block_number: Option<u64>,
 ) -> Result<u128, Box<dyn std::error::Error>> {
   let provider = get_provider().await?;
   let token_address = token_address.parse::<Address>()?;
   let owner_address = owner_address.parse::<Address>()?;
 
   let contract = A_TOKEN::new(token_address, provider);
-  match contract.balanceOf(owner_address).call().await {
-    Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
-    Err(e) => Err(Box::new(e)),
+  match block_number {
+    Some(block) => match contract
+      .balanceOf(owner_address)
+      .block(block.into())
+      .call()
+      .await
+    {
+      Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
+      Err(e) => Err(Box::new(e)),
+    },
+    None => match contract.balanceOf(owner_address).call().await {
+      Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
+      Err(e) => Err(Box::new(e)),
+    },
   }
 }
 
