@@ -6,4 +6,4 @@ newline_style = "Unix"
 use_small_heuristics = "Default"
 merge_derives = true
 reorder_imports = false
-reorder_modules = true 
+reorder_modules = true

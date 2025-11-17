@@ -7,9 +7,9 @@ use sodax_backend_analizer::handlers::{
     handle_validate_token_all_scaled, handle_validate_users_all, handle_validate_users_all_scaled,
     handle_validate_user_all, handle_validate_user_all_scaled, handle_validate_all,
     handle_validate_all_scaled, handle_timestamp_coverage, handle_validate_timestamp,
-    handle_get_all_users, handle_get_all_reserves, handle_get_all_a_tokens, handle_get_all_debt_tokens,
-    handle_get_token_events, handle_get_user_events, handle_validate_reserve_indexes,
-    handle_validate_all_reserve_indexes,
+    handle_get_all_users, handle_get_all_reserves, handle_get_all_a_tokens,
+    handle_get_all_debt_tokens, handle_get_token_events, handle_get_user_events,
+    handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
 };
 use sodax_backend_analizer::cli::parse_args;
 use sodax_backend_analizer::structs::Flag;
@@ -114,37 +114,58 @@ async fn main() {
         std::process::exit(0);
 
     // if the --get-all-reserves flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetAllReserves)) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::GetAllReserves))
+    {
         handle_get_all_reserves().await;
         std::process::exit(0);
 
     // if the --get-all-a-token flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetAllATokens)) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::GetAllATokens))
+    {
         handle_get_all_a_tokens().await;
         std::process::exit(0);
 
     // if the --get-all-debt-token flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetAllDebtTokens)) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::GetAllDebtTokens))
+    {
         handle_get_all_debt_tokens().await;
         std::process::exit(0);
 
     // if the --validate-all-reserve-indexes flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateAllReserveIndexes)) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateAllReserveIndexes))
+    {
         handle_validate_all_reserve_indexes().await;
         std::process::exit(0);
 
     // if the --get-token-events flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetTokenEvents(_))) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::GetTokenEvents(_)))
+    {
         handle_get_token_events(flags).await;
         std::process::exit(0);
 
     // if the --get-user-events flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetUserEvents(_))) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::GetUserEvents(_)))
+    {
         handle_get_user_events(flags).await;
         std::process::exit(0);
 
     // if the --validate-reserve-indexes flag was passed
-    } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateReserveIndexes(_))) {
+    } else if flags
+        .iter()
+        .any(|f: &Flag| matches!(f, Flag::ValidateReserveIndexes(_)))
+    {
         handle_validate_reserve_indexes(flags).await;
         std::process::exit(0);
     }

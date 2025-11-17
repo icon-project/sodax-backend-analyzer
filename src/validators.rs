@@ -9,6 +9,8 @@ use crate::helpers::{
     find_user_scaled_position,
 };
 use futures::future::join_all;
+use tokio::sync::Semaphore;
+use std::sync::Arc;
 // use mongodb::bson::Decimal128;
 
 // fn decimal128_to_u64_blocknumber(d: Decimal128) -> u64 {
@@ -204,6 +206,11 @@ pub async fn validate_user_all_positions_generic(
 
     let mut results = UserEntryState::new(user_address.to_string());
 
+    // Create a semaphore to limit concurrent position validations per user
+    // This prevents overwhelming the system when users have many positions
+    let max_concurrent_positions = 5;
+    let semaphore = Arc::new(Semaphore::new(max_concurrent_positions));
+
     // Create tasks for parallel position validation
     let tasks: Vec<_> = user_positions
         .positions
@@ -211,7 +218,11 @@ pub async fn validate_user_all_positions_generic(
         .map(|position| {
             let user_address = user_address.to_string();
             let reserve_address = position.reserveAddress.clone();
+            let semaphore = Arc::clone(&semaphore);
             tokio::task::spawn(async move {
+                // Acquire permit before processing
+                let _permit = semaphore.acquire().await.unwrap();
+
                 let mut position_validation = UserPositionValidation {
                     reserve_address: reserve_address.clone(),
                     supply: EntryState::new(0, 0),
@@ -283,6 +294,7 @@ pub async fn validate_user_all_positions_generic(
                         }
                     }
                 }
+                // Permit is automatically released when _permit is dropped
 
                 Ok::<UserPositionValidation, Box<dyn std::error::Error + Send + Sync>>(
                     position_validation,

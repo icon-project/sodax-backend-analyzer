@@ -4,6 +4,7 @@ use alloy::{
     sol,
     eips::BlockNumberOrTag,
 };
+use crate::config::get_config;
 
 sol! {
     #[sol(rpc)]
@@ -49,9 +50,8 @@ sol! {
 const POOL_ADDRESS: &str = "0x553434896d39f867761859d0fe7189d2af70514e";
 
 async fn get_provider() -> Result<impl Provider, Box<dyn std::error::Error>> {
-    let provider = ProviderBuilder::new()
-        .connect("https://rpc.soniclabs.com")
-        .await?;
+    let rpc_provider = get_config().rpc_provider();
+    let provider = ProviderBuilder::new().connect(&rpc_provider).await?;
     Ok(provider)
 }
 

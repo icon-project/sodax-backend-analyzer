@@ -30,8 +30,10 @@ use crate::models::{ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEvent
 use crate::constants::HELP_MESSAGE;
 use futures::future::join_all;
 use tokio::task;
+use tokio::sync::Semaphore;
 use rand::seq::index::sample;
 use std::cmp::min;
+use std::sync::Arc;
 
 pub async fn handle_help() {
     println!("{}", HELP_MESSAGE);
@@ -731,18 +733,28 @@ pub async fn handle_validate_users_all_generic(scaled: bool) {
         }
     };
 
-    // Create tasks for parallel user validation
+    // Create a semaphore to limit concurrent user validations
+    // This prevents "too many open files" error by limiting concurrent operations
+    let max_concurrent_users = 10;
+    let semaphore = Arc::new(Semaphore::new(max_concurrent_users));
+
+    // Create tasks for parallel user validation with semaphore
     let tasks: Vec<_> = users
         .into_iter()
         .map(|user| {
             let user_address = user.userAddress.clone();
+            let semaphore = Arc::clone(&semaphore);
             task::spawn(async move {
+                // Acquire permit before processing
+                let _permit = semaphore.acquire().await.unwrap();
+
                 // Use handle_user_validation instead of calling validate_user_all_positions directly
                 if scaled {
                     handle_user_validation_scaled(&user_address, false).await;
                 } else {
                     handle_user_validation(&user_address, false).await;
                 }
+                // Permit is automatically released when _permit is dropped
             })
         })
         .collect();

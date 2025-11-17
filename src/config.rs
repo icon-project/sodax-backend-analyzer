@@ -8,6 +8,7 @@ pub struct Config {
     pub mongo_host: String,
     pub mongo_port: u32,
     pub mongo_db: String,
+    pub rpc_provider: String,
 }
 
 impl Config {
@@ -23,6 +24,7 @@ impl Config {
                 .parse()
                 .expect("MONGO_PORT must be a valid number"),
             mongo_db: env::var("MONGO_DB").expect("MONGO_DB must be set"),
+            rpc_provider: env::var("RPC_PROVIDER").expect("RPC_PROVIDER must be set"),
         }
     }
 
@@ -35,6 +37,10 @@ impl Config {
 
     pub fn database_name(&self) -> String {
         self.mongo_db.clone()
+    }
+
+    pub fn rpc_provider(&self) -> String {
+        self.rpc_provider.clone()
     }
 }
 
