@@ -21,19 +21,155 @@ enum EventType {
   Transfer,
 }
 
-/// Determines the event type for calculation purposes
-#[allow(dead_code)]
-fn get_event_type_for_calculation(event: &MoneyMarketEventDocument) -> EventType {
+/// Gets the token address from an event
+fn get_event_token_address(event: &MoneyMarketEventDocument) -> Option<&str> {
   match event {
-    MoneyMarketEventDocument::ATokenMint(_) | MoneyMarketEventDocument::DebtTokenMint(_) => {
-      EventType::Mint
-    }
-    MoneyMarketEventDocument::ATokenBurn(_) | MoneyMarketEventDocument::DebtTokenBurn(_) => {
-      EventType::Burn
-    }
-    MoneyMarketEventDocument::ATokenTransfer(_) => EventType::Transfer,
-    _ => EventType::Transfer, // Fallback
+    MoneyMarketEventDocument::ATokenMint(e) => Some(&e.tokenAddress),
+    MoneyMarketEventDocument::ATokenBurn(e) => Some(&e.tokenAddress),
+    MoneyMarketEventDocument::ATokenTransfer(e) => Some(&e.tokenAddress),
+    MoneyMarketEventDocument::DebtTokenMint(e) => Some(&e.tokenAddress),
+    MoneyMarketEventDocument::DebtTokenBurn(e) => Some(&e.tokenAddress),
+    _ => None,
   }
+}
+
+/// Extracted data from an event for processing
+struct EventData {
+  value: u128,
+  balance_increase: u128,
+  index: u128,
+  block_number: u64,
+  event_type: EventType,
+  event_name: &'static str,
+  /// The sign to apply when updating balance (+1 for increase, -1 for decrease)
+  balance_sign: i128,
+  /// Additional debug info for transfers
+  transfer_info: Option<(String, String)>,
+}
+
+/// Extracts data from an event for processing
+/// Returns None if the user is not involved in the event
+fn extract_event_data(
+  event: &MoneyMarketEventDocument,
+  user_lower: &str,
+  last_known_index: u128,
+) -> Result<Option<EventData>, Box<dyn std::error::Error>> {
+  match event {
+    MoneyMarketEventDocument::ATokenMint(e) => {
+      if e.onBehalfOf.to_lowercase() != user_lower {
+        return Ok(None);
+      }
+      Ok(Some(EventData {
+        value: decimal128_to_u128(e.value)?,
+        balance_increase: decimal128_to_u128(e.balanceIncrease)?,
+        index: decimal128_to_u128(e.index)?,
+        block_number: e.common.blockNumber,
+        event_type: EventType::Mint,
+        event_name: "a-token-mint",
+        balance_sign: 1,
+        transfer_info: None,
+      }))
+    }
+    MoneyMarketEventDocument::ATokenBurn(e) => {
+      if e.from.to_lowercase() != user_lower {
+        return Ok(None);
+      }
+      Ok(Some(EventData {
+        value: decimal128_to_u128(e.value)?,
+        balance_increase: decimal128_to_u128(e.balanceIncrease)?,
+        index: decimal128_to_u128(e.index)?,
+        block_number: e.common.blockNumber,
+        event_type: EventType::Burn,
+        event_name: "a-token-burn",
+        balance_sign: -1,
+        transfer_info: None,
+      }))
+    }
+    MoneyMarketEventDocument::ATokenTransfer(e) => {
+      let is_sender = e.from.to_lowercase() == user_lower;
+      let is_recipient = e.to.to_lowercase() == user_lower;
+
+      if !is_sender && !is_recipient {
+        return Ok(None);
+      }
+
+      let balance_sign = if is_recipient { 1 } else { -1 };
+
+      Ok(Some(EventData {
+        value: decimal128_to_u128(e.value)?,
+        balance_increase: 0,
+        index: last_known_index,
+        block_number: e.common.blockNumber,
+        event_type: EventType::Transfer,
+        event_name: "a-token-transfer",
+        balance_sign,
+        transfer_info: Some((e.from.clone(), e.to.clone())),
+      }))
+    }
+    MoneyMarketEventDocument::DebtTokenMint(e) => {
+      if e.onBehalfOf.to_lowercase() != user_lower {
+        return Ok(None);
+      }
+      Ok(Some(EventData {
+        value: decimal128_to_u128(e.value)?,
+        balance_increase: decimal128_to_u128(e.balanceIncrease)?,
+        index: decimal128_to_u128(e.index)?,
+        block_number: e.common.blockNumber,
+        event_type: EventType::Mint,
+        event_name: "debt-token-mint",
+        balance_sign: 1,
+        transfer_info: None,
+      }))
+    }
+    MoneyMarketEventDocument::DebtTokenBurn(e) => {
+      if e.from.to_lowercase() != user_lower {
+        return Ok(None);
+      }
+      Ok(Some(EventData {
+        value: decimal128_to_u128(e.value)?,
+        balance_increase: decimal128_to_u128(e.balanceIncrease)?,
+        index: decimal128_to_u128(e.index)?,
+        block_number: e.common.blockNumber,
+        event_type: EventType::Burn,
+        event_name: "debt-token-burn",
+        balance_sign: -1,
+        transfer_info: None,
+      }))
+    }
+    _ => Ok(None),
+  }
+}
+
+/// Prints debug information for an event
+fn print_event_debug(
+  idx: usize,
+  event_data: &EventData,
+  event_scaled: u128,
+  scaled_before: i128,
+  scaled_after: i128,
+  real_before: i128,
+  real_after: i128,
+) {
+  println!("{:03}. {}", idx + 1, event_data.event_name);
+  println!("     Block: {}", event_data.block_number);
+
+  if let Some((from, to)) = &event_data.transfer_info {
+    println!("     From: {}", from);
+    println!("     To: {}", to);
+  }
+
+  println!("     Value: {}", event_data.value);
+
+  if event_data.event_type != EventType::Transfer {
+    println!("     Balance Increase: {}", event_data.balance_increase);
+    println!("     Index: {}", event_data.index);
+  } else {
+    println!("     Index (last known): {}", event_data.index);
+  }
+
+  println!("     Scaled: {}", event_scaled);
+  println!("     Scaled Balance: {} → {}", scaled_before, scaled_after);
+  println!("     Real Balance:   {} → {}\n", real_before, real_after);
 }
 
 /// Determines if a transfer event should be skipped (involves zero address)
@@ -153,17 +289,8 @@ pub fn process_user_token_events(
 
   for (idx, event) in events.iter().enumerate() {
     // Skip events not related to our token
-    let event_token = match event {
-      MoneyMarketEventDocument::ATokenMint(e) => Some(&e.tokenAddress),
-      MoneyMarketEventDocument::ATokenBurn(e) => Some(&e.tokenAddress),
-      MoneyMarketEventDocument::ATokenTransfer(e) => Some(&e.tokenAddress),
-      MoneyMarketEventDocument::DebtTokenMint(e) => Some(&e.tokenAddress),
-      MoneyMarketEventDocument::DebtTokenBurn(e) => Some(&e.tokenAddress),
-      _ => None,
-    };
-
-    if let Some(et) = event_token {
-      if et.to_lowercase() != token_lower {
+    if let Some(event_token_addr) = get_event_token_address(event) {
+      if event_token_addr.to_lowercase() != token_lower {
         continue;
       }
     } else {
@@ -180,177 +307,48 @@ pub fn process_user_token_events(
       continue;
     }
 
-    match event {
-      MoneyMarketEventDocument::ATokenMint(e) => {
-        let is_user_event = e.onBehalfOf.to_lowercase() == user_lower;
-        if !is_user_event {
-          continue;
-        }
+    // Extract event data - skip if user is not involved
+    let event_data = match extract_event_data(event, &user_lower, last_index)? {
+      Some(data) => data,
+      None => continue,
+    };
 
-        let value = decimal128_to_u128(e.value)?;
-        let balance_increase = decimal128_to_u128(e.balanceIncrease)?;
-        let index = decimal128_to_u128(e.index)?;
-        last_index = index;
-
-        let event_scaled =
-          calculate_scaled_balance(value, index, balance_increase, EventType::Mint, last_index)?;
-
-        let scaled_before = scaled_balance;
-        let real_before = real_balance;
-
-        scaled_balance += event_scaled as i128;
-        real_balance += value as i128;
-        last_event_block = e.common.blockNumber;
-
-        println!("{:03}. a-token-mint", idx + 1);
-        println!("     Block: {}", e.common.blockNumber);
-        println!("     Value: {}", value);
-        println!("     Balance Increase: {}", balance_increase);
-        println!("     Index: {}", index);
-        println!("     Scaled: {}", event_scaled);
-        println!(
-          "     Scaled Balance: {} → {}",
-          scaled_before, scaled_balance
-        );
-        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
-      }
-      MoneyMarketEventDocument::ATokenBurn(e) => {
-        let is_user_event = e.from.to_lowercase() == user_lower;
-        if !is_user_event {
-          continue;
-        }
-
-        let value = decimal128_to_u128(e.value)?;
-        let balance_increase = decimal128_to_u128(e.balanceIncrease)?;
-        let index = decimal128_to_u128(e.index)?;
-
-        let event_scaled =
-          calculate_scaled_balance(value, index, balance_increase, EventType::Burn, last_index)?;
-
-        let scaled_before = scaled_balance;
-        let real_before = real_balance;
-
-        scaled_balance -= event_scaled as i128;
-        real_balance -= value as i128;
-        last_event_block = e.common.blockNumber;
-
-        println!("{:03}. a-token-burn", idx + 1);
-        println!("     Block: {}", e.common.blockNumber);
-        println!("     Value: {}", value);
-        println!("     Balance Increase: {}", balance_increase);
-        println!("     Index: {}", index);
-        println!("     Scaled: {}", event_scaled);
-        println!(
-          "     Scaled Balance: {} → {}",
-          scaled_before, scaled_balance
-        );
-        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
-      }
-      MoneyMarketEventDocument::ATokenTransfer(e) => {
-        let is_sender = e.from.to_lowercase() == user_lower;
-        let is_recipient = e.to.to_lowercase() == user_lower;
-
-        if !is_sender && !is_recipient {
-          continue;
-        }
-
-        let value = decimal128_to_u128(e.value)?;
-
-        let event_scaled =
-          calculate_scaled_balance(value, last_index, 0, EventType::Transfer, last_index)?;
-
-        let scaled_before = scaled_balance;
-        let real_before = real_balance;
-
-        if is_recipient {
-          scaled_balance += event_scaled as i128;
-          real_balance += value as i128;
-        } else if is_sender {
-          scaled_balance -= event_scaled as i128;
-          real_balance -= value as i128;
-        }
-        last_event_block = e.common.blockNumber;
-
-        println!("{:03}. a-token-transfer", idx + 1);
-        println!("     Block: {}", e.common.blockNumber);
-        println!("     From: {}", e.from);
-        println!("     To: {}", e.to);
-        println!("     Value: {}", value);
-        println!("     Index (last known): {}", last_index);
-        println!("     Scaled: {}", event_scaled);
-        println!(
-          "     Scaled Balance: {} → {}",
-          scaled_before, scaled_balance
-        );
-        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
-      }
-      MoneyMarketEventDocument::DebtTokenMint(e) => {
-        let is_user_event = e.onBehalfOf.to_lowercase() == user_lower;
-        if !is_user_event {
-          continue;
-        }
-
-        let value = decimal128_to_u128(e.value)?;
-        let balance_increase = decimal128_to_u128(e.balanceIncrease)?;
-        let index = decimal128_to_u128(e.index)?;
-        last_index = index;
-
-        let event_scaled =
-          calculate_scaled_balance(value, index, balance_increase, EventType::Mint, last_index)?;
-
-        let scaled_before = scaled_balance;
-        let real_before = real_balance;
-
-        scaled_balance += event_scaled as i128;
-        real_balance += value as i128;
-        last_event_block = e.common.blockNumber;
-
-        println!("{:03}. debt-token-mint", idx + 1);
-        println!("     Block: {}", e.common.blockNumber);
-        println!("     Value: {}", value);
-        println!("     Balance Increase: {}", balance_increase);
-        println!("     Index: {}", index);
-        println!("     Scaled: {}", event_scaled);
-        println!(
-          "     Scaled Balance: {} → {}",
-          scaled_before, scaled_balance
-        );
-        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
-      }
-      MoneyMarketEventDocument::DebtTokenBurn(e) => {
-        let is_user_event = e.from.to_lowercase() == user_lower;
-        if !is_user_event {
-          continue;
-        }
-
-        let value = decimal128_to_u128(e.value)?;
-        let balance_increase = decimal128_to_u128(e.balanceIncrease)?;
-        let index = decimal128_to_u128(e.index)?;
-
-        let event_scaled =
-          calculate_scaled_balance(value, index, balance_increase, EventType::Burn, last_index)?;
-
-        let scaled_before = scaled_balance;
-        let real_before = real_balance;
-
-        scaled_balance -= event_scaled as i128;
-        real_balance -= value as i128;
-        last_event_block = e.common.blockNumber;
-
-        println!("{:03}. debt-token-burn", idx + 1);
-        println!("     Block: {}", e.common.blockNumber);
-        println!("     Value: {}", value);
-        println!("     Balance Increase: {}", balance_increase);
-        println!("     Index: {}", index);
-        println!("     Scaled: {}", event_scaled);
-        println!(
-          "     Scaled Balance: {} → {}",
-          scaled_before, scaled_balance
-        );
-        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
-      }
-      _ => {}
+    // Update last_index for non-transfer events
+    // NOTE: For transfer events, we use the last known index, accuracy of this is not 100%
+    // ideally we would fetch the index at the block of the transfer, but this is a reasonable
+    // approximation and a good enough trade-off for this tool.
+    if event_data.event_type != EventType::Transfer {
+      last_index = event_data.index;
     }
+
+    // Calculate scaled balance for this event
+    let event_scaled = calculate_scaled_balance(
+      event_data.value,
+      event_data.index,
+      event_data.balance_increase,
+      event_data.event_type,
+      last_index,
+    )?;
+
+    // Store before values for debug printing
+    let scaled_before = scaled_balance;
+    let real_before = real_balance;
+
+    // Update balances
+    scaled_balance += event_data.balance_sign * event_scaled as i128;
+    real_balance += event_data.balance_sign * event_data.value as i128;
+    last_event_block = event_data.block_number;
+
+    // Print debug information
+    print_event_debug(
+      idx,
+      &event_data,
+      event_scaled,
+      scaled_before,
+      scaled_balance,
+      real_before,
+      real_balance,
+    );
   }
 
   // Convert final scaled balance to real balance using the index from the last event
