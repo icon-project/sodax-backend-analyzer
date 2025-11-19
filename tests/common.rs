@@ -96,11 +96,7 @@ pub fn common_handler_with_assertion<T, E: std::fmt::Display>(
 {
   match result {
     Ok(value) => {
-      assert_eq!(
-        value, expected,
-        "{} - Expected {:?}, but got {:?}",
-        success_msg, expected, value
-      );
+      assert_eq!(value, expected, "{} - Values dont match", success_msg);
       println!("✅ {}: {:?}", success_msg, value);
     }
     Err(e) => {
