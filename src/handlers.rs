@@ -1,3 +1,4 @@
+use crate::balance_calculator::process_user_token_events;
 use crate::db::{
   find_all_reserves,
   find_reserve_for_token,
@@ -1215,4 +1216,203 @@ pub async fn handle_validate_all_reserve_indexes() {
   }
 
   println!("\n🎉 Reserve index validation complete!");
+}
+
+pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
+  let user_address = extract_value_from_flags_or_exit(
+    flags.clone(),
+    FlagType::CalculateFromEvents,
+    "Error: --calculate-from-events requires a user address to be specified.",
+  );
+
+  // Extract token address from flags (reserve, aToken, or debt token)
+  let reserve_token = extract_optional_value_from_flags(&flags, FlagType::ReserveToken);
+  let a_token = extract_optional_value_from_flags(&flags, FlagType::AToken);
+  let debt_token = extract_optional_value_from_flags(&flags, FlagType::DebtToken);
+
+  // Determine which token address to use and get the reserve address for index lookup
+  let (token_address, reserve_address, token_type, is_debt) = if let Some(addr) = reserve_token {
+    // Get the aToken address for this reserve
+    let reserve_data = match find_reserve_for_token(&addr, ReserveTokenField::Reserve).await {
+      Ok(Some(data)) => data,
+      Ok(None) => {
+        eprintln!("Reserve not found: {}", addr);
+        std::process::exit(1);
+      }
+      Err(e) => {
+        eprintln!("Error fetching reserve data: {}", e);
+        std::process::exit(1);
+      }
+    };
+    (
+      reserve_data.aTokenAddress.clone(),
+      reserve_data.reserveAddress,
+      "reserve (aToken)",
+      false,
+    )
+  } else if let Some(addr) = a_token {
+    // Look up the reserve address for this aToken
+    let reserve_data = match find_reserve_for_token(&addr, ReserveTokenField::AToken).await {
+      Ok(Some(data)) => data,
+      Ok(None) => {
+        eprintln!("aToken not found: {}", addr);
+        std::process::exit(1);
+      }
+      Err(e) => {
+        eprintln!("Error fetching reserve data for aToken: {}", e);
+        std::process::exit(1);
+      }
+    };
+    (addr, reserve_data.reserveAddress, "aToken", false)
+  } else if let Some(addr) = debt_token {
+    // Look up the reserve address for this debt token
+    let reserve_data =
+      match find_reserve_for_token(&addr, ReserveTokenField::VariableDebtToken).await {
+        Ok(Some(data)) => data,
+        Ok(None) => {
+          eprintln!("Debt token not found: {}", addr);
+          std::process::exit(1);
+        }
+        Err(e) => {
+          eprintln!("Error fetching reserve data for debt token: {}", e);
+          std::process::exit(1);
+        }
+      };
+    (addr, reserve_data.reserveAddress, "debt token", true)
+  } else {
+    eprintln!(
+      "Error: --calculate-from-events requires one of: --reserve-token, --a-token, or --debt-token"
+    );
+    std::process::exit(1);
+  };
+
+  println!("\n=== Calculating Scaled Balance from Events ===");
+  println!("User Address: {}", user_address);
+  println!("Token Type: {}", token_type);
+  println!("Token Address: {}", token_address);
+  println!("Reserve Address: {}", reserve_address);
+
+  // Fetch all events for the user
+  let events = match find_user_events(&user_address).await {
+    Ok(events) => events,
+    Err(e) => {
+      eprintln!("Error fetching user events: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  if events.is_empty() {
+    println!("\nNo events found for user: {}", user_address);
+    return;
+  }
+
+  println!("Found {} total events for user", events.len());
+
+  // Get the current index using the reserve address (not the token address)
+  let current_index = if is_debt {
+    match get_variable_borrow_index(&reserve_address).await {
+      Ok(index) => index,
+      Err(e) => {
+        eprintln!("Error fetching variable borrow index: {}", e);
+        std::process::exit(1);
+      }
+    }
+  } else {
+    match get_atoken_liquidity_index(&reserve_address).await {
+      Ok(index) => index,
+      Err(e) => {
+        eprintln!("Error fetching aToken liquidity index: {}", e);
+        std::process::exit(1);
+      }
+    }
+  };
+
+  // Process events and calculate balance
+  match process_user_token_events(&events, &user_address, &token_address, current_index) {
+    Ok(result) => {
+      println!("\n=== Summary ===");
+      println!("Scaled Balance: {}", result.scaled_balance);
+      println!("Real Balance (from scaled): {}", result.real_balance);
+      println!("Last Index Used: {}", result.last_index);
+      println!("Current Index: {}", current_index);
+      println!("Last Event Block: {}", result.last_event_block);
+
+      // Get on-chain balance at the last event block for accurate comparison
+      match get_balance_of(&token_address, &user_address, Some(result.last_event_block)).await {
+        Ok(on_chain_balance_at_event) => {
+          println!(
+            "\n=== On-Chain Comparison (at Last Event Block {}) ===",
+            result.last_event_block
+          );
+          println!("Calculated Balance: {}", result.real_balance);
+          println!("On-Chain Balance:   {}", on_chain_balance_at_event);
+
+          let diff = if result.real_balance > on_chain_balance_at_event {
+            result.real_balance - on_chain_balance_at_event
+          } else {
+            on_chain_balance_at_event - result.real_balance
+          };
+
+          let percentage = if on_chain_balance_at_event == 0 {
+            0.0
+          } else {
+            (diff as f64 / on_chain_balance_at_event as f64) * 100.0
+          };
+
+          println!("Difference:         {}", diff);
+          println!("Percentage:         {:.4}%", percentage);
+
+          if diff == 0 {
+            println!("\n✅ Perfect match!");
+          } else if percentage < 0.01 {
+            println!("\n✅ Excellent match (< 0.01% difference)");
+          } else if percentage < 1.0 {
+            println!("\n⚠️  Minor mismatch (< 1% difference)");
+          } else {
+            println!("\n❌ Significant mismatch (>= 1% difference)");
+          }
+        }
+        Err(e) => {
+          eprintln!(
+            "\nWarning: Could not fetch on-chain balance at last event block: {}",
+            e
+          );
+        }
+      }
+
+      // Also show current on-chain balance for reference
+      match get_balance_of(&token_address, &user_address, None).await {
+        Ok(current_on_chain_balance) => {
+          println!("\n=== Current On-Chain Balance (Latest Block) ===");
+          println!("Current Balance:    {}", current_on_chain_balance);
+
+          let diff_current = if result.real_balance > current_on_chain_balance {
+            result.real_balance - current_on_chain_balance
+          } else {
+            current_on_chain_balance - result.real_balance
+          };
+
+          if diff_current != 0 {
+            println!("Difference:         {}", diff_current);
+            println!(
+              "Note: This difference is expected if there were events after block {}",
+              result.last_event_block
+            );
+          } else {
+            println!(
+              "(Matches calculated balance - no events since block {})",
+              result.last_event_block
+            );
+          }
+        }
+        Err(e) => {
+          eprintln!("\nWarning: Could not fetch current on-chain balance: {}", e);
+        }
+      }
+    }
+    Err(e) => {
+      eprintln!("Error processing events: {}", e);
+      std::process::exit(1);
+    }
+  }
 }

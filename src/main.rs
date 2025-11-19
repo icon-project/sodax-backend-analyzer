@@ -10,6 +10,7 @@ use sodax_backend_analizer::handlers::{
   handle_get_all_users, handle_get_all_reserves, handle_get_all_a_tokens,
   handle_get_all_debt_tokens, handle_get_token_events, handle_get_user_events,
   handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
+  handle_calculate_from_events,
 };
 use sodax_backend_analizer::cli::parse_args;
 use sodax_backend_analizer::structs::Flag;
@@ -167,6 +168,14 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::ValidateReserveIndexes(_)))
   {
     handle_validate_reserve_indexes(flags).await;
+    std::process::exit(0);
+
+  // if the --calculate-from-events flag was passed
+  } else if flags
+    .iter()
+    .any(|f: &Flag| matches!(f, Flag::CalculateFromEvents(_)))
+  {
+    handle_calculate_from_events(flags).await;
     std::process::exit(0);
   }
 
