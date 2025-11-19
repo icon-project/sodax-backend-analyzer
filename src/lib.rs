@@ -1,3 +1,4 @@
+pub mod balance_calculator;
 pub mod cli;
 pub mod config;
 pub mod constants;
