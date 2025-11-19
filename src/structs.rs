@@ -29,6 +29,7 @@ pub enum Flag {
   ValidateReserveIndexes(String),
   ValidateAllReserveIndexes,
   CalculateFromEvents(String),
+  Block(u64),
 }
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -176,4 +177,5 @@ pub enum FlagType {
   GetTokenEvents,
   GetUserEvents,
   CalculateFromEvents,
+  Block,
 }

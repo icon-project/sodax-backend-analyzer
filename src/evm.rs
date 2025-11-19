@@ -2,7 +2,7 @@ use alloy::{
   primitives::Address,
   providers::{Provider, ProviderBuilder},
   sol,
-  eips::{BlockId, BlockNumberOrTag},
+  eips::BlockNumberOrTag,
 };
 use crate::config::get_config;
 
@@ -65,15 +65,11 @@ pub async fn get_balance_of(
   let owner_address = owner_address.parse::<Address>()?;
 
   let contract = A_TOKEN::new(token_address, provider);
-  
-  let call = contract.balanceOf(owner_address);
-  let result = if let Some(block) = block_number {
-    call.block(BlockId::Number(BlockNumberOrTag::Number(block))).call().await
-  } else {
-    call.call().await
-  };
-  
-  match result {
+  let mut call = contract.balanceOf(owner_address);
+  if let Some(block) = block_number {
+    call = call.block(block.into());
+  }
+  match call.call().await {
     Ok(balance) => Ok(u128::try_from(balance).unwrap_or(0)),
     Err(e) => Err(Box::new(e)),
   }

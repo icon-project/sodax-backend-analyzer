@@ -261,11 +261,26 @@ pub async fn handle_balance_of(flags: Vec<Flag>) {
   let user_address =
     extract_value_from_flags_or_exit(flags.clone(), FlagType::BalanceOf, error_message);
 
-  match get_balance_of(&token_passed, &user_address, None).await {
-    Ok(balance) => println!(
-      "Balance of {} for token {}: {}",
-      user_address, token_passed, balance
-    ),
+  // Extract optional block number from flags
+  let block_number = flags.iter().find_map(|f| match f {
+    Flag::Block(block) => Some(*block),
+    _ => None,
+  });
+
+  match get_balance_of(&token_passed, &user_address, block_number).await {
+    Ok(balance) => {
+      if let Some(block) = block_number {
+        println!(
+          "Balance of {} for token {} at block {}: {}",
+          user_address, token_passed, block, balance
+        );
+      } else {
+        println!(
+          "Balance of {} for token {}: {}",
+          user_address, token_passed, balance
+        );
+      }
+    }
     Err(e) => {
       eprintln!("Error fetching balance: {}", e);
       std::process::exit(1);
@@ -1229,7 +1244,12 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
         std::process::exit(1);
       }
     };
-    (reserve_data.aTokenAddress.clone(), reserve_data.reserveAddress, "reserve (aToken)", false)
+    (
+      reserve_data.aTokenAddress.clone(),
+      reserve_data.reserveAddress,
+      "reserve (aToken)",
+      false,
+    )
   } else if let Some(addr) = a_token {
     // Look up the reserve address for this aToken
     let reserve_data = match find_reserve_for_token(&addr, ReserveTokenField::AToken).await {
@@ -1246,17 +1266,18 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
     (addr, reserve_data.reserveAddress, "aToken", false)
   } else if let Some(addr) = debt_token {
     // Look up the reserve address for this debt token
-    let reserve_data = match find_reserve_for_token(&addr, ReserveTokenField::VariableDebtToken).await {
-      Ok(Some(data)) => data,
-      Ok(None) => {
-        eprintln!("Debt token not found: {}", addr);
-        std::process::exit(1);
-      }
-      Err(e) => {
-        eprintln!("Error fetching reserve data for debt token: {}", e);
-        std::process::exit(1);
-      }
-    };
+    let reserve_data =
+      match find_reserve_for_token(&addr, ReserveTokenField::VariableDebtToken).await {
+        Ok(Some(data)) => data,
+        Ok(None) => {
+          eprintln!("Debt token not found: {}", addr);
+          std::process::exit(1);
+        }
+        Err(e) => {
+          eprintln!("Error fetching reserve data for debt token: {}", e);
+          std::process::exit(1);
+        }
+      };
     (addr, reserve_data.reserveAddress, "debt token", true)
   } else {
     eprintln!(
@@ -1319,7 +1340,10 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
       // Get on-chain balance at the last event block for accurate comparison
       match get_balance_of(&token_address, &user_address, Some(result.last_event_block)).await {
         Ok(on_chain_balance_at_event) => {
-          println!("\n=== On-Chain Comparison (at Last Event Block {}) ===", result.last_event_block);
+          println!(
+            "\n=== On-Chain Comparison (at Last Event Block {}) ===",
+            result.last_event_block
+          );
           println!("Calculated Balance: {}", result.real_balance);
           println!("On-Chain Balance:   {}", on_chain_balance_at_event);
 
@@ -1349,7 +1373,10 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           }
         }
         Err(e) => {
-          eprintln!("\nWarning: Could not fetch on-chain balance at last event block: {}", e);
+          eprintln!(
+            "\nWarning: Could not fetch on-chain balance at last event block: {}",
+            e
+          );
         }
       }
 
@@ -1358,7 +1385,7 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
         Ok(current_on_chain_balance) => {
           println!("\n=== Current On-Chain Balance (Latest Block) ===");
           println!("Current Balance:    {}", current_on_chain_balance);
-          
+
           let diff_current = if result.real_balance > current_on_chain_balance {
             result.real_balance - current_on_chain_balance
           } else {
@@ -1367,9 +1394,15 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
 
           if diff_current != 0 {
             println!("Difference:         {}", diff_current);
-            println!("Note: This difference is expected if there were events after block {}", result.last_event_block);
+            println!(
+              "Note: This difference is expected if there were events after block {}",
+              result.last_event_block
+            );
           } else {
-            println!("(Matches calculated balance - no events since block {})", result.last_event_block);
+            println!(
+              "(Matches calculated balance - no events since block {})",
+              result.last_event_block
+            );
           }
         }
         Err(e) => {

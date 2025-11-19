@@ -192,13 +192,8 @@ pub fn process_user_token_events(
         let index = decimal128_to_u128(e.index)?;
         last_index = index;
 
-        let event_scaled = calculate_scaled_balance(
-          value,
-          index,
-          balance_increase,
-          EventType::Mint,
-          last_index,
-        )?;
+        let event_scaled =
+          calculate_scaled_balance(value, index, balance_increase, EventType::Mint, last_index)?;
 
         let scaled_before = scaled_balance;
         let real_before = real_balance;
@@ -217,10 +212,7 @@ pub fn process_user_token_events(
           "     Scaled Balance: {} → {}",
           scaled_before, scaled_balance
         );
-        println!(
-          "     Real Balance:   {} → {}\n",
-          real_before, real_balance
-        );
+        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
       }
       MoneyMarketEventDocument::ATokenBurn(e) => {
         let is_user_event = e.from.to_lowercase() == user_lower;
@@ -252,10 +244,7 @@ pub fn process_user_token_events(
           "     Scaled Balance: {} → {}",
           scaled_before, scaled_balance
         );
-        println!(
-          "     Real Balance:   {} → {}\n",
-          real_before, real_balance
-        );
+        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
       }
       MoneyMarketEventDocument::ATokenTransfer(e) => {
         let is_sender = e.from.to_lowercase() == user_lower;
@@ -293,10 +282,7 @@ pub fn process_user_token_events(
           "     Scaled Balance: {} → {}",
           scaled_before, scaled_balance
         );
-        println!(
-          "     Real Balance:   {} → {}\n",
-          real_before, real_balance
-        );
+        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
       }
       MoneyMarketEventDocument::DebtTokenMint(e) => {
         let is_user_event = e.onBehalfOf.to_lowercase() == user_lower;
@@ -309,13 +295,8 @@ pub fn process_user_token_events(
         let index = decimal128_to_u128(e.index)?;
         last_index = index;
 
-        let event_scaled = calculate_scaled_balance(
-          value,
-          index,
-          balance_increase,
-          EventType::Mint,
-          last_index,
-        )?;
+        let event_scaled =
+          calculate_scaled_balance(value, index, balance_increase, EventType::Mint, last_index)?;
 
         let scaled_before = scaled_balance;
         let real_before = real_balance;
@@ -334,10 +315,7 @@ pub fn process_user_token_events(
           "     Scaled Balance: {} → {}",
           scaled_before, scaled_balance
         );
-        println!(
-          "     Real Balance:   {} → {}\n",
-          real_before, real_balance
-        );
+        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
       }
       MoneyMarketEventDocument::DebtTokenBurn(e) => {
         let is_user_event = e.from.to_lowercase() == user_lower;
@@ -369,10 +347,7 @@ pub fn process_user_token_events(
           "     Scaled Balance: {} → {}",
           scaled_before, scaled_balance
         );
-        println!(
-          "     Real Balance:   {} → {}\n",
-          real_before, real_balance
-        );
+        println!("     Real Balance:   {} → {}\n", real_before, real_balance);
       }
       _ => {}
     }
@@ -400,10 +375,7 @@ pub fn process_user_token_events(
     "Final Real Balance (from scaled): {}",
     calculated_real_from_scaled
   );
-  println!(
-    "Final Real Balance (direct sum): {}",
-    final_real_balance
-  );
+  println!("Final Real Balance (direct sum): {}", final_real_balance);
   println!("Last Event Block: {}", last_event_block);
 
   Ok(BalanceResult {
@@ -413,4 +385,3 @@ pub fn process_user_token_events(
     last_event_block,
   })
 }
-
