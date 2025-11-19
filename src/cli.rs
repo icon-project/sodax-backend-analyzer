@@ -101,6 +101,12 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::ValidateReserveIndexes(args[i + 1].clone()));
         break;
       }
+      "--calculate-from-events" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        flags.push(Flag::CalculateFromEvents(args[i + 1].clone()));
+        consumed_next_arg = true;
+      }
       "--validate-all-reserve-indexes" => {
         validate_flag_does_not_accept_argument(i, &args)?;
         flags.push(Flag::ValidateAllReserveIndexes);
@@ -164,6 +170,18 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
       "--validate-token-borrow" => {
         flags.push(Flag::ValidateTokenBorrow);
       }
+      "--block" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        let block_number = args[i + 1].parse::<u64>().map_err(|_| {
+          format!(
+            "Invalid block number: {}. Must be a valid u64 integer.",
+            args[i + 1]
+          )
+        })?;
+        flags.push(Flag::Block(block_number));
+        consumed_next_arg = true;
+      }
       _ => return Err(format!("Unknown argument: {}", arg).into()),
     }
     // Move to the next argument
@@ -225,6 +243,13 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
 
   // boolean for --scaled
   let has_scaled = flags.iter().any(|flag| matches!(flag, Flag::Scaled));
+
+  // boolean for --calculate-from-events
+  let has_calculate_from_events = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::CalculateFromEvents(_)));
+  // boolean for --block
+  let has_block = flags.iter().any(|flag| matches!(flag, Flag::Block(_)));
 
   // if no flags were added, add the help flag
   if flags.is_empty() {
@@ -301,8 +326,10 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   // --validate-token-borrow
   // --balance-of (can use aToken or variable token)
   // --user-position (can use aToken or variable token)
+  // --calculate-from-events (can use aToken or variable token)
   if (has_balance_of
     || has_user_position
+    || has_calculate_from_events
     || has_validate_user_supply
     || has_validate_user_borrow
     || has_validate_token_supply
@@ -312,9 +339,9 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     return Err("Missing --reserve-token address flag".into());
   }
 
-  // if --balance-of or --user-position is used, the user must provide
+  // if --balance-of, --user-position or --calculate-from-events is used, the user must provide
   // either reserve token, aToken, or variable token address
-  if has_balance_of || has_user_position {
+  if has_balance_of || has_user_position || has_calculate_from_events {
     let has_required_token = flags.iter().any(|flag| {
       matches!(
         flag,
@@ -322,8 +349,13 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
       )
     });
     if !has_required_token {
-      return Err("You must provide a reserve token, aToken, or debt token address with --balance-of or --user-position".into());
+      return Err("You must provide a reserve token, aToken, or debt token address with --balance-of, --user-position, or --calculate-from-events".into());
     }
+  }
+
+  // if --block is used, it must be used with --balance-of
+  if has_block && !has_balance_of {
+    return Err("The --block flag can only be used with --balance-of".into());
   }
 
   // if any of the following is used:
