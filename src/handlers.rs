@@ -260,11 +260,26 @@ pub async fn handle_balance_of(flags: Vec<Flag>) {
   let user_address =
     extract_value_from_flags_or_exit(flags.clone(), FlagType::BalanceOf, error_message);
 
-  match get_balance_of(&token_passed, &user_address).await {
-    Ok(balance) => println!(
-      "Balance of {} for token {}: {}",
-      user_address, token_passed, balance
-    ),
+  // Extract optional block number from flags
+  let block_number = flags.iter().find_map(|f| match f {
+    Flag::Block(block) => Some(*block),
+    _ => None,
+  });
+
+  match get_balance_of(&token_passed, &user_address, block_number).await {
+    Ok(balance) => {
+      if let Some(block) = block_number {
+        println!(
+          "Balance of {} for token {} at block {}: {}",
+          user_address, token_passed, block, balance
+        );
+      } else {
+        println!(
+          "Balance of {} for token {}: {}",
+          user_address, token_passed, balance
+        );
+      }
+    }
     Err(e) => {
       eprintln!("Error fetching balance: {}", e);
       std::process::exit(1);

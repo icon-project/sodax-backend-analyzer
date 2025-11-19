@@ -21,6 +21,7 @@ OPTIONS:
     --debt-token <TOKEN_ADDRESS>      Returns the reserve token data for the given debt token address
     --user-position <WALLET_ADDRESS>  Returns the user position data for the given wallet address
     --balance-of <USER_ADDRESS>       Get token balance for a user (requires one of: --reserve-token, --a-token, or --debt-token)
+    --block <BLOCK_NUMBER>            Optional: specify a block number to query balance at that block (use with --balance-of)
     --get-token-events <TOKEN_ADDRESS> Get events for a specific token (reserve, aToken, or debt token)
     --get-user-events <USER_ADDRESS>  Get events for a specific user
     --scaled                 Use scaled balances instead of real balances for validation (adds to validation flags)
@@ -49,6 +50,7 @@ RESTRICTIONS:
     - You cannot combine --last-block, --help, --all-tokens, --orderbook, --get-all-users, --get-all-reserves, --get-all-a-token, --get-all-debt-token, --validate-users-all, --validate-token-all, --validate-all, or --validate-all-reserve-indexes with other flags
     - You cannot combine --reserve-token, --a-token, and --debt-token together
     - --balance-of requires exactly one token type flag (--reserve-token, --a-token, or --debt-token)
+    - --block can only be used with --balance-of
     - Individual validation flags require --reserve-token to be specified
     - --validate-user-all can be combined with --reserve-token for specific reserve validation
     - --scaled can only be combined with validation flags
@@ -68,6 +70,7 @@ EXAMPLES:
     sodax-backend-analizer --debt-token 0x1234567890abcdef...
     sodax-backend-analizer --user-position 0x1234567890abcdef...
     sodax-backend-analizer --balance-of 0xuser123... --reserve-token 0xtoken456...
+    sodax-backend-analizer --balance-of 0xuser123... --a-token 0xtoken456... --block 12345678
     sodax-backend-analizer --get-token-events 0x1234567890abcdef...
     sodax-backend-analizer --get-user-events 0xuser123...
     sodax-backend-analizer --validate-reserve-indexes 0x1234567890abcdef...

@@ -83,3 +83,24 @@ pub fn common_result_option_handler<T, E: std::fmt::Debug>(
     }
   }
 }
+
+// Common handler for Result types with expected value assertion
+#[allow(dead_code)]
+pub fn common_handler_with_assertion<T, E: std::fmt::Display>(
+  result: Result<T, E>,
+  expected: T,
+  success_msg: &str,
+  error_msg: &str,
+) where
+  T: std::fmt::Debug + PartialEq,
+{
+  match result {
+    Ok(value) => {
+      assert_eq!(value, expected, "{} - Values dont match", success_msg);
+      println!("✅ {}: {:?}", success_msg, value);
+    }
+    Err(e) => {
+      panic!("❌ {}: {}", error_msg, e);
+    }
+  }
+}

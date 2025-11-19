@@ -5,7 +5,7 @@ use sodax_backend_analizer::evm::{
 
 // Import common test utilities
 mod common;
-use common::common_handler;
+use common::{common_handler, common_handler_with_assertion};
 
 const RESERVE_TOKEN_ADDRESS: &str = "0xe801ca34e19abcbfea12025378d19c4fbe250131";
 const A_TOKEN_ADDRESS: &str = "0x5c50cf875aebad8d5ba548f229960c90b1c1f8c3";
@@ -25,11 +25,28 @@ async fn test_get_last_block() {
 #[tokio::test]
 async fn test_get_balance_of() {
   // Test with valid Ethereum addresses
-  let result = get_balance_of(A_TOKEN_ADDRESS, USER_ADDRESS).await;
+  let result = get_balance_of(A_TOKEN_ADDRESS, USER_ADDRESS, None).await;
   common_handler(
     result,
     "Balance retrieved successfully",
     "Failed to retrieve balance",
+  );
+}
+
+#[tokio::test]
+async fn test_get_balance_of_at_specific_block() {
+  // Test balance at a specific block
+  let token_address = "0x7ac26a7f46a4edc41586ebcadacb28b4020882c2";
+  let user_address = "0x73135d19c488ea5b002e0e07135d992ff7e6f070";
+  let block_number = 55349930;
+  let expected_balance: u128 = 893954906014061389086;
+
+  let result = get_balance_of(token_address, user_address, Some(block_number)).await;
+  common_handler_with_assertion(
+    result,
+    expected_balance,
+    &format!("Balance at block {} retrieved successfully", block_number),
+    "Failed to retrieve balance at specific block",
   );
 }
 
