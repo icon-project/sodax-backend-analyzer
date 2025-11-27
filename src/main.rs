@@ -10,7 +10,7 @@ use sodax_backend_analizer::handlers::{
   handle_get_all_users, handle_get_all_reserves, handle_get_all_a_tokens,
   handle_get_all_debt_tokens, handle_get_token_events, handle_get_user_events,
   handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
-  handle_calculate_from_events,
+  handle_calculate_from_events, handle_inspect_user_position,
 };
 use sodax_backend_analizer::cli::parse_args;
 use sodax_backend_analizer::structs::Flag;
@@ -203,6 +203,14 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::UserPosition(_)))
   {
     handle_user_position(flags).await;
+    std::process::exit(0);
+
+  // if the --inspect-user-position flag was passed
+  } else if flags
+    .iter()
+    .any(|f: &Flag| matches!(f, Flag::InspectUserPosition(_)))
+  {
+    handle_inspect_user_position(flags).await;
     std::process::exit(0);
 
   // if the --validate-user-supply [--scaled] flag was passed

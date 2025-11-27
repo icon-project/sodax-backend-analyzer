@@ -162,11 +162,7 @@ pub fn compare_and_report_diff(
   if calculated_amount == on_chain_amount {
     format!("✅ {} amounts match: {}", description, calculated_amount)
   } else {
-    let diff = if calculated_amount > on_chain_amount {
-      calculated_amount - on_chain_amount
-    } else {
-      on_chain_amount - calculated_amount
-    };
+    let diff = calculated_amount.abs_diff(on_chain_amount);
     let percentage = (diff as f64 / on_chain_amount as f64) * 100.0;
 
     // main condition to define an acceptable difference

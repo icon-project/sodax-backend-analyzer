@@ -30,6 +30,17 @@ pub struct UserAssetPositionDocument {
   pub variableDebtTokenAddress: String,
   pub aTokenBalance: Decimal128,
   pub variableDebtTokenBalance: Decimal128,
+  pub debtTokenBalanceHistory: Vec<AssetBalanceEntryDocument>,
+  pub aTokenBalanceHistory: Vec<AssetBalanceEntryDocument>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[allow(non_snake_case)]
+pub struct AssetBalanceEntryDocument {
+  pub eventId: String,
+  #[serde(rename = "final")]
+  pub r#final: Decimal128,
+  pub delta: Decimal128,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -481,6 +492,18 @@ impl MoneyMarketEventDocument {
       Self::ReserveDataUpdated(_) => "reserve-data-updated",
       Self::Supply(_) => "supply",
       Self::Withdraw(_) => "withdraw",
+    }
+  }
+
+  pub fn token_address(&self) -> Option<&str> {
+    match self {
+      Self::ATokenBalanceTransfer(e) => Some(&e.tokenAddress),
+      Self::ATokenBurn(e) => Some(&e.tokenAddress),
+      Self::ATokenMint(e) => Some(&e.tokenAddress),
+      Self::ATokenTransfer(e) => Some(&e.tokenAddress),
+      Self::DebtTokenBurn(e) => Some(&e.tokenAddress),
+      Self::DebtTokenMint(e) => Some(&e.tokenAddress),
+      _ => None,
     }
   }
 }
