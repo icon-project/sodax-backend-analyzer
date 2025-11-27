@@ -1,4 +1,5 @@
 use crate::balance_calculator::process_user_token_events;
+#[allow(unused_imports)]
 use crate::db::{
   find_all_reserves,
   find_reserve_for_token,
@@ -10,6 +11,7 @@ use crate::db::{
   find_all_reserve_addresses,
   find_user_events,
   find_token_events,
+  find_user_assets_position,
 };
 use crate::evm::{
   get_last_block, get_balance_of, get_block_timestamp, get_atoken_liquidity_index,
@@ -335,6 +337,146 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
       std::process::exit(1);
     }
   }
+}
+
+pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
+  let error_message = "Error: --inspect-user-position requires a user address to be specified.";
+  let user_address =
+    extract_value_from_flags_or_exit(flags.clone(), FlagType::InspectUserPosition, error_message);
+
+  let token_address_tuple = flags
+    .iter()
+    .find_map(|f| match f {
+      Flag::AToken(address) => Some((address.clone(), ReserveTokenField::AToken)),
+      Flag::DebtToken(address) => Some((address.clone(), ReserveTokenField::VariableDebtToken)),
+      _ => None,
+    })
+    .unwrap_or_else(|| {
+      eprintln!("Error: --inspect-user-position requires either --a-token or --debt-token");
+      std::process::exit(1);
+    });
+
+  let (token_address, field) = token_address_tuple;
+  let is_a_token = matches!(field, ReserveTokenField::AToken);
+
+  // Get all money market events for the user
+  let money_market_events = match find_user_events(&user_address).await {
+    Ok(events) => events,
+    Err(e) => {
+      eprintln!("Error fetching user events: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  // Get user position from database
+  let user_positions = match find_user_assets_position(&user_address).await {
+    Ok(positions) => positions,
+    Err(e) => {
+      eprintln!("Error fetching user position: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  // Find the specific position for the given token
+  let position = user_positions.iter().find(|p| {
+    if is_a_token {
+      p.aTokenAddress.to_lowercase() == token_address.to_lowercase()
+    } else {
+      p.variableDebtTokenAddress.to_lowercase() == token_address.to_lowercase()
+    }
+  });
+
+  let position = match position {
+    Some(p) => p,
+    None => {
+      eprintln!(
+        "Error: No position found for user {} with token {}",
+        user_address, token_address
+      );
+      eprintln!("\nAvailable positions for this user:");
+      for (idx, p) in user_positions.iter().enumerate() {
+        eprintln!("  Position {}:", idx + 1);
+        eprintln!("    Reserve: {}", p.reserveAddress);
+        eprintln!("    aToken: {}", p.aTokenAddress);
+        eprintln!("    debtToken: {}", p.variableDebtTokenAddress);
+      }
+      std::process::exit(1);
+    }
+  };
+
+  // Extract eventIds from balance history based on token type
+  let mut balance_history_event_ids = std::collections::HashSet::new();
+
+  let balance_history = if is_a_token {
+    &position.aTokenBalanceHistory
+  } else {
+    &position.debtTokenBalanceHistory
+  };
+
+  for entry in balance_history {
+    balance_history_event_ids.insert(entry.eventId.clone());
+  }
+
+  // Create eventIds for all money market events and track missing ones
+  let mut money_market_event_ids = std::collections::HashSet::new();
+  let mut missed_events = Vec::new();
+
+  // Define which event types are relevant for the token type we're inspecting
+  let relevant_event_types = if is_a_token {
+    vec!["a-token-mint", "a-token-burn", "a-token-transfer"]
+  } else {
+    vec!["debt-token-mint", "debt-token-burn"]
+  };
+
+  let mut relevant_event_count = 0;
+  for event in &money_market_events {
+    // Skip events that aren't relevant to this token type
+    if !relevant_event_types.contains(&event.event_type()) {
+      continue;
+    }
+
+    // Skip events that aren't for the specific token address we're inspecting
+    if let Some(event_token_address) = event.token_address() {
+      if event_token_address.to_lowercase() != token_address.to_lowercase() {
+        continue;
+      }
+    } else {
+      // Event doesn't have a token address, skip it
+      continue;
+    }
+
+    relevant_event_count += 1;
+    let event_id = format!(
+      "{}-{}-{}",
+      event.block_number(),
+      event.tx_hash(),
+      event.log_index()
+    );
+    money_market_event_ids.insert(event_id.clone());
+
+    if !balance_history_event_ids.contains(&event_id) {
+      missed_events.push(serde_json::json!({
+        "eventId": event_id,
+        "blockNumber": event.block_number(),
+        "txHash": event.tx_hash(),
+        "logIndex": event.log_index(),
+        "eventType": event.event_type(),
+      }));
+    }
+  }
+
+  // Create output JSON
+  let output = serde_json::json!({
+    "user": user_address,
+    "tokenAddress": token_address,
+    "tokenType": if is_a_token { "aToken" } else { "debtToken" },
+    "eventsOnMoneyMarketEventCollection": relevant_event_count,
+    "eventsOnUserBalanceHistory": balance_history_event_ids.len(),
+    "eventsMissedCount": missed_events.len(),
+    "missedEvents": missed_events,
+  });
+
+  println!("{}", serde_json::to_string_pretty(&output).unwrap());
 }
 
 pub async fn handle_token(flags: Vec<Flag>) {
@@ -1169,11 +1311,7 @@ async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
   println!("  On-Chain: {}", on_chain_liquidity_index);
   println!(
     "  Difference: {}",
-    if db_liquidity_index > on_chain_liquidity_index {
-      db_liquidity_index - on_chain_liquidity_index
-    } else {
-      on_chain_liquidity_index - db_liquidity_index
-    }
+    db_liquidity_index.abs_diff(on_chain_liquidity_index)
   );
 
   println!("Variable Borrow Index:");
@@ -1181,11 +1319,7 @@ async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
   println!("  On-Chain: {}", on_chain_variable_borrow_index);
   println!(
     "  Difference: {}",
-    if db_variable_borrow_index > on_chain_variable_borrow_index {
-      db_variable_borrow_index - on_chain_variable_borrow_index
-    } else {
-      on_chain_variable_borrow_index - db_variable_borrow_index
-    }
+    db_variable_borrow_index.abs_diff(on_chain_variable_borrow_index)
   );
 }
 
@@ -1347,11 +1481,7 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           println!("Calculated Balance: {}", result.real_balance);
           println!("On-Chain Balance:   {}", on_chain_balance_at_event);
 
-          let diff = if result.real_balance > on_chain_balance_at_event {
-            result.real_balance - on_chain_balance_at_event
-          } else {
-            on_chain_balance_at_event - result.real_balance
-          };
+          let diff = result.real_balance.abs_diff(on_chain_balance_at_event);
 
           let percentage = if on_chain_balance_at_event == 0 {
             0.0
@@ -1386,11 +1516,7 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           println!("\n=== Current On-Chain Balance (Latest Block) ===");
           println!("Current Balance:    {}", current_on_chain_balance);
 
-          let diff_current = if result.real_balance > current_on_chain_balance {
-            result.real_balance - current_on_chain_balance
-          } else {
-            current_on_chain_balance - result.real_balance
-          };
+          let diff_current = result.real_balance.abs_diff(current_on_chain_balance);
 
           if diff_current != 0 {
             println!("Difference:         {}", diff_current);

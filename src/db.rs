@@ -1,5 +1,4 @@
 use crate::config::get_config;
-use std::str::FromStr;
 use crate::models::{
   OrderbookDocument,
   ReserveTokenDocument,
@@ -7,12 +6,13 @@ use crate::models::{
   SolverVolumeDocument,
   SolverVolumeTimestampAndBlock,
   MoneyMarketEventDocument,
+  UserAssetPositionDocument,
   // IntentEventDocument
 };
 // For async iteration over cursor
 use futures::stream::StreamExt;
 use mongodb::{
-  bson::{doc, Document},
+  bson::{doc, Document, Regex},
   options::ClientOptions,
   Client, Collection,
   options::FindOptions,
@@ -22,7 +22,6 @@ use crate::structs::{Collections, ReserveTokenField};
 struct Database {
   client: Client,
 }
-use alloy::primitives::Address;
 
 impl Database {
   async fn new() -> Self {
@@ -249,6 +248,20 @@ pub async fn get_user_position(
   find_one(collection, filter).await
 }
 
+pub async fn find_user_assets_position(
+  user_address: &str,
+) -> Result<Vec<UserAssetPositionDocument>, mongodb::error::Error> {
+  let collection: Collection<UserPositionDocument> = get_db()
+    .await
+    .database()
+    .collection(get_collections_config().user_positions);
+
+  // Create case-insensitive regex for address matching
+  let regex = create_regex_for_address(user_address);
+  let filter = doc! { "userAddress": &regex };
+  Ok(find_one(collection, filter).await?.positions)
+}
+
 pub async fn find_user_events(
   user_address: &str,
 ) -> Result<Vec<MoneyMarketEventDocument>, mongodb::error::Error> {
@@ -257,13 +270,16 @@ pub async fn find_user_events(
     .database()
     .collection(get_collections_config().money_market_events);
 
+  // Create case-insensitive regex for address matching
+  let regex = create_regex_for_address(user_address);
+
   let filter = doc! { "$or": [
-      { "user": user_address },
-      { "from": user_address },
-      { "to": user_address },
-      { "onBehalfOf": user_address },
-      { "repayer": user_address },
-      { "target": user_address }
+      { "user": &regex },
+      { "from": &regex },
+      { "to": &regex },
+      { "onBehalfOf": &regex },
+      { "repayer": &regex },
+      { "target": &regex }
   ]};
   collect_all_with_filter(collection, filter).await
 }
@@ -290,15 +306,13 @@ pub async fn find_token_events(
     },
   };
 
-  // parse to valid eip55 Address
-  let token_address_eip: Address =
-    Address::from_str(&reserve_address).expect("Invalid token address format");
-  let checksummed = token_address_eip.to_checksum(None);
+  let token_address_regex = create_regex_for_address(token_address);
+  let reserve_regex = create_regex_for_address(&reserve_address);
 
   // Create filter to match either tokenAddress or reserve
   let filter = doc! { "$or": [
-      { "tokenAddress": token_address },
-      { "reserve": checksummed },
+      { "tokenAddress": &token_address_regex },
+      { "reserve": &reserve_regex },
   ]};
 
   collect_all_with_filter(collection, filter).await
@@ -392,4 +406,11 @@ where
     };
   }
   Ok(docs)
+}
+
+fn create_regex_for_address(address: &str) -> Regex {
+  Regex {
+    pattern: format!("^{}$", address),
+    options: "i".to_string(),
+  }
 }

@@ -30,6 +30,7 @@ pub enum Flag {
   ValidateAllReserveIndexes,
   CalculateFromEvents(String),
   Block(u64),
+  InspectUserPosition(String),
 }
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -40,11 +41,7 @@ pub struct EntryState {
 }
 impl EntryState {
   pub fn new(database_amount: u128, on_chain_amount: u128) -> Self {
-    let difference = if database_amount > on_chain_amount {
-      database_amount - on_chain_amount
-    } else {
-      on_chain_amount - database_amount
-    };
+    let difference = database_amount.abs_diff(on_chain_amount);
 
     // Handle division by zero and edge cases
     let percentage = if on_chain_amount == 0 {
@@ -178,4 +175,5 @@ pub enum FlagType {
   GetUserEvents,
   CalculateFromEvents,
   Block,
+  InspectUserPosition,
 }

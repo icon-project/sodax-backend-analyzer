@@ -182,6 +182,12 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::Block(block_number));
         consumed_next_arg = true;
       }
+      "--inspect-user-position" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        flags.push(Flag::InspectUserPosition(args[i + 1].clone()));
+        consumed_next_arg = true;
+      }
       _ => return Err(format!("Unknown argument: {}", arg).into()),
     }
     // Move to the next argument
@@ -250,6 +256,11 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     .any(|flag| matches!(flag, Flag::CalculateFromEvents(_)));
   // boolean for --block
   let has_block = flags.iter().any(|flag| matches!(flag, Flag::Block(_)));
+
+  // boolean for --inspect-user-position
+  let has_inspect_user_position = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::InspectUserPosition(_)));
 
   // if no flags were added, add the help flag
   if flags.is_empty() {
@@ -336,7 +347,7 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     || has_validate_token_borrow)
     && flags.len() == 1
   {
-    return Err("Missing --reserve-token address flag".into());
+    return Err("This flag cannot be used alone. Please specify a token address flag (--reserve-token, --a-token, or --debt-token)".into());
   }
 
   // if --balance-of, --user-position or --calculate-from-events is used, the user must provide
@@ -378,6 +389,13 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   // cant combine --reserve-token, --a-token and --debt-token
   if (has_debt_token || has_a_token) && has_reserve_token || (has_a_token && has_debt_token) {
     return Err("You cannot combine --reserve-token, --a-token and --debt-token".into());
+  }
+
+  // if --inspect-user-position is used, it must be used with either --a-token or --debt-token
+  if has_inspect_user_position && !has_a_token && !has_debt_token {
+    return Err(
+      "The --inspect-user-position flag requires either --a-token or --debt-token".into(),
+    );
   }
 
   Ok(flags)

@@ -17,6 +17,7 @@ A Rust CLI tool for analyzing database data for the SODAX backend. This tool pro
 - **Data Fetching** - Get all users, reserves, aTokens, and debt tokens from the database
 - **Event Retrieval** - Get events for specific tokens and users
 - **Index Validation** - Validate liquidity and borrow indexes for reserves
+- **Position Inspection** - Inspect user balance history and detect missed events
 - **Error Handling** - Robust error handling with graceful degradation
 
 ## 📋 Prerequisites
@@ -72,6 +73,43 @@ RPC_PROVIDER=https://rpc.soniclabs.com/
 > **Note**: The `RPC_PROVIDER` is used for all on-chain queries including balance validations, block information, and contract interactions. Make sure the RPC endpoint is accessible and supports the network you're validating against.
 
 ## 🎯 Usage
+
+### Inspecting User Positions
+
+The `--inspect-user-position` flag allows you to audit a user's balance history for a specific token and detect any missed events:
+
+```bash
+# Inspect aToken position
+cargo run -- --inspect-user-position <USER_ADDRESS> --a-token <ATOKEN_ADDRESS>
+
+# Inspect debt token position
+cargo run -- --inspect-user-position <USER_ADDRESS> --debt-token <DEBT_TOKEN_ADDRESS>
+```
+
+**What it does:**
+1. Fetches all relevant events for the user from the `money_market_events` collection
+2. Extracts event IDs from the user's balance history in the `user_positions` collection
+3. Compares the two lists to identify any missing events
+4. Outputs a JSON report with statistics and details of missed events
+
+**Output format:**
+```json
+{
+  "user": "0x...",
+  "tokenAddress": "0x...",
+  "tokenType": "aToken" or "debtToken",
+  "eventsOnMoneyMarketEventCollection": 3573,
+  "eventsOnUserBalanceHistory": 3573,
+  "eventsMissedCount": 0,
+  "missedEvents": []
+}
+```
+
+**Use cases:**
+- Verify balance history integrity
+- Debug discrepancies between events and positions
+- Audit event processing completeness
+- Identify data synchronization issues
 
 ### Understanding Scaled vs Real Balances
 
@@ -132,6 +170,10 @@ cargo run -- --get-token-events <TOKEN_ADDRESS>
 
 # Get events for a specific user
 cargo run -- --get-user-events <USER_ADDRESS>
+
+# Inspect user position for a specific token (checks for missed events)
+cargo run -- --inspect-user-position <USER_ADDRESS> --a-token <ATOKEN_ADDRESS>
+cargo run -- --inspect-user-position <USER_ADDRESS> --debt-token <DEBT_TOKEN_ADDRESS>
 
 # Validate reserve indexes for a specific reserve
 cargo run -- --validate-reserve-indexes <RESERVE_ADDRESS>
@@ -201,6 +243,10 @@ cargo run -- --get-token-events 0x1234567890abcdef...
 
 # Get events for a specific user
 cargo run -- --get-user-events 0xuser123...
+
+# Inspect user position for missed events
+cargo run -- --inspect-user-position 0xuser123... --a-token 0x1234567890abcdef...
+cargo run -- --inspect-user-position 0xuser123... --debt-token 0x1234567890abcdef...
 
 # Validate reserve indexes
 cargo run -- --validate-reserve-indexes 0x1234567890abcdef...

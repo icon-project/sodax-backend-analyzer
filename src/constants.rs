@@ -12,6 +12,8 @@ OPTIONS:
     --all-tokens            List all reserve tokens in the database
     --last-block            Get the latest block number from the blockchain
     --orderbook             Get all orderbook data from the database
+    --timestamp-coverage    Show the coverage percentage of documents with non-null timestamps
+    --validate-timestamps [COUNT]  Validate database timestamps against on-chain block timestamps (optional: specify number of entries 1-100, defaults to all)
     --get-all-users         Print all user addresses from the database
     --get-all-reserves      Print all reserve token addresses and symbols
     --get-all-a-token       Print all aToken addresses and symbols
@@ -25,6 +27,7 @@ OPTIONS:
     --get-token-events <TOKEN_ADDRESS> Get events for a specific token (reserve, aToken, or debt token)
     --get-user-events <USER_ADDRESS>  Get events for a specific user
     --calculate-from-events <USER_ADDRESS>  Calculate user's token balance from events (requires one of: --reserve-token, --a-token, or --debt-token)
+    --inspect-user-position <USER_ADDRESS>  Inspect detailed user position for a specific token (requires either --a-token or --debt-token)
     --scaled                 Use scaled balances instead of real balances for validation (adds to validation flags)
 
 INDIVIDUAL VALIDATION OPTIONS:
@@ -48,10 +51,11 @@ SCALED VALIDATION:
     - Use --scaled when you want to validate the raw database values against on-chain scaled balances
 
 RESTRICTIONS:
-    - You cannot combine --last-block, --help, --all-tokens, --orderbook, --get-all-users, --get-all-reserves, --get-all-a-token, --get-all-debt-token, --validate-users-all, --validate-token-all, --validate-all, or --validate-all-reserve-indexes with other flags
+    - You cannot combine --last-block, --help, --all-tokens, --orderbook, --timestamp-coverage, --validate-timestamps, --get-all-users, --get-all-reserves, --get-all-a-token, --get-all-debt-token, --validate-users-all, --validate-token-all, --validate-all, or --validate-all-reserve-indexes with other flags
     - You cannot combine --reserve-token, --a-token, and --debt-token together
     - --balance-of requires exactly one token type flag (--reserve-token, --a-token, or --debt-token)
     - --block can only be used with --balance-of
+    - --inspect-user-position requires either --a-token or --debt-token to be specified
     - Individual validation flags require --reserve-token to be specified
     - --validate-user-all can be combined with --reserve-token for specific reserve validation
     - --scaled can only be combined with validation flags
@@ -62,6 +66,9 @@ EXAMPLES:
     sodax-backend-analizer --all-tokens
     sodax-backend-analizer --last-block
     sodax-backend-analizer --orderbook
+    sodax-backend-analizer --timestamp-coverage
+    sodax-backend-analizer --validate-timestamps
+    sodax-backend-analizer --validate-timestamps 50
     sodax-backend-analizer --get-all-users
     sodax-backend-analizer --get-all-reserves
     sodax-backend-analizer --get-all-a-token
@@ -79,6 +86,8 @@ EXAMPLES:
     sodax-backend-analizer --calculate-from-events 0xuser123... --reserve-token 0xtoken456...
     sodax-backend-analizer --calculate-from-events 0xuser123... --a-token 0xatoken456...
     sodax-backend-analizer --calculate-from-events 0xuser123... --debt-token 0xdebt456...
+    sodax-backend-analizer --inspect-user-position 0xuser123... --a-token 0xatoken456...
+    sodax-backend-analizer --inspect-user-position 0xuser123... --debt-token 0xdebt456...
 
     # Individual validation (real balances)
     sodax-backend-analizer --validate-user-supply 0xuser123... --reserve-token 0xtoken456...
