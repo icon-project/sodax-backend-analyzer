@@ -8,5 +8,6 @@ pub mod functions;
 pub mod handlers;
 pub mod helpers;
 pub mod models;
+pub mod report;
 pub mod structs;
 pub mod validators;

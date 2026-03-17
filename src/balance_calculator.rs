@@ -1,3 +1,4 @@
+use crate::output;
 use crate::constants::RAY;
 use crate::models::MoneyMarketEventDocument;
 use mongodb::bson::Decimal128;
@@ -150,26 +151,26 @@ fn print_event_debug(
   real_before: i128,
   real_after: i128,
 ) {
-  println!("{:03}. {}", idx + 1, event_data.event_name);
-  println!("     Block: {}", event_data.block_number);
+  output!("{:03}. {}", idx + 1, event_data.event_name);
+  output!("     Block: {}", event_data.block_number);
 
   if let Some((from, to)) = &event_data.transfer_info {
-    println!("     From: {}", from);
-    println!("     To: {}", to);
+    output!("     From: {}", from);
+    output!("     To: {}", to);
   }
 
-  println!("     Value: {}", event_data.value);
+  output!("     Value: {}", event_data.value);
 
   if event_data.event_type != EventType::Transfer {
-    println!("     Balance Increase: {}", event_data.balance_increase);
-    println!("     Index: {}", event_data.index);
+    output!("     Balance Increase: {}", event_data.balance_increase);
+    output!("     Index: {}", event_data.index);
   } else {
-    println!("     Index (last known): {}", event_data.index);
+    output!("     Index (last known): {}", event_data.index);
   }
 
-  println!("     Scaled: {}", event_scaled);
-  println!("     Scaled Balance: {} → {}", scaled_before, scaled_after);
-  println!("     Real Balance:   {} → {}\n", real_before, real_after);
+  output!("     Scaled: {}", event_scaled);
+  output!("     Scaled Balance: {} → {}", scaled_before, scaled_after);
+  output!("     Real Balance:   {} → {}\n", real_before, real_after);
 }
 
 /// Determines if a transfer event should be skipped (involves zero address)
@@ -282,10 +283,10 @@ pub fn process_user_token_events(
   let mut last_index = RAY;
   let mut last_event_block: u64 = 0;
 
-  println!("\n=== Processing Events for User and Token ===");
-  println!("User: {}", user_address);
-  println!("Token: {}", token_address);
-  println!("Current Index: {}\n", current_index);
+  output!("\n=== Processing Events for User and Token ===");
+  output!("User: {}", user_address);
+  output!("Token: {}", token_address);
+  output!("Current Index: {}\n", current_index);
 
   for (idx, event) in events.iter().enumerate() {
     // Skip events not related to our token
@@ -299,7 +300,7 @@ pub fn process_user_token_events(
 
     // Skip transfer events involving zero address
     if should_skip_transfer_event(event) {
-      println!(
+      output!(
         "{:03}. Skipping transfer event at block {}",
         idx + 1,
         event.block_number()
@@ -367,14 +368,14 @@ pub fn process_user_token_events(
   let calculated_real_from_scaled =
     convert_scaled_to_real_balance(final_scaled_balance, last_index)?;
 
-  println!("=== Final Results ===");
-  println!("Final Scaled Balance: {}", final_scaled_balance);
-  println!(
+  output!("=== Final Results ===");
+  output!("Final Scaled Balance: {}", final_scaled_balance);
+  output!(
     "Final Real Balance (from scaled): {}",
     calculated_real_from_scaled
   );
-  println!("Final Real Balance (direct sum): {}", final_real_balance);
-  println!("Last Event Block: {}", last_event_block);
+  output!("Final Real Balance (direct sum): {}", final_real_balance);
+  output!("Last Event Block: {}", last_event_block);
 
   Ok(BalanceResult {
     scaled_balance: final_scaled_balance,

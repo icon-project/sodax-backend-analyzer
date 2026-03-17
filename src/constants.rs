@@ -29,6 +29,7 @@ OPTIONS:
     --calculate-from-events <USER_ADDRESS>  Calculate user's token balance from events (requires one of: --reserve-token, --a-token, or --debt-token)
     --inspect-user-position <USER_ADDRESS>  Inspect detailed user position for a specific token (requires either --a-token or --debt-token)
     --scaled                 Use scaled balances instead of real balances for validation (adds to validation flags)
+    --no-report              Disable automatic report file generation (reports are saved to reports/ by default)
 
 INDIVIDUAL VALIDATION OPTIONS:
     --validate-user-supply <USER_ADDRESS>  Validate user's aToken supply balance (requires --reserve-token)
@@ -112,6 +113,11 @@ EXAMPLES:
     sodax-backend-analizer --validate-users-all --scaled
     sodax-backend-analizer --validate-token-all --scaled
     sodax-backend-analizer --validate-all --scaled
+
+REPORT FILES:
+    By default, every command (except --help) saves its output to a report file
+    in the reports/ directory. The file is named report_<unix_timestamp>.txt.
+    Use --no-report to disable this behavior.
 
 OUTPUT FORMAT:
     Validation results show:

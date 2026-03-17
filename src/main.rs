@@ -13,10 +13,25 @@ use sodax_backend_analizer::handlers::{
   handle_calculate_from_events, handle_inspect_user_position,
 };
 use sodax_backend_analizer::cli::parse_args;
+use sodax_backend_analizer::report::{init_report, report_path};
 use sodax_backend_analizer::structs::Flag;
+
+fn exit_success() -> ! {
+  if let Some(path) = report_path() {
+    eprintln!("Report saved to: {}", path);
+  }
+  std::process::exit(0);
+}
 
 #[tokio::main]
 async fn main() {
+  let args: Vec<String> = std::env::args().collect();
+  let no_report = args.iter().any(|arg| arg == "--no-report");
+  let is_help = args.iter().any(|arg| arg == "--help") || args.len() < 2;
+
+  // Initialize report file (skip for --help and --no-report)
+  init_report(!no_report && !is_help, &args);
+
   let flags = match parse_args() {
     Ok(flags) => flags,
     Err(e) => {
@@ -31,22 +46,22 @@ async fn main() {
   // if the --help flag is present, print the help message and exit
   if flags.iter().any(|f: &Flag| matches!(f, Flag::Help)) {
     handle_help().await;
-    std::process::exit(0);
+    exit_success();
 
   // if --orderbook was passed
   } else if flags.iter().any(|f: &Flag| matches!(f, Flag::Orderbook)) {
     handle_orderbook().await;
-    std::process::exit(0);
+    exit_success();
 
   // if --all-tokens was passed
   } else if flags.iter().any(|f: &Flag| matches!(f, Flag::AllTokens)) {
     handle_all_tokens().await;
-    std::process::exit(0);
+    exit_success();
 
   // if --last-block was passed
   } else if flags.iter().any(|f: &Flag| matches!(f, Flag::LastBlock)) {
     handle_last_block().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-token-all flag was passed
   } else if flags
@@ -58,7 +73,7 @@ async fn main() {
     } else {
       handle_validate_token_all().await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-users-all flag was passed
   } else if flags
@@ -70,7 +85,7 @@ async fn main() {
     } else {
       handle_validate_users_all().await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-user-all flag was passed
   } else if flags
@@ -82,7 +97,7 @@ async fn main() {
     } else {
       handle_validate_user_all(flags).await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-all flag was passed
   } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateAll)) {
@@ -91,7 +106,7 @@ async fn main() {
     } else {
       handle_validate_all().await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --timestamp-coverage flag was passed
   } else if flags
@@ -99,7 +114,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::TimestampCoverage))
   {
     handle_timestamp_coverage().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-timestamps flag was passed
   } else if flags
@@ -107,12 +122,12 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::ValidateTimestamps(_)))
   {
     handle_validate_timestamp(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-all-users flag was passed
   } else if flags.iter().any(|f: &Flag| matches!(f, Flag::GetAllUsers)) {
     handle_get_all_users().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-all-reserves flag was passed
   } else if flags
@@ -120,7 +135,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::GetAllReserves))
   {
     handle_get_all_reserves().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-all-a-token flag was passed
   } else if flags
@@ -128,7 +143,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::GetAllATokens))
   {
     handle_get_all_a_tokens().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-all-debt-token flag was passed
   } else if flags
@@ -136,7 +151,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::GetAllDebtTokens))
   {
     handle_get_all_debt_tokens().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-all-reserve-indexes flag was passed
   } else if flags
@@ -144,7 +159,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::ValidateAllReserveIndexes))
   {
     handle_validate_all_reserve_indexes().await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-token-events flag was passed
   } else if flags
@@ -152,7 +167,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::GetTokenEvents(_)))
   {
     handle_get_token_events(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --get-user-events flag was passed
   } else if flags
@@ -160,7 +175,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::GetUserEvents(_)))
   {
     handle_get_user_events(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-reserve-indexes flag was passed
   } else if flags
@@ -168,7 +183,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::ValidateReserveIndexes(_)))
   {
     handle_validate_reserve_indexes(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --calculate-from-events flag was passed
   } else if flags
@@ -176,7 +191,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::CalculateFromEvents(_)))
   {
     handle_calculate_from_events(flags).await;
-    std::process::exit(0);
+    exit_success();
   }
 
   // now handle the flags that can be used in
@@ -195,7 +210,7 @@ async fn main() {
   // if the --balance-of flag was passed
   if flags.iter().any(|f: &Flag| matches!(f, Flag::BalanceOf(_))) {
     handle_balance_of(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --user-position flag was passed
   } else if flags
@@ -203,7 +218,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::UserPosition(_)))
   {
     handle_user_position(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --inspect-user-position flag was passed
   } else if flags
@@ -211,7 +226,7 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::InspectUserPosition(_)))
   {
     handle_inspect_user_position(flags).await;
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-user-supply [--scaled] flag was passed
   } else if flags
@@ -223,7 +238,7 @@ async fn main() {
     } else {
       handle_validate_user_supply(flags).await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-user-borrow [--scaled] flag was passed
   } else if flags
@@ -235,7 +250,7 @@ async fn main() {
     } else {
       handle_validate_user_borrow(flags).await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-token-supply [--scaled] flag was passed
   } else if flags
@@ -247,7 +262,7 @@ async fn main() {
     } else {
       handle_validate_token_supply(flags).await;
     }
-    std::process::exit(0);
+    exit_success();
 
   // if the --validate-token-borrow [--scaled] flag was passed
   } else if flags
@@ -259,7 +274,7 @@ async fn main() {
     } else {
       handle_validate_token_borrow(flags).await;
     }
-    std::process::exit(0);
+    exit_success();
   }
 
   // NOTE: this should be the last check
@@ -275,6 +290,6 @@ async fn main() {
     )
   }) {
     handle_token(flags).await;
-    std::process::exit(0);
+    exit_success();
   }
 }
