@@ -1,3 +1,4 @@
+use crate::output;
 use crate::balance_calculator::process_user_token_events;
 #[allow(unused_imports)]
 use crate::db::{
@@ -39,7 +40,7 @@ use std::cmp::min;
 use std::sync::Arc;
 
 pub async fn handle_help() {
-  println!("{}", HELP_MESSAGE);
+  output!("{}", HELP_MESSAGE);
 }
 
 pub async fn handle_orderbook() {
@@ -52,10 +53,10 @@ pub async fn handle_orderbook() {
   };
 
   if book.is_empty() {
-    println!("Orderbook is empty.");
+    output!("Orderbook is empty.");
   } else {
     for order in book {
-      println!("{:?}", order);
+      output!("{:?}", order);
     }
   }
 }
@@ -78,15 +79,15 @@ pub async fn handle_timestamp_coverage() {
   };
 
   if all_docs.is_empty() {
-    println!("No documents found in the database.");
+    output!("No documents found in the database.");
   } else {
-    println!("Total documents in the database: {}", all_docs.len());
+    output!("Total documents in the database: {}", all_docs.len());
   }
 
   if non_null_docs.is_empty() {
-    println!("Coverage: 100% (no documents with null timestamp)");
+    output!("Coverage: 100% (no documents with null timestamp)");
   } else {
-    println!("Documents with non-null timestamp: {}", non_null_docs.len());
+    output!("Documents with non-null timestamp: {}", non_null_docs.len());
   }
 
   let coverage = if all_docs.is_empty() {
@@ -95,7 +96,7 @@ pub async fn handle_timestamp_coverage() {
     (non_null_docs.len() as f64 / all_docs.len() as f64) * 100.0
   };
 
-  println!("Coverage percentage: {:.2}%", coverage);
+  output!("Coverage percentage: {:.2}%", coverage);
 }
 
 pub async fn handle_all_tokens() {
@@ -107,17 +108,17 @@ pub async fn handle_all_tokens() {
     }
   };
   if tokens.is_empty() {
-    println!("No reserve tokens found.");
+    output!("No reserve tokens found.");
   } else {
     for token in tokens {
-      println!("{:?}", token);
+      output!("{:?}", token);
     }
   }
 }
 
 pub async fn handle_last_block() {
   match get_last_block().await {
-    Ok(block) => println!("Latest block number: {}", block),
+    Ok(block) => output!("Latest block number: {}", block),
     Err(e) => {
       eprintln!("Error fetching last block: {}", e);
       std::process::exit(1);
@@ -148,7 +149,7 @@ async fn handle_compare_timestamp(doc: SolverVolumeDocument) -> Result<u64, Stri
   };
   let timestamp = timestamp.timestamp_millis() / 1000; // Convert to seconds
   let diff = (block_timestamp as i64) - timestamp;
-  println!(
+  output!(
     "Document ID: {}\n Block Number: {}\n Timestamp:       {}\n Block Timestamp: {}\n Diff: {} seconds",
     doc.id, blockNumber, timestamp, block_timestamp, diff
   );
@@ -171,7 +172,7 @@ pub async fn handle_validate_timestamp(flags: Vec<Flag>) {
   let docs_to_validate = match maybe_count_str {
     None => {
       // Validate all timestamp entries
-      println!(
+      output!(
         "Validating all timestamp entries ({} found)...",
         all_docs.len()
       );
@@ -190,7 +191,7 @@ pub async fn handle_validate_timestamp(flags: Vec<Flag>) {
       // Cap to a maximum of 100 entries
       let count = min(count, 100);
       let to_validate = min(count, all_docs.len());
-      println!("Validating {} timestamp entries...", to_validate);
+      output!("Validating {} timestamp entries...", to_validate);
       let indexes = sample(&mut rand::rng(), all_docs.len(), to_validate);
       let mut selected_docs = Vec::new();
       for idx in indexes.iter() {
@@ -225,13 +226,13 @@ pub async fn handle_validate_timestamp(flags: Vec<Flag>) {
 
   // Print summary of average difference and max difference
   if all_diffs.is_empty() {
-    println!("No valid timestamps found to compare.");
+    output!("No valid timestamps found to compare.");
   } else {
     let total_diff: u64 = all_diffs.iter().sum();
     let average_diff = total_diff as f64 / all_diffs.len() as f64;
     let max_diff = all_diffs.iter().max().unwrap_or(&0);
     let min_diff = all_diffs.iter().min().unwrap_or(&0);
-    println!(
+    output!(
       "Average difference: {:.2} seconds\nMax difference: {} seconds\nMin difference: {} seconds\n (over {} entries)",
       average_diff,
       max_diff,
@@ -272,12 +273,12 @@ pub async fn handle_balance_of(flags: Vec<Flag>) {
   match get_balance_of(&token_passed, &user_address, block_number).await {
     Ok(balance) => {
       if let Some(block) = block_number {
-        println!(
+        output!(
           "Balance of {} for token {} at block {}: {}",
           user_address, token_passed, block, balance
         );
       } else {
-        println!(
+        output!(
           "Balance of {} for token {}: {}",
           user_address, token_passed, balance
         );
@@ -327,7 +328,7 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
 
   match find_user_scaled_position(&user_address, &reserve_data.reserveAddress).await {
     Ok(position) => {
-      println!(
+      output!(
         "User position for {} on reserve {}: {:?}",
         user_address, token_address, position
       );
@@ -476,7 +477,7 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
     "missedEvents": missed_events,
   });
 
-  println!("{}", serde_json::to_string_pretty(&output).unwrap());
+  output!("{}", serde_json::to_string_pretty(&output).unwrap());
 }
 
 pub async fn handle_token(flags: Vec<Flag>) {
@@ -495,7 +496,7 @@ pub async fn handle_token(flags: Vec<Flag>) {
   let (token_address, field) = token_address_tuple;
 
   match find_reserve_for_token(&token_address, field).await {
-    Ok(token_data) => println!("Reserve data for token {}: {:?}", token_address, token_data),
+    Ok(token_data) => output!("Reserve data for token {}: {:?}", token_address, token_data),
     Err(e) => {
       eprintln!("Error fetching reserve token data: {}", e);
       std::process::exit(1);
@@ -518,11 +519,11 @@ pub async fn handle_validate_user_supply(flags: Vec<Flag>) {
 
   match validate_user_supply_amount(&user_address, &reserve_address).await {
     Ok(result) => {
-      println!("User Supply Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("User Supply Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
@@ -532,7 +533,7 @@ pub async fn handle_validate_user_supply(flags: Vec<Flag>) {
           user_address, reserve_address
         ),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating user supply: {}", e);
@@ -555,11 +556,11 @@ pub async fn handle_validate_user_scaled_supply(flags: Vec<Flag>) {
 
   match validate_user_scaled_supply_amount(&user_address, &reserve_address).await {
     Ok(result) => {
-      println!("User Scaled Supply Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("User Scaled Supply Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
@@ -569,7 +570,7 @@ pub async fn handle_validate_user_scaled_supply(flags: Vec<Flag>) {
           user_address, reserve_address
         ),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating user scaled supply: {}", e);
@@ -593,11 +594,11 @@ pub async fn handle_validate_user_borrow(flags: Vec<Flag>) {
 
   match validate_user_borrow_amount(&user_address, &reserve_address).await {
     Ok(result) => {
-      println!("User Borrow Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("User Borrow Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
@@ -607,7 +608,7 @@ pub async fn handle_validate_user_borrow(flags: Vec<Flag>) {
           user_address, reserve_address
         ),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating user borrow: {}", e);
@@ -631,11 +632,11 @@ pub async fn handle_validate_user_scaled_borrow(flags: Vec<Flag>) {
 
   match validate_user_scaled_borrow_amount(&user_address, &reserve_address).await {
     Ok(result) => {
-      println!("User Scaled Borrow Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("User Scaled Borrow Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
@@ -645,7 +646,7 @@ pub async fn handle_validate_user_scaled_borrow(flags: Vec<Flag>) {
           user_address, reserve_address
         ),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating user scaled borrow: {}", e);
@@ -663,18 +664,18 @@ pub async fn handle_validate_token_supply(flags: Vec<Flag>) {
 
   match validate_token_supply_amount(&reserve_address).await {
     Ok(result) => {
-      println!("Token Supply Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("Token Supply Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
         result.on_chain_amount,
         &format!("total aToken supply for reserve {}", reserve_address),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating token supply: {}", e);
@@ -692,18 +693,18 @@ pub async fn handle_validate_token_scaled_supply(flags: Vec<Flag>) {
 
   match validate_token_scaled_supply_amount(&reserve_address).await {
     Ok(result) => {
-      println!("Token Scaled Supply Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("Token Scaled Supply Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
         result.on_chain_amount,
         &format!("total aToken scaled supply for reserve {}", reserve_address),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating scaled token supply: {}", e);
@@ -720,18 +721,18 @@ pub async fn handle_validate_token_borrow(flags: Vec<Flag>) {
 
   match validate_token_borrow_amount(&reserve_address).await {
     Ok(result) => {
-      println!("Token Borrow Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("Token Borrow Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
         result.on_chain_amount,
         &format!("total debt token supply for reserve {}", reserve_address),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating token borrow: {}", e);
@@ -749,11 +750,11 @@ pub async fn handle_validate_token_scaled_borrow(flags: Vec<Flag>) {
 
   match validate_token_scaled_borrow_amount(&reserve_address).await {
     Ok(result) => {
-      println!("Token Scaled Borrow Validation Results:");
-      println!("  Database Amount: {}", result.database_amount);
-      println!("  On-Chain Amount: {}", result.on_chain_amount);
-      println!("  Difference: {}", result.difference);
-      println!("  Percentage: {:.4}%", result.percentage);
+      output!("Token Scaled Borrow Validation Results:");
+      output!("  Database Amount: {}", result.database_amount);
+      output!("  On-Chain Amount: {}", result.on_chain_amount);
+      output!("  Difference: {}", result.difference);
+      output!("  Percentage: {:.4}%", result.percentage);
 
       let report = compare_and_report_diff(
         result.database_amount,
@@ -763,7 +764,7 @@ pub async fn handle_validate_token_scaled_borrow(flags: Vec<Flag>) {
           reserve_address
         ),
       );
-      println!("  Status: {}", report);
+      output!("  Status: {}", report);
     }
     Err(e) => {
       eprintln!("Error validating token scaled borrow: {}", e);
@@ -781,7 +782,7 @@ pub async fn handle_validate_token_all_scaled() {
 }
 
 pub async fn handle_validate_token_all_generic(scaled: bool) {
-  println!("Validating all reserves in parallel...");
+  output!("Validating all reserves in parallel...");
 
   // Get all reserves first
   let reserves = match find_all_reserves().await {
@@ -825,23 +826,23 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
         success_count += 1;
         if let Some(error) = &validation_result.error {
           error_count += 1;
-          println!(
+          output!(
             "❌ Reserve {}: ERROR - {}",
             validation_result.reserve_address, error
           );
         } else {
-          println!(
+          output!(
             "✅ Reserve {} validated successfully",
             validation_result.reserve_address
           );
-          println!(
+          output!(
             "  Supply - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
             validation_result.supply.database_amount,
             validation_result.supply.on_chain_amount,
             validation_result.supply.difference,
             validation_result.supply.percentage
           );
-          println!(
+          output!(
             "  Borrow - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
             validation_result.borrow.database_amount,
             validation_result.borrow.on_chain_amount,
@@ -852,16 +853,16 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
       }
       Ok(Err(e)) => {
         error_count += 1;
-        println!("❌ Validation failed: {}", e);
+        output!("❌ Validation failed: {}", e);
       }
       Err(e) => {
         error_count += 1;
-        println!("❌ Task failed: {}", e);
+        output!("❌ Task failed: {}", e);
       }
     }
   }
 
-  println!(
+  output!(
     "\n📊 Summary: {} successful, {} errors",
     success_count, error_count
   );
@@ -876,7 +877,7 @@ pub async fn handle_validate_users_all_scaled() {
 }
 
 pub async fn handle_validate_users_all_generic(scaled: bool) {
-  println!("Validating all users in parallel...");
+  output!("Validating all users in parallel...");
 
   // Fetch all users first
   let users = match find_all_users().await {
@@ -935,12 +936,12 @@ pub async fn handle_validate_users_all_generic(scaled: bool) {
       }
       Err(e) => {
         error_count += 1;
-        println!("❌ Task failed: {}", e);
+        output!("❌ Task failed: {}", e);
       }
     }
   }
 
-  println!(
+  output!(
     "\n📊 Summary: {} successful users, {} errors",
     success_count, error_count
   );
@@ -953,7 +954,7 @@ pub async fn handle_validate_user_all(flags: Vec<Flag>) {
     "Error: --validate-user-all requires a user address to be specified.",
   );
 
-  println!("Validating all positions for user {}...", user_address);
+  output!("Validating all positions for user {}...", user_address);
   handle_user_validation(&user_address, true).await;
 }
 pub async fn handle_validate_user_all_scaled(flags: Vec<Flag>) {
@@ -963,7 +964,7 @@ pub async fn handle_validate_user_all_scaled(flags: Vec<Flag>) {
     "Error: --validate-user-all requires a user address to be specified.",
   );
 
-  println!("Validating all positions for user {}...", user_address);
+  output!("Validating all positions for user {}...", user_address);
   handle_user_validation_scaled(&user_address, true).await;
 }
 
@@ -999,27 +1000,27 @@ async fn handle_user_validation_generic(user_address: &str, exit_on_error: bool,
       }
     }
   };
-  println!(
+  output!(
     "✅ User {}: {} positions validated",
     result.user_address,
     result.positions.len()
   );
   for position in &result.positions {
     if let Some(error) = &position.error {
-      println!(
+      output!(
         "  ❌ Reserve {}: ERROR - {}",
         position.reserve_address, error
       );
     } else {
-      println!("  📊 Reserve {}:", position.reserve_address);
-      println!(
+      output!("  📊 Reserve {}:", position.reserve_address);
+      output!(
         "  Supply - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
         position.supply.database_amount,
         position.supply.on_chain_amount,
         position.supply.difference,
         position.supply.percentage
       );
-      println!(
+      output!(
         "  Supply - DB: {}\n  On-Chain:    {}\n  Diff: {}, %: {:.6}%",
         position.borrow.database_amount,
         position.borrow.on_chain_amount,
@@ -1031,29 +1032,29 @@ async fn handle_user_validation_generic(user_address: &str, exit_on_error: bool,
 }
 
 pub async fn handle_validate_all() {
-  println!("Validating everything...");
+  output!("Validating everything...");
 
   // Validate all reserves
-  println!("\n🔍 Validating all reserves...");
+  output!("\n🔍 Validating all reserves...");
   handle_validate_token_all().await;
   // Validate all users
-  println!("\n🔍 Validating all users...");
+  output!("\n🔍 Validating all users...");
   handle_validate_users_all().await;
 
-  println!("\n🎉 Complete validation finished!");
+  output!("\n🎉 Complete validation finished!");
 }
 
 pub async fn handle_validate_all_scaled() {
-  println!("Validating everything...");
+  output!("Validating everything...");
 
   // Validate all reserves
-  println!("\n🔍 Validating all reserves...");
+  output!("\n🔍 Validating all reserves...");
   handle_validate_token_all_scaled().await;
   // Validate all users
-  println!("\n🔍 Validating all users...");
+  output!("\n🔍 Validating all users...");
   handle_validate_users_all_scaled().await;
 
-  println!("\n🎉 Complete validation finished!");
+  output!("\n🎉 Complete validation finished!");
 }
 
 // New handlers for the additional CLI features
@@ -1065,12 +1066,12 @@ pub async fn handle_get_all_users() {
   });
 
   if users.is_empty() {
-    println!("No users found.");
+    output!("No users found.");
   } else {
-    println!("All user:");
+    output!("All user:");
     for user in &users {
       let count_of_positions = user.positions.len();
-      println!(
+      output!(
         "User: {}\n  positions on tokens: {}",
         user.userAddress, count_of_positions
       );
@@ -1086,12 +1087,12 @@ pub async fn handle_get_all_users() {
           as_supplier += 1;
         }
       }
-      println!(
+      output!(
         "  Borrower positions:  {}\n  Supplier positions:  {}\n",
         as_borrower, as_supplier
       );
     }
-    println!("Total users: {}", users.len());
+    output!("Total users: {}", users.len());
   }
 }
 
@@ -1105,16 +1106,16 @@ pub async fn handle_get_all_reserves() {
   };
 
   if reserves.is_empty() {
-    println!("No reserves found.");
+    output!("No reserves found.");
   } else {
-    println!("All reserve tokens:");
+    output!("All reserve tokens:");
     for reserve in &reserves {
-      println!(
+      output!(
         "Address: {}, Symbol: {}",
         reserve.reserveAddress, reserve.symbol
       );
     }
-    println!("Total reserves: {}", reserves.len());
+    output!("Total reserves: {}", reserves.len());
   }
 }
 
@@ -1128,16 +1129,16 @@ pub async fn handle_get_all_a_tokens() {
   };
 
   if reserves.is_empty() {
-    println!("No aTokens found.");
+    output!("No aTokens found.");
   } else {
-    println!("All aToken addresses:");
+    output!("All aToken addresses:");
     for reserve in &reserves {
-      println!(
+      output!(
         "Address: {}, Symbol: {}",
         reserve.aTokenAddress, reserve.symbol
       );
     }
-    println!("Total aTokens: {}", reserves.len());
+    output!("Total aTokens: {}", reserves.len());
   }
 }
 
@@ -1151,16 +1152,16 @@ pub async fn handle_get_all_debt_tokens() {
   };
 
   if reserves.is_empty() {
-    println!("No debt tokens found.");
+    output!("No debt tokens found.");
   } else {
-    println!("All debt token addresses:");
+    output!("All debt token addresses:");
     for reserve in &reserves {
-      println!(
+      output!(
         "Address: {}, Symbol: {}",
         reserve.variableDebtTokenAddress, reserve.symbol
       );
     }
-    println!("Total debt tokens: {}", reserves.len());
+    output!("Total debt tokens: {}", reserves.len());
   }
 }
 
@@ -1180,7 +1181,7 @@ pub async fn handle_get_token_events(flags: Vec<Flag>) {
   };
 
   if events.is_empty() {
-    println!("No events found for token: {}", token_address);
+    output!("No events found for token: {}", token_address);
   } else {
     handle_money_market_event_output(events);
   }
@@ -1202,7 +1203,7 @@ pub async fn handle_get_user_events(flags: Vec<Flag>) {
   };
 
   if events.is_empty() {
-    println!("No events found for user: {}", user_address);
+    output!("No events found for user: {}", user_address);
   } else {
     handle_money_market_event_output(events);
   }
@@ -1212,55 +1213,55 @@ fn handle_money_market_event_output(event_vector: Vec<MoneyMarketEventDocument>)
   for event in event_vector {
     match event {
       MoneyMarketEventDocument::ATokenBalanceTransfer(doc) => {
-        println!("AToken Balance Transfer Event:");
-        println!("  Doc: {:?}", doc);
+        output!("AToken Balance Transfer Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::ATokenTransfer(doc) => {
-        println!("AToken Transfer Event:");
-        println!("  Doc: {:?}", doc);
+        output!("AToken Transfer Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::ATokenBurn(doc) => {
-        println!("AToken Burn Event:");
-        println!("  Doc: {:?}", doc);
+        output!("AToken Burn Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::ATokenMint(doc) => {
-        println!("AToken Mint Event:");
-        println!("  Doc: {:?}", doc);
+        output!("AToken Mint Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::Borrow(doc) => {
-        println!("Borrow Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Borrow Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::DebtTokenBurn(doc) => {
-        println!("Debt Token Burn Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Debt Token Burn Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::DebtTokenMint(doc) => {
-        println!("Debt Token Mint Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Debt Token Mint Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::Repay(doc) => {
-        println!("Repay Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Repay Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::ReserveDataUpdated(doc) => {
-        println!("Reserve Data Updated Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Reserve Data Updated Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::Supply(doc) => {
-        println!("Supply Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Supply Event:");
+        output!("  Doc: {:?}", doc);
       }
       MoneyMarketEventDocument::Withdraw(doc) => {
-        println!("Withdraw Event:");
-        println!("  Doc: {:?}", doc);
+        output!("Withdraw Event:");
+        output!("  Doc: {:?}", doc);
       }
     }
   }
 }
 
 async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
-  println!("Validating reserve indexes for: {}", reserve_address);
+  output!("Validating reserve indexes for: {}", reserve_address);
   // Get database values
   let reserve_data =
     match find_reserve_for_token(&reserve_address, ReserveTokenField::Reserve).await {
@@ -1275,8 +1276,8 @@ async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
       }
     };
 
-  println!("Reserve: {}", reserve_address);
-  println!("Token: {}", reserve_data.symbol);
+  output!("Reserve: {}", reserve_address);
+  output!("Token: {}", reserve_data.symbol);
   // Get on-chain values
   let on_chain_liquidity_index = match get_atoken_liquidity_index(&reserve_address).await {
     Ok(index) => index,
@@ -1306,18 +1307,18 @@ async fn handle_validate_reserve_indexes_generic(reserve_address: String) {
     .parse::<u128>()
     .unwrap_or(0);
 
-  println!("Liquidity Index:");
-  println!("  Database: {}", db_liquidity_index);
-  println!("  On-Chain: {}", on_chain_liquidity_index);
-  println!(
+  output!("Liquidity Index:");
+  output!("  Database: {}", db_liquidity_index);
+  output!("  On-Chain: {}", on_chain_liquidity_index);
+  output!(
     "  Difference: {}",
     db_liquidity_index.abs_diff(on_chain_liquidity_index)
   );
 
-  println!("Variable Borrow Index:");
-  println!("  Database: {}", db_variable_borrow_index);
-  println!("  On-Chain: {}", on_chain_variable_borrow_index);
-  println!(
+  output!("Variable Borrow Index:");
+  output!("  Database: {}", db_variable_borrow_index);
+  output!("  On-Chain: {}", on_chain_variable_borrow_index);
+  output!(
     "  Difference: {}",
     db_variable_borrow_index.abs_diff(on_chain_variable_borrow_index)
   );
@@ -1334,22 +1335,22 @@ pub async fn handle_validate_reserve_indexes(flags: Vec<Flag>) {
 }
 
 pub async fn handle_validate_all_reserve_indexes() {
-  println!("Validating indexes for all reserves...");
+  output!("Validating indexes for all reserves...");
 
   let reserves = find_all_reserve_addresses().await;
 
   if reserves.is_empty() {
-    println!("No reserves found.");
+    output!("No reserves found.");
     return;
   }
 
-  println!("Found {} reserves to validate", reserves.len());
+  output!("Found {} reserves to validate", reserves.len());
 
   for reserve in reserves {
     handle_validate_reserve_indexes_generic(reserve).await;
   }
 
-  println!("\n🎉 Reserve index validation complete!");
+  output!("\n🎉 Reserve index validation complete!");
 }
 
 pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
@@ -1420,11 +1421,11 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
     std::process::exit(1);
   };
 
-  println!("\n=== Calculating Scaled Balance from Events ===");
-  println!("User Address: {}", user_address);
-  println!("Token Type: {}", token_type);
-  println!("Token Address: {}", token_address);
-  println!("Reserve Address: {}", reserve_address);
+  output!("\n=== Calculating Scaled Balance from Events ===");
+  output!("User Address: {}", user_address);
+  output!("Token Type: {}", token_type);
+  output!("Token Address: {}", token_address);
+  output!("Reserve Address: {}", reserve_address);
 
   // Fetch all events for the user
   let events = match find_user_events(&user_address).await {
@@ -1436,11 +1437,11 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
   };
 
   if events.is_empty() {
-    println!("\nNo events found for user: {}", user_address);
+    output!("\nNo events found for user: {}", user_address);
     return;
   }
 
-  println!("Found {} total events for user", events.len());
+  output!("Found {} total events for user", events.len());
 
   // Get the current index using the reserve address (not the token address)
   let current_index = if is_debt {
@@ -1464,22 +1465,22 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
   // Process events and calculate balance
   match process_user_token_events(&events, &user_address, &token_address, current_index) {
     Ok(result) => {
-      println!("\n=== Summary ===");
-      println!("Scaled Balance: {}", result.scaled_balance);
-      println!("Real Balance (from scaled): {}", result.real_balance);
-      println!("Last Index Used: {}", result.last_index);
-      println!("Current Index: {}", current_index);
-      println!("Last Event Block: {}", result.last_event_block);
+      output!("\n=== Summary ===");
+      output!("Scaled Balance: {}", result.scaled_balance);
+      output!("Real Balance (from scaled): {}", result.real_balance);
+      output!("Last Index Used: {}", result.last_index);
+      output!("Current Index: {}", current_index);
+      output!("Last Event Block: {}", result.last_event_block);
 
       // Get on-chain balance at the last event block for accurate comparison
       match get_balance_of(&token_address, &user_address, Some(result.last_event_block)).await {
         Ok(on_chain_balance_at_event) => {
-          println!(
+          output!(
             "\n=== On-Chain Comparison (at Last Event Block {}) ===",
             result.last_event_block
           );
-          println!("Calculated Balance: {}", result.real_balance);
-          println!("On-Chain Balance:   {}", on_chain_balance_at_event);
+          output!("Calculated Balance: {}", result.real_balance);
+          output!("On-Chain Balance:   {}", on_chain_balance_at_event);
 
           let diff = result.real_balance.abs_diff(on_chain_balance_at_event);
 
@@ -1489,17 +1490,17 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
             (diff as f64 / on_chain_balance_at_event as f64) * 100.0
           };
 
-          println!("Difference:         {}", diff);
-          println!("Percentage:         {:.4}%", percentage);
+          output!("Difference:         {}", diff);
+          output!("Percentage:         {:.4}%", percentage);
 
           if diff == 0 {
-            println!("\n✅ Perfect match!");
+            output!("\n✅ Perfect match!");
           } else if percentage < 0.01 {
-            println!("\n✅ Excellent match (< 0.01% difference)");
+            output!("\n✅ Excellent match (< 0.01% difference)");
           } else if percentage < 1.0 {
-            println!("\n⚠️  Minor mismatch (< 1% difference)");
+            output!("\n⚠️  Minor mismatch (< 1% difference)");
           } else {
-            println!("\n❌ Significant mismatch (>= 1% difference)");
+            output!("\n❌ Significant mismatch (>= 1% difference)");
           }
         }
         Err(e) => {
@@ -1513,19 +1514,19 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
       // Also show current on-chain balance for reference
       match get_balance_of(&token_address, &user_address, None).await {
         Ok(current_on_chain_balance) => {
-          println!("\n=== Current On-Chain Balance (Latest Block) ===");
-          println!("Current Balance:    {}", current_on_chain_balance);
+          output!("\n=== Current On-Chain Balance (Latest Block) ===");
+          output!("Current Balance:    {}", current_on_chain_balance);
 
           let diff_current = result.real_balance.abs_diff(current_on_chain_balance);
 
           if diff_current != 0 {
-            println!("Difference:         {}", diff_current);
-            println!(
+            output!("Difference:         {}", diff_current);
+            output!(
               "Note: This difference is expected if there were events after block {}",
               result.last_event_block
             );
           } else {
-            println!(
+            output!(
               "(Matches calculated balance - no events since block {})",
               result.last_event_block
             );
