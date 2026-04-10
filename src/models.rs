@@ -30,7 +30,9 @@ pub struct UserAssetPositionDocument {
   pub variableDebtTokenAddress: String,
   pub aTokenBalance: Decimal128,
   pub variableDebtTokenBalance: Decimal128,
+  #[serde(default)]
   pub debtTokenBalanceHistory: Vec<AssetBalanceEntryDocument>,
+  #[serde(default)]
   pub aTokenBalanceHistory: Vec<AssetBalanceEntryDocument>,
 }
 
