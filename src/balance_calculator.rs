@@ -211,9 +211,9 @@ fn calculate_scaled_balance(
   let result = match event_type {
     EventType::Mint => {
       // (value - balanceIncrease) * RAY / index
-      let adjusted_value = big_value
-        .checked_sub(big_balance_increase)
-        .ok_or("Underflow in mint calculation")?;
+      // Use saturating_sub: when value < balanceIncrease (pure interest accrual
+      // or rounding), the net new scaled amount is 0.
+      let adjusted_value = big_value.saturating_sub(big_balance_increase);
       let scaled = adjusted_value
         .checked_mul(big_ray)
         .ok_or("Overflow in mint multiplication")?;
