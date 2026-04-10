@@ -31,7 +31,7 @@ pub async fn validate_user_supply_amount(
     .ok_or("No reserve data found for the specified reserve address")?;
 
   let a_token_address = token_data.aTokenAddress;
-  let on_chain_amount = get_balance_of(&a_token_address, user_address, None).await?;
+  let on_chain_amount = get_balance_of(&a_token_address, user_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
@@ -62,7 +62,7 @@ pub async fn validate_user_scaled_supply_amount(
     .ok_or("No reserve data found for the specified reserve address")?;
 
   let a_token_address = token_data.aTokenAddress;
-  let on_chain_amount = get_scaled_balance_of(&a_token_address, user_address, None).await?;
+  let on_chain_amount = get_scaled_balance_of(&a_token_address, user_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(scaled_amount, on_chain_amount);
   Ok(result)
@@ -80,7 +80,7 @@ pub async fn validate_user_borrow_amount(
 
   let variable_debt_token_address = token_data.variableDebtTokenAddress;
 
-  let on_chain_amount = get_balance_of(&variable_debt_token_address, user_address, None).await?;
+  let on_chain_amount = get_balance_of(&variable_debt_token_address, user_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
@@ -113,7 +113,7 @@ pub async fn validate_user_scaled_borrow_amount(
 
   let variable_debt_token_address = token_data.variableDebtTokenAddress;
 
-  let on_chain_amount = get_scaled_balance_of(&variable_debt_token_address, user_address, None).await?;
+  let on_chain_amount = get_scaled_balance_of(&variable_debt_token_address, user_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(scaled_amount, on_chain_amount);
   Ok(result)
@@ -130,7 +130,7 @@ pub async fn validate_token_scaled_supply_amount(
     .await?
     .ok_or("No reserve data found for the specified reserve address")?;
   let a_token_address = token_data.aTokenAddress;
-  let on_chain_amount = get_scaled_total_supply(&a_token_address).await?;
+  let on_chain_amount = get_scaled_total_supply(&a_token_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
@@ -146,7 +146,7 @@ pub async fn validate_token_supply_amount(
     .await?
     .ok_or("No reserve data found for the specified reserve address")?;
   let a_token_address = token_data.aTokenAddress;
-  let on_chain_amount = get_total_supply(&a_token_address).await?;
+  let on_chain_amount = get_total_supply(&a_token_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
@@ -163,7 +163,7 @@ pub async fn validate_token_scaled_borrow_amount(
     .await?
     .ok_or("No reserve data found for the specified reserve address")?;
   let v_token_address = token_data.variableDebtTokenAddress;
-  let on_chain_amount = get_scaled_total_supply(&v_token_address).await?;
+  let on_chain_amount = get_scaled_total_supply(&v_token_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
@@ -180,7 +180,7 @@ pub async fn validate_token_borrow_amount(
     .await?
     .ok_or("No reserve data found for the specified reserve address")?;
   let v_token_address = token_data.variableDebtTokenAddress;
-  let on_chain_amount = get_total_supply(&v_token_address).await?;
+  let on_chain_amount = get_total_supply(&v_token_address, Some(token_data.blockNumber)).await?;
 
   let result = EntryState::new(calculated_amount, on_chain_amount);
   Ok(result)
