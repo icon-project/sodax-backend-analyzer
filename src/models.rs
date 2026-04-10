@@ -45,6 +45,21 @@ pub struct AssetBalanceEntryDocument {
   pub delta: Decimal128,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[allow(non_snake_case)]
+pub struct UserBalanceEventDocument {
+  #[serde(rename = "_id")]
+  pub id: ObjectId,
+  pub eventId: String,
+  pub userAddress: String,
+  pub reserveAddress: String,
+  pub tokenType: String,
+  pub scaledDelta: Decimal128,
+  pub blockNumber: u64,
+  pub txHash: String,
+  pub logIndex: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(non_snake_case)]
 pub struct UserPositionDocument {

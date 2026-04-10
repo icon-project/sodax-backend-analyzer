@@ -127,6 +127,9 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         validate_flag_does_not_accept_argument(i, &args)?;
         flags.push(Flag::Scaled);
       }
+      "--no-report" => {
+        // Handled in main.rs, just skip here
+      }
       "--validate-user-all" => {
         validate_flag_accepts_argument(i, args.len())?;
         validate_next_argument_is_not_flag(i, &args)?;

@@ -1,0 +1,4881 @@
+cat reports/report_1775824962.txt
+Command: target/debug/sodax_backend_analizer --validate-all
+Timestamp: 1775824962
+---
+Validating everything...
+
+🔍 Validating all reserves...
+Validating all reserves in parallel...
+✅ Reserve 0x14238d267557e9d799016ad635b53cd15935d290 validated successfully
+  Supply - DB: 16863519132291249064363
+  On-Chain:    16863519132688785118861
+  Diff: 397536054498, %: 0.000000%
+  Borrow - DB: 2171715430119222735
+  On-Chain:    2171715872516162616
+  Diff: 442396939881, %: 0.000020%
+✅ Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b validated successfully
+  Supply - DB: 340971487101306845772
+  On-Chain:    340971487114448465132
+  Diff: 13141619360, %: 0.000000%
+  Borrow - DB: 71691957980246354
+  On-Chain:    71691972604862451
+  Diff: 14624616097, %: 0.000020%
+✅ Reserve 0x4effb5813271699683c25c734f4dabc45b363709 validated successfully
+  Supply - DB: 263500427138024870825
+  On-Chain:    263320235730551566618
+  Diff: 180191407473304207, %: 0.068431%
+  Borrow - DB: 26744657418271764077
+  On-Chain:    26744657929701299184
+  Diff: 511429535107, %: 0.000002%
+✅ Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d validated successfully
+  Supply - DB: 10794124913468064510
+  On-Chain:    10794124923629840778
+  Diff: 10161776268, %: 0.000000%
+  Borrow - DB: 212204050543344731
+  On-Chain:    212204061879191074
+  Diff: 11335846343, %: 0.000005%
+✅ Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3 validated successfully
+  Supply - DB: 144688219098445799751676
+  On-Chain:    144688219098648898301668
+  Diff: 203098549992, %: 0.000000%
+  Borrow - DB: 1110950287722526766
+  On-Chain:    1110950513563768784
+  Diff: 225841242018, %: 0.000020%
+✅ Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13 validated successfully
+  Supply - DB: 35316668784227937015901
+  On-Chain:    35316669303976959321884
+  Diff: 519749022305983, %: 0.000001%
+  Borrow - DB: 1600301517588187448295
+  On-Chain:    1600302095538025826905
+  Diff: 577949838378610, %: 0.000036%
+✅ Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b validated successfully
+  Supply - DB: 922532349442105052789
+  On-Chain:    922532407114289040271
+  Diff: 57672183987482, %: 0.000006%
+  Borrow - DB: 106200772454782628949
+  On-Chain:    106200836638674726890
+  Diff: 64183892097941, %: 0.000060%
+✅ Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87 validated successfully
+  Supply - DB: 58079517314308396997
+  On-Chain:    58079519893226175458
+  Diff: 2578917778461, %: 0.000004%
+  Borrow - DB: 9501173752649627732
+  On-Chain:    9501176629576165840
+  Diff: 2876926538108, %: 0.000030%
+✅ Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38 validated successfully
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Borrow - DB: 98415351765287884950169
+  On-Chain:    98415388465083426158477
+  Diff: 36699795541208308, %: 0.000037%
+✅ Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876 validated successfully
+  Supply - DB: 95896562553534286033436
+  On-Chain:    95896562787120029079322
+  Diff: 233585743045886, %: 0.000000%
+  Borrow - DB: 21469477207070978769251
+  On-Chain:    21669477483355397864762
+  Diff: 200000276284419095511, %: 0.922958%
+✅ Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833 validated successfully
+  Supply - DB: 742575789788473764623181
+  On-Chain:    742575847377065145391303
+  Diff: 57588591380768122, %: 0.000008%
+  Borrow - DB: 425253271269400558699228
+  On-Chain:    425253832552656692221559
+  Diff: 561283256133522331, %: 0.000132%
+✅ Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779 validated successfully
+  Supply - DB: 35080063623855684473249
+  On-Chain:    35080063678358927860240
+  Diff: 54503243386991, %: 0.000000%
+  Borrow - DB: 264275285427633938807
+  On-Chain:    264275346081423920549
+  Diff: 60653789981742, %: 0.000023%
+✅ Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e validated successfully
+  Supply - DB: 111046565134480961273821
+  On-Chain:    111046565134723999935656
+  Diff: 243038661835, %: 0.000000%
+  Borrow - DB: 1329325127744202311
+  On-Chain:    1329325397997993765
+  Diff: 270253791454, %: 0.000020%
+✅ Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131 validated successfully
+  Supply - DB: 317141748943564068886
+  On-Chain:    317141748943564068886
+  Diff: 0, %: 0.000000%
+  Borrow - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411 validated successfully
+  Supply - DB: 433614784301924296772
+  On-Chain:    433614784305592312586
+  Diff: 3668015814, %: 0.000000%
+  Borrow - DB: 10031365574427724
+  On-Chain:    10031369653183235
+  Diff: 4078755511, %: 0.000041%
+✅ Reserve 0x21685e341de7844135329914be6bd8d16982d834 validated successfully
+  Supply - DB: 10897025179117418400908925
+  On-Chain:    10897025190378455042481101
+  Diff: 11261036641572176, %: 0.000000%
+  Borrow - DB: 259993591719691122668626
+  On-Chain:    259993604430561733135698
+  Diff: 12710870610467072, %: 0.000005%
+✅ Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357 validated successfully
+  Supply - DB: 50833870175335811344
+  On-Chain:    50833870178342503739
+  Diff: 3006692395, %: 0.000000%
+  Borrow - DB: 16358546019997975
+  On-Chain:    16358549363375583
+  Diff: 3343377608, %: 0.000020%
+✅ Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b validated successfully
+  Supply - DB: 6195522532832102564
+  On-Chain:    6195522532855973400
+  Diff: 23870836, %: 0.000000%
+  Borrow - DB: 130492734042750
+  On-Chain:    130492760576253
+  Diff: 26533503, %: 0.000020%
+✅ Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39 validated successfully
+  Supply - DB: 7544579598164648149603
+  On-Chain:    7544579762585602814537
+  Diff: 164420954664934, %: 0.000002%
+  Borrow - DB: 290158006995499935852
+  On-Chain:    290158189756788209279
+  Diff: 182761288273427, %: 0.000063%
+✅ Reserve 0xd7d41b5f803b6a40f8a6eaa34e459a4564e39891 validated successfully
+  Supply - DB: 900000000923831130
+  On-Chain:    900000000923831506
+  Diff: 376, %: 0.000000%
+  Borrow - DB: 1026479445
+  On-Chain:    1026479862
+  Diff: 417, %: 0.000041%
+✅ Reserve 0x243b0c26c8b38793908d7c64e8510f21b19b4613 validated successfully
+  Supply - DB: 275404329111000000000000
+  On-Chain:    275404329111000000000000
+  Diff: 0, %: 0.000000%
+  Borrow - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ Reserve 0x0902b2bc326ab373be4fe20605690b0422998685 validated successfully
+  Supply - DB: 99892526480000000000000
+  On-Chain:    99892526480000000000000
+  Diff: 0, %: 0.000000%
+  Borrow - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ Reserve 0x1fbe5229e9d189f26bee77e5bfa24309fda90483 validated successfully
+  Supply - DB: 3000047628260182969
+  On-Chain:    3000047682264582966
+  Diff: 54004399997, %: 0.000002%
+  Borrow - DB: 100052927881326861
+  On-Chain:    100052987933076627
+  Diff: 60051749766, %: 0.000060%
+✅ Reserve 0x14c5eb2d25dfb834852dfc85744875d1ecb09748 validated successfully
+  Supply - DB: 254795000000000000000
+  On-Chain:    254795000000000000000
+  Diff: 0, %: 0.000000%
+  Borrow - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+
+📊 Summary: 24 successful, 0 errors
+
+🔍 Validating all users...
+Validating all users in parallel...
+✅ User 0x7319b849561e7c4d8293e74ca4f586a2a507275b: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 9001012865186600
+  On-Chain:    9001012865534056
+  Diff: 347456, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x8d0f3130a09c5005307817c7495efac7a6b21f81: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 1001
+  On-Chain:    1001
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x041f51b100ca85a6ed880b8771dd9251a03513e4: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 2000974776994
+  On-Chain:    2000974780491
+  Diff: 3497, %: 0.000000%
+  Supply - DB: 10031
+  On-Chain:    10031
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 5869273801420
+  On-Chain:    5869273806967
+  Diff: 5547, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf754037f99af3d90a4db611d74966729b81a8a96: 3 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 100094968486299564
+  On-Chain:    100094968488662862
+  Diff: 2363298, %: 0.000000%
+  Supply - DB: 19
+  On-Chain:    19
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x07aa377fdba8395a1bf98c2b0cc9cd4906cf651d: 1 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 10000107083
+  On-Chain:    10000107230
+  Diff: 147, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x4855c3c1af6e60190b3a1e9b43bc2b85229db78e: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 2018919393427893033
+  On-Chain:    2018919519838008882
+  Diff: 126410115849, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc2f0b4b48512ec68af4df66fc13ad7d2a3c2be51: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 30004685493990319
+  On-Chain:    30004686831624289
+  Diff: 1337633970, %: 0.000004%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xdf651d47c6b96c038ff6fcc7052993e6e0a9ccab: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 10013220112827597
+  On-Chain:    10013220112841664
+  Diff: 14067, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x1fe956d707893baf07a526e3e108ad934d7a236c: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 200749684435176196
+  On-Chain:    200749701041720362
+  Diff: 16606544166, %: 0.000008%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 2100327897069708
+  On-Chain:    2100327990704082
+  Diff: 93634374, %: 0.000004%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x11c245b26de21c5a4ec8c19132e34cb3488ca323: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100069461461339
+  On-Chain:    100069461636261
+  Diff: 174922, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 903389191046488007
+  On-Chain:    903389265777228146
+  Diff: 74730740139, %: 0.000008%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x5d7aa3da1142d0933fa0403df1871484449f99bf: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 4162797024662090
+  On-Chain:    4162797024823032
+  Diff: 160942, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x491d61a0712534c8d6f0b808c5a7ed727e3009d9: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 276661440380187494
+  On-Chain:    276661457729748156
+  Diff: 17349560662, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x877218a1b83ebafd7192cd229d74edd14c1221be: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 6552531853024763575
+  On-Chain:    6552532263296869210
+  Diff: 410272105635, %: 0.000006%
+  Supply - DB: 1150157989389985628
+  On-Chain:    1150158685588148226
+  Diff: 696198162598, %: 0.000061%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 560103913212849854
+  On-Chain:    560104123500507617
+  Diff: 210287657763, %: 0.000038%
+✅ User 0x5ded92ad2953c9c9fed3b457f13eb019487e1184: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 190091128916636
+  On-Chain:    190091137424820
+  Diff: 8508184, %: 0.000004%
+  Supply - DB: 90925
+  On-Chain:    90925
+  Diff: 0, %: 0.000000%
+✅ User 0x8a63c461f1bbbf498240fb98bb1e6dd4fb63ccb6: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 2000312293745651
+  On-Chain:    2000312383276527
+  Diff: 89530876, %: 0.000004%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x6d7b6956589c17b2755193a67bf2d4b68827e58a: 5 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 50047420289831538
+  On-Chain:    50047420291015030
+  Diff: 1183492, %: 0.000000%
+  Supply - DB: 211
+  On-Chain:    211
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 103
+  On-Chain:    103
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 10001269073432
+  On-Chain:    10001269073454
+  Diff: 22, %: 0.000000%
+  Supply - DB: 1103
+  On-Chain:    1103
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 10004795
+  On-Chain:    10004795
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x7cdd29248cf6c9df571f33b0ac367a8aca8caacd: 1 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 44529
+  On-Chain:    44529
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xbe5240d409999e5c8ddd74820d3926e91306d096: 2 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 10000107082857
+  On-Chain:    10000107230486
+  Diff: 147629, %: 0.000001%
+  Supply - DB: 100241143209
+  On-Chain:    100241179524
+  Diff: 36315, %: 0.000036%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1018322051046
+  On-Chain:    1018322435306
+  Diff: 384260, %: 0.000038%
+✅ User 0x9a0d129cccd1aad1d4b59de680d61de4da335c5a: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 18376209682937782270
+  On-Chain:    18376210836215469676
+  Diff: 1153277687406, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf52c41f08484c0869062faa741f61813a2a82aff: 2 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xd4000d2e1cb103d472c51be54251cc4423bd0bc4: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 31631489955943431
+  On-Chain:    31631491374528945
+  Diff: 1418585514, %: 0.000004%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x4308acc2482af84c7335d92ebc0d497c0585e9fa: 3 positions validated
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 210005947399197817
+  On-Chain:    210005947400979838
+  Diff: 1782021, %: 0.000000%
+  Supply - DB: 10031362788625178
+  On-Chain:    10031366880105782
+  Diff: 4091480604, %: 0.000041%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 100003061204958448
+  On-Chain:    100003061312403015
+  Diff: 107444567, %: 0.000000%
+  Supply - DB: 10031285809804599
+  On-Chain:    10031286315551489
+  Diff: 505746890, %: 0.000005%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 109103927626083540
+  On-Chain:    109103927626083540
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa6a3e5490479f1df73c5f7e19e55928acd1670ab: 2 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 10012280793596641
+  On-Chain:    10012280793610739
+  Diff: 14098, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1018313605104048
+  On-Chain:    1018313990007031
+  Diff: 384902983, %: 0.000038%
+✅ User 0xf41cfe514527274052d0f292be068db1f830a4bb: 3 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 95807758084956442
+  On-Chain:    95807758087224693
+  Diff: 2268251, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 470097911405125458
+  On-Chain:    470097912882633696
+  Diff: 1477508238, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1002856027476165
+  On-Chain:    1002856119508694
+  Diff: 92032529, %: 0.000009%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xadcab6dc6d6f4e8d36e8b0020953f636bbf0bcc5: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 8121580968225451914
+  On-Chain:    8121581478326682567
+  Diff: 510101230653, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x5d26e803835f57a4954b32c877ba15792fb5d6a7: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 148093916289723
+  On-Chain:    148093930454618
+  Diff: 14164895, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x712faaaf2fe005674f4324996233000f0b6e2133: 3 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 25021908529824081
+  On-Chain:    25021908530417167
+  Diff: 593086, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 211606687456061000
+  On-Chain:    211606688171017209
+  Diff: 714956209, %: 0.000000%
+  Supply - DB: 10762134226032309
+  On-Chain:    10762134408987654
+  Diff: 182955345, %: 0.000002%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 230869919333951012
+  On-Chain:    230869941416209563
+  Diff: 22082258551, %: 0.000010%
+  Supply - DB: 611260361
+  On-Chain:    611260476
+  Diff: 115, %: 0.000019%
+✅ User 0x25f10d957af7558e7e12ff776d038007fad58781: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100076321231565
+  On-Chain:    100076321426379
+  Diff: 194814, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 110412407090210911
+  On-Chain:    110412417650942806
+  Diff: 10560731895, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 10910392762608354
+  On-Chain:    10910392762608354
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x3867d8bce1ac227be331a7167db958e16ddff3b5: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 638
+  On-Chain:    638
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x9242488f3947aa3ff5541fa740dbd63b572fa041: 4 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 4000139438846533923
+  On-Chain:    4000139443209950161
+  Diff: 4363416238, %: 0.000000%
+  Supply - DB: 26557457639
+  On-Chain:    26557458993
+  Diff: 1354, %: 0.000005%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 15527096400
+  On-Chain:    15527102298
+  Diff: 5898, %: 0.000038%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 1000065625379464566
+  On-Chain:    1000065625403168771
+  Diff: 23704205, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 455167751590654
+  On-Chain:    455167845017444
+  Diff: 93426790, %: 0.000021%
+✅ User 0x3796f6ae58f42904f0f20573bfc8e8ebd7ba9303: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 200655430389307
+  On-Chain:    200655430779912
+  Diff: 390605, %: 0.000000%
+  Supply - DB: 110346830248139
+  On-Chain:    110346832622032
+  Diff: 2373893, %: 0.000002%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 200195873049192
+  On-Chain:    200195913923924
+  Diff: 40874732, %: 0.000020%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100295359013109869
+  On-Chain:    100295368606165801
+  Diff: 9593055932, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x47d34e04320926cb7cfe08872dc14db6c5ba6cf9: 3 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 10258761117489410774
+  On-Chain:    10258761117732665059
+  Diff: 243254285, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 200756738454323513128
+  On-Chain:    200756757915801278709
+  Diff: 19461477765581, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 11154242886
+  On-Chain:    11154242898
+  Diff: 12, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xeabeb33723e2df17de55906dde1393c544204a8e: 5 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 5000153060247922380
+  On-Chain:    5000153065722674199
+  Diff: 5474751819, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2550040518094385390
+  On-Chain:    2550040518099994778
+  Diff: 5609388, %: 0.000000%
+  Supply - DB: 100133166828847224
+  On-Chain:    100133187289285424
+  Diff: 20460438200, %: 0.000020%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 9526080512931180395
+  On-Chain:    9526081436395097586
+  Diff: 923463917191, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2408330908292884347
+  On-Chain:    2408331826232477996
+  Diff: 917939593649, %: 0.000038%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 22900024236113146
+  On-Chain:    22900024237474496
+  Diff: 1361350, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x73135d19c488ea5b002e0e07135d992ff7e6f070: 21 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 16803162131027296978025
+  On-Chain:    16803162131424029119742
+  Diff: 396732141717, %: 0.000000%
+  Supply - DB: 1535274252572699732
+  On-Chain:    1535274565321148169
+  Diff: 312748448437, %: 0.000020%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 340544556236930704099
+  On-Chain:    340544556250076376890
+  Diff: 13145672791, %: 0.000000%
+  Supply - DB: 71551936505295826
+  On-Chain:    71551951101348603
+  Diff: 14596052777, %: 0.000020%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 21643187737057
+  On-Chain:    21643187757920
+  Diff: 20863, %: 0.000000%
+  Supply - DB: 211665893376553534
+  On-Chain:    211665904930433672
+  Diff: 11553880138, %: 0.000005%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 314986739974518149
+  On-Chain:    314986740587686526
+  Diff: 613168377, %: 0.000000%
+  Supply - DB: 1179660068934904439
+  On-Chain:    1179660094312949703
+  Diff: 25378045264, %: 0.000002%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 144516667780919998761688
+  On-Chain:    144516667781123806658821
+  Diff: 203807897133, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 764460342915191052089
+  On-Chain:    764460390985512132022
+  Diff: 48070321079933, %: 0.000006%
+  Supply - DB: 96906756746403337962
+  On-Chain:    96906815564591927799
+  Diff: 58818188589837, %: 0.000061%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 55699153827640619016
+  On-Chain:    55699156342907359399
+  Diff: 2515266740383, %: 0.000005%
+  Supply - DB: 9490966884062881585
+  On-Chain:    9490969795109839599
+  Diff: 2911046958014, %: 0.000031%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 727421304325627235198438
+  On-Chain:    727421364499838974089011
+  Diff: 60174211738890573, %: 0.000008%
+  Supply - DB: 421516027917957655514270
+  On-Chain:    421516588601386661439272
+  Diff: 560683429005925002, %: 0.000133%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 31312498036077278844194
+  On-Chain:    31312498036145863481628
+  Diff: 68584637434, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 35891023
+  On-Chain:    35891024
+  Diff: 1, %: 0.000003%
+  Supply - DB: 1600271812438013609819
+  On-Chain:    1600272391729555816159
+  Diff: 579291542206340, %: 0.000036%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 94252639781477214184828
+  On-Chain:    94252640055493796189200
+  Diff: 274016582004372, %: 0.000000%
+  Supply - DB: 21202410596211908269047
+  On-Chain:    21402410902167529058419
+  Diff: 200000305955620789372, %: 0.934476%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 432964527626183527373
+  On-Chain:    432964527629857478988
+  Diff: 3673951615, %: 0.000000%
+  Supply - DB: 2049547854
+  On-Chain:    2049548690
+  Diff: 836, %: 0.000041%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 15899975190627817
+  On-Chain:    15899978445351879
+  Diff: 3254724062, %: 0.000020%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 130201787728513
+  On-Chain:    130201814285459
+  Diff: 26556946, %: 0.000020%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 139989476329756874229275
+  On-Chain:    139989483414334318865349
+  Diff: 7084577444636074, %: 0.000005%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 35072448703471678480746
+  On-Chain:    35072448758175947786362
+  Diff: 54704269305616, %: 0.000000%
+  Supply - DB: 262269581078649509009
+  On-Chain:    262269641459921651610
+  Diff: 60381272142601, %: 0.000023%
+  📊 Reserve 0x243b0c26c8b38793908d7c64e8510f21b19b4613:
+  Supply - DB: 275404329111000000000000
+  On-Chain:    275404329111000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 7544550598162309417511
+  On-Chain:    7544550763288298698831
+  Diff: 165125989281320, %: 0.000002%
+  Supply - DB: 290158006995456034703
+  On-Chain:    290158190540821845879
+  Diff: 183545365811176, %: 0.000063%
+  📊 Reserve 0x0902b2bc326ab373be4fe20605690b0422998685:
+  Supply - DB: 99892526480000000000000
+  On-Chain:    99892526480000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xac8540fee419c7ceb985889eaba1e84b42a53e8a: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 10350037164089515874941301
+  On-Chain:    10350037175506833040778994
+  Diff: 11417317165837693, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa7ebe3cd2769a1a01df21ba4eccdb80a13f4df41: 5 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 219633508479743494
+  On-Chain:    219633508920380912
+  Diff: 440637418, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 257798401081631042473
+  On-Chain:    257798426739191695206
+  Diff: 25657560652733, %: 0.000010%
+  Supply - DB: 504367257241983085463
+  On-Chain:    504367358430593508157
+  Diff: 101188610422694, %: 0.000020%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 3776166158026955
+  On-Chain:    3776166161688127
+  Diff: 3661172, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 106544853494784033481
+  On-Chain:    106544853879882603870
+  Diff: 385098570389, %: 0.000000%
+  Supply - DB: 53879493566132226
+  On-Chain:    53879494586163780
+  Diff: 1020031554, %: 0.000002%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 5822657468749103
+  On-Chain:    5822658660887943
+  Diff: 1192138840, %: 0.000020%
+✅ User 0x76c9dffff4cbac4f5e5d13f7f5f5c78df5475bc1: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 75057179710476610
+  On-Chain:    75057179861059288
+  Diff: 150582678, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 205332158652102963339
+  On-Chain:    205332179087925266615
+  Diff: 20435822303276, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 700032656500380
+  On-Chain:    700032657179095
+  Diff: 678715, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xd69d089c862fbec33c631a1f33e5c3101160bffe: 3 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 10910392762608354
+  On-Chain:    10910392762608354
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100069438812896
+  On-Chain:    100069439013659
+  Diff: 200763, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 1000030610256225
+  On-Chain:    1000030611359377
+  Diff: 1103152, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc0553a8a6566a86f0a57c41de5e80e219407421d: 2 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 391111715449929841
+  On-Chain:    391111715465104051
+  Diff: 15174210, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 1838238375652446
+  On-Chain:    1838238377434705
+  Diff: 1782259, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x33bad609fd656df90fb9da00058c59a54a5d7a6f: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 332404401758458253
+  On-Chain:    332404401759190019
+  Diff: 731766, %: 0.000000%
+  Supply - DB: 1000974703396805
+  On-Chain:    1000974908245720
+  Diff: 204848915, %: 0.000020%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 201983073950371747
+  On-Chain:    201983094052874124
+  Diff: 20102502377, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100074725148355
+  On-Chain:    100074725349128
+  Diff: 200773, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x996752752f887000c8136cefb023d12719dad24a: 20 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xd7d41b5f803b6a40f8a6eaa34e459a4564e39891:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1fbe5229e9d189f26bee77e5bfa24309fda90483:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xbbd05eecbe3fb796fa1eaa08553019d0ce7ac181: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 74056416046769800
+  On-Chain:    74056416195344707
+  Diff: 148574907, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 196741429955265993314
+  On-Chain:    196741450298979453349
+  Diff: 20343713460035, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x51ad0c0a106ba850567427bb22f188966ab7a145: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 250289067007276
+  On-Chain:    250289067524330
+  Diff: 517054, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100374699698697064
+  On-Chain:    100374710077772431
+  Diff: 10379075367, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xef15af91651ef623281d329a45b9399f495f61d1: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 600568906856474
+  On-Chain:    600568908109077
+  Diff: 1252603, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 943466770483
+  On-Chain:    943466774190
+  Diff: 3707, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 233850223111
+  On-Chain:    233850247595
+  Diff: 24484, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xfa2637817829f96e4461f3b857ed16f35a8cb503: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 2944592722293063
+  On-Chain:    2944592722407483
+  Diff: 114420, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0dec590a25acbb05106c91585c0b948540d393ba: 2 positions validated
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 1239955779837
+  On-Chain:    1239955779847
+  Diff: 10, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 864031233448148344
+  On-Chain:    864031233448148344
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xe40ae892a1aa8228a33c014412ef7917fc19eb0f: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x13105a1ec8b7e6928f8245408fb5d7fd9f459631: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100380890597974831
+  On-Chain:    100380901107436801
+  Diff: 10509461970, %: 0.000010%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf453671241889b7d9ad7e8b9dbbdf3d28dcc76b6: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 501904452989874153719
+  On-Chain:    501904506185916226401
+  Diff: 53196042072682, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb50eb7aac6f72204a6f6a70ec5079aef827646dc: 3 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1003410482527978548
+  On-Chain:    1003410588877834436
+  Diff: 106349855888, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 504656093331026243
+  On-Chain:    504656287921946971
+  Diff: 194590920728, %: 0.000039%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100204400760820
+  On-Chain:    100204431706822
+  Diff: 30946002, %: 0.000031%
+✅ User 0xab555ca7841fe76c218de453e0be4c6ae89c6b33: 2 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 230230364172262027
+  On-Chain:    230230364172587723
+  Diff: 325696, %: 0.000000%
+  Supply - DB: 10058675649075826
+  On-Chain:    10058677709819241
+  Diff: 2060743415, %: 0.000020%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100378197606816889
+  On-Chain:    100378208245739877
+  Diff: 10638922988, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0e4cb0718c9f22b7b55fd8dd856f380d494e217a: 1 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 1606103744190776
+  On-Chain:    1606103750753113
+  Diff: 6562337, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x3ded9440ba2e5e0ddf051d15173b693feeaea719: 2 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 678297052319087
+  On-Chain:    678297053382824
+  Diff: 1063737, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1012619701529
+  On-Chain:    1012619917383
+  Diff: 215854, %: 0.000021%
+✅ User 0x72cd3c3e5ec44d0276399a97425b0d8ea86b378d: 2 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 170156836305245726616
+  On-Chain:    170156836305486626415
+  Diff: 240899799, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 199752611630152656489
+  On-Chain:    199752633059797728588
+  Diff: 21429645072099, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x40f1271fe543f17eb64d022bbf7fc3c791a4342b: 2 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 1000039755896001
+  On-Chain:    1000039770739784
+  Diff: 14843783, %: 0.000001%
+  Supply - DB: 23969475967
+  On-Chain:    23969484694
+  Diff: 8727, %: 0.000036%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 622332501581888282
+  On-Chain:    622332569150685543
+  Diff: 67568797261, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x413cccd28f603a8d5011fc8f0cf8776fd11cdac8: 7 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 2802747335648
+  On-Chain:    2802747341549
+  Diff: 5901, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 23329054141648
+  On-Chain:    23329056614257
+  Diff: 2472609, %: 0.000011%
+  Supply - DB: 301523466957
+  On-Chain:    301523529719
+  Diff: 62762, %: 0.000021%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 1555517342
+  On-Chain:    1555517343
+  Diff: 1, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 346473250923766015
+  On-Chain:    346473384740515440
+  Diff: 133816749425, %: 0.000039%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 1319886982580
+  On-Chain:    1319886982659
+  Diff: 79, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 4500109530685237477
+  On-Chain:    4500109530702697796
+  Diff: 17460319, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa001f3be360355a4b85a9ec70d3aa7ffc87da4c8: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 480007634686928138
+  On-Chain:    480007634687987713
+  Diff: 1059575, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1000709709782
+  On-Chain:    1000709711929
+  Diff: 2147, %: 0.000000%
+  Supply - DB: 21920
+  On-Chain:    21920
+  Diff: 0, %: 0.000000%
+✅ User 0x3224af4fd4a5ec5898f243c9ce115842b3eabc79: 5 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 49167098819593207427
+  On-Chain:    49167104157835583667
+  Diff: 5338242376240, %: 0.000011%
+  Supply - DB: 5978286399898087134
+  On-Chain:    5978287674253022274
+  Diff: 1274354935140, %: 0.000021%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1126485758482513
+  On-Chain:    1126485785164508
+  Diff: 26681995, %: 0.000002%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 274206417110995
+  On-Chain:    274206432398376
+  Diff: 15287381, %: 0.000006%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2014591943743818482
+  On-Chain:    2014592723107924901
+  Diff: 779364106419, %: 0.000039%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 1006748732659118763
+  On-Chain:    1006748736851671743
+  Diff: 4192552980, %: 0.000000%
+  Supply - DB: 2496042324265642242
+  On-Chain:    2496042376341895089
+  Diff: 52076252847, %: 0.000002%
+✅ User 0x5b38e8c423e660d0d10273a6e25132c64f95e851: 2 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 250001744259303869910
+  On-Chain:    250001747973000149490
+  Diff: 3713696279580, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 200756118905487402731
+  On-Chain:    200756140961760803032
+  Diff: 22056273400301, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2a56e49a98a7fc3371b93c5e04218b1d77124ed1: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 5111947984498711259
+  On-Chain:    5111948552735434054
+  Diff: 568236722795, %: 0.000011%
+  Supply - DB: 4494111806711169489
+  On-Chain:    4494112775964020709
+  Diff: 969252851220, %: 0.000022%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 50007710993340094
+  On-Chain:    50007713271576746
+  Diff: 2278236652, %: 0.000005%
+  Supply - DB: 84544396319962
+  On-Chain:    84544422480700
+  Diff: 26160738, %: 0.000031%
+✅ User 0xb3fd64bb7a25843c59f209c7a96ac73c39116b86: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1002422150528353777
+  On-Chain:    1002422150530568250
+  Diff: 2214473, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 12298098093
+  On-Chain:    12298099460
+  Diff: 1367, %: 0.000011%
+  Supply - DB: 163965283142
+  On-Chain:    163965318505
+  Diff: 35363, %: 0.000022%
+✅ User 0x07a5586b2882f50ee781398404f91390b140cb9f: 1 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 227155365090189489
+  On-Chain:    227155365095598775
+  Diff: 5409286, %: 0.000000%
+  Supply - DB: 120737553358653386
+  On-Chain:    120737578164957765
+  Diff: 24806304379, %: 0.000021%
+✅ User 0x113f997bca09e4ac1dd1d54644816d6900223703: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1003781510130636548
+  On-Chain:    1003781621709533174
+  Diff: 111578896626, %: 0.000011%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb78f68294855faa8c44033f762736dc187ba49b9: 7 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 54180257276611589148
+  On-Chain:    54180263159149959184
+  Diff: 5882538370036, %: 0.000011%
+  Supply - DB: 5589244412727268270
+  On-Chain:    5589245618169259079
+  Diff: 1205441990809, %: 0.000022%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 878876555354250
+  On-Chain:    878876576935293
+  Diff: 21581043, %: 0.000002%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10020115814157756
+  On-Chain:    10020118923767703
+  Diff: 3109609947, %: 0.000031%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 7863808792273856990
+  On-Chain:    7863811834463284713
+  Diff: 3042189427723, %: 0.000039%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 1062927573854941378
+  On-Chain:    1062927573854941378
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 13721437223630433637
+  On-Chain:    13721437515209482235
+  Diff: 291579048598, %: 0.000002%
+  📊 Reserve 0x14c5eb2d25dfb834852dfc85744875d1ecb09748:
+  Supply - DB: 204795000000000000000
+  On-Chain:    204795000000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc7a6737d3cb4645b3f4b2a27b23b5d5736b40617: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 2249327051323928505
+  On-Chain:    2249327193368929940
+  Diff: 142045001435, %: 0.000006%
+  Supply - DB: 1042979156193776
+  On-Chain:    1042979792678572
+  Diff: 636484796, %: 0.000061%
+✅ User 0xf48cd107faaa95de81afc2436e0a044196e21825: 1 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 474432204
+  On-Chain:    474432204
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb67e39bf9306728d326f7c560159974208748c87: 1 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 75573271
+  On-Chain:    75573271
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x611631529bc8f3e76f86fab556dffea8a58b0a2c: 6 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 160002544677455252
+  On-Chain:    160002544677808717
+  Diff: 353465, %: 0.000000%
+  Supply - DB: 1001810439951013
+  On-Chain:    1001810645368132
+  Diff: 205417119, %: 0.000021%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 535
+  On-Chain:    535
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 548255387
+  On-Chain:    548255448
+  Diff: 61, %: 0.000011%
+  Supply - DB: 6715312
+  On-Chain:    6715313
+  Diff: 1, %: 0.000015%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 3008511199879974
+  On-Chain:    3008511199879974
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 2970085270900937
+  On-Chain:    2970085274286911
+  Diff: 3385974, %: 0.000000%
+  Supply - DB: 620661
+  On-Chain:    620661
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 1000000528942738
+  On-Chain:    1000000530512200
+  Diff: 1569462, %: 0.000000%
+  Supply - DB: 100013143397007
+  On-Chain:    100013166547966
+  Diff: 23150959, %: 0.000023%
+✅ User 0x3f98ff3fe3e0190cf2720b0c51d29e2bbce239a3: 2 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 7301291421025239
+  On-Chain:    7301291754627938
+  Diff: 333602699, %: 0.000005%
+  Supply - DB: 7166495
+  On-Chain:    7166497
+  Diff: 2, %: 0.000028%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1908133506545776542
+  On-Chain:    1908133726050153209
+  Diff: 219504376667, %: 0.000012%
+  Supply - DB: 101060895480170470
+  On-Chain:    101060918796798041
+  Diff: 23316627571, %: 0.000023%
+✅ User 0xcaeeaec89ace29ed689d0bc218928d7936506a38: 2 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 20646085813477948
+  On-Chain:    20646085837269015
+  Diff: 23791067, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 163166268657
+  On-Chain:    163166302191
+  Diff: 33534, %: 0.000021%
+✅ User 0x7a7eba19d945bf01df19e17e8401b679cadce05d: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 500479319087086341
+  On-Chain:    500479319087796815
+  Diff: 710474, %: 0.000000%
+  Supply - DB: 100540448107138029
+  On-Chain:    100540468768855617
+  Diff: 20661717588, %: 0.000021%
+✅ User 0x43a18225f69f068293ae0a7bdc1b7b7a97e47cfc: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 102569782563339190731
+  On-Chain:    102569789053144621467
+  Diff: 6489805430736, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x7517cb6e24079d6ef05b62b63f5a5c81341aaba6: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 410690159086194768
+  On-Chain:    410690185071423148
+  Diff: 25985228380, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1503526994
+  On-Chain:    1503527171
+  Diff: 177, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x559100f2311f1f642569d6568fec2324845d1c19: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 5000040976692825180
+  On-Chain:    5000040976703892236
+  Diff: 11067056, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 863391019620
+  On-Chain:    863391121173
+  Diff: 101553, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 515052199094
+  On-Chain:    515052201522
+  Diff: 2428, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x6c5f91fd68dd7b3a1aedb0f09946659272f523a4: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1800014811100457163
+  On-Chain:    1800014811104442841
+  Diff: 3985678, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 11180707571993012
+  On-Chain:    11180707625582637
+  Diff: 53589625, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1002856030483797
+  On-Chain:    1002856149737216
+  Diff: 119253419, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb0f0c902f534a5618e5f6fdde56f075619361104: 2 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 2010326509216656282
+  On-Chain:    2010326601338112509
+  Diff: 92121456227, %: 0.000005%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 12317373206810166145
+  On-Chain:    12317374671515784225
+  Diff: 1464705618080, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb980864122f41354780be58d6c279680b32e8b3a: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 11125
+  On-Chain:    11125
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x4cd03b3cfedbb197799758f81765066210b91d4f: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 77257176659858812594
+  On-Chain:    77257176660029879082
+  Diff: 171066488, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 200751251987936100154
+  On-Chain:    200751275860029742716
+  Diff: 23872093642562, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x7b7e6243e3485cd13c22cd3242787c22e4ec3ccc: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 6000095410980524753
+  On-Chain:    6000095410993810448
+  Diff: 13285695, %: 0.000000%
+  Supply - DB: 1589458362
+  On-Chain:    1589458689
+  Diff: 327, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10037859312739072
+  On-Chain:    10037860506379038
+  Diff: 1193639966, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x3e102c7d9b46c92abcd4c2e1c70f362b47a201a6: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 246576503255862296135
+  On-Chain:    246576503824022851838
+  Diff: 568160555703, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x8ade79c255761971f4057253712b916ab2494275: 1 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 8888437096447140629
+  On-Chain:    8888437105314932828
+  Diff: 8867792199, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xaff2edb3057ed6f9c1da6c930b8dddf2bee573a5: 15 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x6382d6ccd780758c5e8a6123c33ee8f4472f96ef: 15 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 11955060849
+  On-Chain:    11955060850
+  Diff: 1, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 14859273
+  On-Chain:    14859273
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 6385757
+  On-Chain:    6385757
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 2134501170
+  On-Chain:    2134501170
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 1254142616503
+  On-Chain:    1254142695885
+  Diff: 79382, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 6875
+  On-Chain:    6875
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 131159485128
+  On-Chain:    131159485757
+  Diff: 629, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 6096656753990
+  On-Chain:    6096657455326
+  Diff: 701336, %: 0.000012%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 224656035
+  On-Chain:    224656035
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 3090460273
+  On-Chain:    3090460273
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 10
+  On-Chain:    10
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 99297183
+  On-Chain:    99297183
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x1c1e883aedfe1d836171e5e4523538ec0c3d74b2: 2 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 100093764936891664
+  On-Chain:    100093764937034085
+  Diff: 142421, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10037496251420704
+  On-Chain:    10037497509886887
+  Diff: 1258466183, %: 0.000013%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x51c5b3c02c94f6293cdef0063d3b566f71d6288c: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2123483768622902687
+  On-Chain:    2123483768627613675
+  Diff: 4710988, %: 0.000000%
+  Supply - DB: 234448082880699076
+  On-Chain:    234448131157801555
+  Diff: 48277102479, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 501874774939948230
+  On-Chain:    501874837863252678
+  Diff: 62923304448, %: 0.000013%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xdcbc06e61b8a7c95dfd1060689b466bb49a491a2: 1 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 1200610987636316633
+  On-Chain:    1200610989528644011
+  Diff: 1892327378, %: 0.000000%
+  Supply - DB: 7
+  On-Chain:    7
+  Diff: 0, %: 0.000000%
+✅ User 0x74b76614cdd04549c250601506535280453bbbfb: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 3300372827930888
+  On-Chain:    3300372828059928
+  Diff: 129040, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc409573347f221ea2c3c15ad58c98cc7ee9c0691: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 1010114103741562
+  On-Chain:    1010114103781056
+  Diff: 39494, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x40415c1c0e7a8ff3e184b51a94a2fc5b92df9434: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 6974371330756577797
+  On-Chain:    6974371330772050569
+  Diff: 15472772, %: 0.000000%
+  Supply - DB: 10976679828
+  On-Chain:    10976682088
+  Diff: 2260, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 17302546474
+  On-Chain:    17302548643
+  Diff: 2169, %: 0.000013%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc9690c1e0676ed0c4070beb488efe2c0d1b49259: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1000015902711612744
+  On-Chain:    1000015902713831298
+  Diff: 2218554, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf2e26765949731f251d5d15f30f483b7a321b3a4: 20 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xd7d41b5f803b6a40f8a6eaa34e459a4564e39891:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x1fbe5229e9d189f26bee77e5bfa24309fda90483:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x9920c45570dc76acb48b215308b7d3791e3518ce: 3 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1000015902355174867
+  On-Chain:    1000015902357393420
+  Diff: 2218553, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 26242094419899591003
+  On-Chain:    26242094421472947514
+  Diff: 1573356511, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 25560728066162452212
+  On-Chain:    25560728738248199363
+  Diff: 672085747151, %: 0.000003%
+✅ User 0x54deafa691ddf32e97a7a2b48bf695e076ae43ba: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 110001749233600646
+  On-Chain:    110001749233844687
+  Diff: 244041, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x8f12207b32566a6882029aff741036ceea400c62: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 630437682566214
+  On-Chain:    630437684081480
+  Diff: 1515266, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 159720226043584846
+  On-Chain:    159720226871880628
+  Diff: 828295782, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xbc58666b601349485c94b156281a8630ca39ad6b: 1 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 100050915757019690
+  On-Chain:    100050915914713639
+  Diff: 157693949, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x9cb5ae1916982440d57a12145ae8715861d63394: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 72831349809819429
+  On-Chain:    72831354428683029
+  Diff: 4618863600, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x66f3939afc373b423b53df701cf0e308c50eb0fe: 4 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 65236
+  On-Chain:    65236
+  Diff: 0, %: 0.000000%
+  Supply - DB: 580235416710271
+  On-Chain:    580235432471147
+  Diff: 15760876, %: 0.000003%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10030076334188787441
+  On-Chain:    10030077591724687494
+  Diff: 1257535900053, %: 0.000013%
+  Supply - DB: 1100089531458883663
+  On-Chain:    1100089810099342786
+  Diff: 278640459123, %: 0.000025%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3550359314663061541
+  On-Chain:    3550360721927781690
+  Diff: 1407264720149, %: 0.000040%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 532115943298142729
+  On-Chain:    532115957689386669
+  Diff: 14391243940, %: 0.000003%
+✅ User 0xf9165826d4c6ee7aa6a4b779ed10f957452bded6: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 5000079447289067677
+  On-Chain:    5000079447300177532
+  Diff: 11109855, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x749b50a054fe23b497f10850239e50335247f030: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 10445470938659345
+  On-Chain:    10445470938682555
+  Diff: 23210, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 143563092511
+  On-Chain:    143563129234
+  Diff: 36723, %: 0.000026%
+✅ User 0x4a60f2c7e5f720d8c7ba986f61721a48ba678093: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1501042093764124
+  On-Chain:    1501042097491166
+  Diff: 3727042, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x69b235c1c3f16f828b2394193a7abea79ee40c07: 4 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 12682105163
+  On-Chain:    12682105234
+  Diff: 71, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 8242737761
+  On-Chain:    8242737782
+  Diff: 21, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 404000471820904535
+  On-Chain:    404000471821802543
+  Diff: 898008, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 125513673
+  On-Chain:    125513673
+  Diff: 0, %: 0.000000%
+  Supply - DB: 356311004606655365
+  On-Chain:    356311024612148285
+  Diff: 20005492920, %: 0.000006%
+✅ User 0xbd3b240146cbadce50944eafb1b296344ce914ba: 1 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xbb777dfe4d26a9be4cd5204ee30dad79d935f0e7: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 20022576776510555
+  On-Chain:    20022576776539099
+  Diff: 28544, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xebaabb7c8e5a7d927e52394fc86666ea72b7c4e6: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 625583738927084215
+  On-Chain:    625583778677124423
+  Diff: 39750040208, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc8b4cf66ab44e5e435d1fe72ebdb20de63d2ee3b: 1 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 10005091558885579
+  On-Chain:    10005091574685335
+  Diff: 15799756, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0ab764ab3816cd036ea951be973098510d8105a6: 9 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1130016869031396618
+  On-Chain:    1130016869033908408
+  Diff: 2511790, %: 0.000000%
+  Supply - DB: 6950330987323
+  On-Chain:    6950332422930
+  Diff: 1435607, %: 0.000021%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 110046169717826
+  On-Chain:    110046169991067
+  Diff: 273241, %: 0.000000%
+  Supply - DB: 2009371925
+  On-Chain:    2009371980
+  Diff: 55, %: 0.000003%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 373186668501419688
+  On-Chain:    373186717702055174
+  Diff: 49200635486, %: 0.000013%
+  Supply - DB: 2058983308
+  On-Chain:    2058983850
+  Diff: 542, %: 0.000026%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 107446146021578
+  On-Chain:    107446148969006
+  Diff: 2947428, %: 0.000003%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100080444160
+  On-Chain:    100080464942
+  Diff: 20782, %: 0.000021%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10017462002848
+  On-Chain:    10017462565290
+  Diff: 562442, %: 0.000006%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10059470351421
+  On-Chain:    10059474345098
+  Diff: 3993677, %: 0.000040%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 2055253061542266
+  On-Chain:    2055253061542266
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 20044304332693
+  On-Chain:    20044308476404
+  Diff: 4143711, %: 0.000021%
+✅ User 0xc737f2003ca63430aa9e00bc98fe070fedd7a821: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10107179795164709
+  On-Chain:    10107181166879148
+  Diff: 1371714439, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x95fbcf5149044bcbd0d341ca30c2775554c2ec87: 3 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 28096496233890480
+  On-Chain:    28096496233890480
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 40115723753578
+  On-Chain:    40115724900517
+  Diff: 1146939, %: 0.000003%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 727228230612477
+  On-Chain:    727228422106314
+  Diff: 191493837, %: 0.000026%
+✅ User 0x747ccfda5091cc55aa1a1a952edcaaaaae828629: 5 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 34715515861
+  On-Chain:    34715523031
+  Diff: 7170, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 822317578032
+  On-Chain:    822317689634
+  Diff: 111602, %: 0.000014%
+  Supply - DB: 10954631642
+  On-Chain:    10954634527
+  Diff: 2885, %: 0.000026%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 41302093024
+  On-Chain:    41302109500
+  Diff: 16476, %: 0.000040%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 210000011024196139
+  On-Chain:    210000011029233643
+  Diff: 5037504, %: 0.000000%
+  Supply - DB: 1000122796406128
+  On-Chain:    1000123003397495
+  Diff: 206991367, %: 0.000021%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 992400000000000000
+  On-Chain:    992400000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0978daa72ebe054e6e4dc9417590a1e2254327d2: 2 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 5435226169
+  On-Chain:    5435226176
+  Diff: 7, %: 0.000000%
+  Supply - DB: 118216594970
+  On-Chain:    118216601675
+  Diff: 6705, %: 0.000006%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 11122468107671463
+  On-Chain:    11122468107696215
+  Diff: 24752, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc4d28c2778d378134d145bc3c1cfcaf95f108fa7: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1606006965495884467
+  On-Chain:    1606006965499458398
+  Diff: 3573931, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa227b184a182bc87cc8dba6be54c132361fdb568: 12 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1509746924835250
+  On-Chain:    1509746928583906
+  Diff: 3748656, %: 0.000000%
+  Supply - DB: 101236413249668
+  On-Chain:    101236416021541
+  Diff: 2771873, %: 0.000003%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 152217321883254
+  On-Chain:    152217382604154
+  Diff: 60720900, %: 0.000040%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 1132291432472431
+  On-Chain:    1132291438344400
+  Diff: 5871969, %: 0.000001%
+  Supply - DB: 1075567660081
+  On-Chain:    1075567689170
+  Diff: 29089, %: 0.000003%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 23382906339022215
+  On-Chain:    23382906339022215
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10018825855
+  On-Chain:    10018826434
+  Diff: 579, %: 0.000006%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 121357807305347
+  On-Chain:    121357832422281
+  Diff: 25116934, %: 0.000021%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10032
+  On-Chain:    10032
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 120202
+  On-Chain:    120202
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 107006485959873113
+  On-Chain:    107006500067523666
+  Diff: 14107650553, %: 0.000013%
+  Supply - DB: 20145643661078
+  On-Chain:    20145648814268
+  Diff: 5153190, %: 0.000026%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10017464986876
+  On-Chain:    10017465555058
+  Diff: 568182, %: 0.000006%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10008481543019
+  On-Chain:    10008483610295
+  Diff: 2067276, %: 0.000021%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3002065015150
+  On-Chain:    3002065637569
+  Diff: 622419, %: 0.000021%
+✅ User 0x3864a352db1d5f49a29bafb9b8d37798d4840dab: 5 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 313506083899954278735
+  On-Chain:    313506083899954278735
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 58508243356315
+  On-Chain:    58508251296868
+  Diff: 7940553, %: 0.000014%
+  Supply - DB: 17582331143681857721
+  On-Chain:    17582335773463705618
+  Diff: 4629781847897, %: 0.000026%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2898638104936944
+  On-Chain:    2898638187811219
+  Diff: 82874275, %: 0.000003%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 9822020475769763
+  On-Chain:    9822021032865679
+  Diff: 557095916, %: 0.000006%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 64900366218292642
+  On-Chain:    64900392107649873
+  Diff: 25889357231, %: 0.000040%
+✅ User 0x6d293da4cb675f8d6a0eb7e21a3f5100f8bcdeed: 4 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2500010605255389613
+  On-Chain:    2500010605260953018
+  Diff: 5563405, %: 0.000000%
+  Supply - DB: 910639953780530240
+  On-Chain:    910640142092032994
+  Diff: 188311502754, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 3108900719583500148
+  On-Chain:    3108901141513661863
+  Diff: 421930161715, %: 0.000014%
+  Supply - DB: 1006604644437441315
+  On-Chain:    1006604917069837440
+  Diff: 272632396125, %: 0.000027%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 30151550056135
+  On-Chain:    30151562141234
+  Diff: 12085099, %: 0.000040%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 10000287105160613960
+  On-Chain:    10000287117340375747
+  Diff: 12179761787, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x8933ef3b0f638aedda8cf65f5055a1f79ef0e6b7: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x9a40bcc949238292638f6f0539bc2e40b0d1effc: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x91fb3e09fa9c888e85a71430e3c415ca90e8487d: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2349731
+  On-Chain:    2349731
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1256229041555
+  On-Chain:    1256229301331
+  Diff: 259776, %: 0.000021%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 3033112122546064
+  On-Chain:    3033112126277531
+  Diff: 3731467, %: 0.000000%
+  Supply - DB: 1863071402190
+  On-Chain:    1863071508929
+  Diff: 106739, %: 0.000006%
+✅ User 0x080ca69fcb0804913af7ec4658f6c9af59cded88: 3 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x55176cd24d793f1b2f1e7096e7e214ada54c6e63: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x705df31f4aa94812144bc928c217272b4dae8680: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 30298606095013345
+  On-Chain:    30298606132288012
+  Diff: 37274667, %: 0.000000%
+  Supply - DB: 15631669966348467
+  On-Chain:    15631670861918024
+  Diff: 895569557, %: 0.000006%
+✅ User 0xbb0b016e48d34aa97a662d6c6a87f18eabfe3daa: 2 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 9772713065118790
+  On-Chain:    9772713065118790
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 435358024125232
+  On-Chain:    435358142039154
+  Diff: 117913922, %: 0.000027%
+✅ User 0xea058d2b19c185d01bd074e9dd645d58cadecf77: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 36348492541766
+  On-Chain:    36348497615814
+  Diff: 5074048, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 294043
+  On-Chain:    294043
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x4b83cc01c2a5015c2366c6d58cc49211136e49a3: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 120081102040
+  On-Chain:    120081118802
+  Diff: 16762, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xe53e30911d5a80e6494e0ee53e36719be5c5008b: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 100000409789124289
+  On-Chain:    100000409789347082
+  Diff: 222793, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x13aa746c81bacdf647986031385412c56b400191: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 9226185733455579
+  On-Chain:    9226187021379971
+  Diff: 1287924392, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x73a1fcddb5ceb49d41b03224b0a6d3ccf3659ad9: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 59284823804
+  On-Chain:    59284823963
+  Diff: 159, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 36326935669011
+  On-Chain:    36326945781231
+  Diff: 10112220, %: 0.000028%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 5547452704598
+  On-Chain:    5547452876064
+  Diff: 171466, %: 0.000003%
+✅ User 0xa797bc837064e2d7e08e4ed544ba35245faafc9e: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 550290013479509
+  On-Chain:    550290014955171
+  Diff: 1475662, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xb02bb9e9da21d0e8ed461580ab31e3b11cbc7871: 7 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 49499705693
+  On-Chain:    49499705822
+  Diff: 129, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 13167477082575581
+  On-Chain:    13167479810933454
+  Diff: 2728357873, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 181242176
+  On-Chain:    181242225
+  Diff: 49, %: 0.000027%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2136110817745332
+  On-Chain:    2136112130887420
+  Diff: 1313142088, %: 0.000061%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 40031232213983285
+  On-Chain:    40031234530387133
+  Diff: 2316403848, %: 0.000006%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 153175000000000001
+  On-Chain:    153175000000000001
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 37835273570
+  On-Chain:    37835288735
+  Diff: 15165, %: 0.000040%
+✅ User 0xd88a7f823797cd01864c548e1523036e95d9eb58: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 232655098010
+  On-Chain:    232655131390
+  Diff: 33380, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x28c974c18c6553b445c4b77f35d83f3499acf58f: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 50000714976117737
+  On-Chain:    50000714976229262
+  Diff: 111525, %: 0.000000%
+  Supply - DB: 81573161363386863
+  On-Chain:    81573178251328788
+  Diff: 16887941925, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 9584530484349944
+  On-Chain:    9584531859462481
+  Diff: 1375112537, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xcb2ecba6db8b08b39fdff7f0c37d81de439e9631: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10081298074058114
+  On-Chain:    10081299520442931
+  Diff: 1446384817, %: 0.000014%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xea78eee509777ae5920e9ed65a083bc4d1f0a709: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 2004581317460855
+  On-Chain:    2004581322836355
+  Diff: 5375500, %: 0.000000%
+  Supply - DB: 5313357011328
+  On-Chain:    5313357169510
+  Diff: 158182, %: 0.000003%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 290881890433480082
+  On-Chain:    290881950774789887
+  Diff: 60341309805, %: 0.000021%
+✅ User 0x8430a36a3c59d3a6bbdd086118462e82df423fb3: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1000633695687
+  On-Chain:    1000633698371
+  Diff: 2684, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 375715686802386261
+  On-Chain:    375715793273684448
+  Diff: 106471298187, %: 0.000028%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 557018968584904325
+  On-Chain:    557018972086303055
+  Diff: 3501398730, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xdf1af2870a745f180534eda6fd709ee8e9e2ac4f: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xaf319d1226abda714ed4f189d5ba1e22a8af3dbc: 3 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 5002507880684088
+  On-Chain:    5002507894297587
+  Diff: 13613499, %: 0.000000%
+  Supply - DB: 865694174330240
+  On-Chain:    865694200102420
+  Diff: 25772180, %: 0.000003%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2014591795536907774
+  On-Chain:    2014592609397405341
+  Diff: 813860497567, %: 0.000040%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2517143431159020583
+  On-Chain:    2517144144473737674
+  Diff: 713314717091, %: 0.000028%
+✅ User 0x1da36dfe567e078f5e9a7408ffa6e23543e7666a: 1 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 1534877447440617606130
+  On-Chain:    1534877457329999664907
+  Diff: 9889382058777, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x77106523d6776f1ee7f96e65cc2de7a96f718d0f: 5 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1506690696544014301
+  On-Chain:    1506690916606984170
+  Diff: 220062969869, %: 0.000015%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 70189338905
+  On-Chain:    70189339096
+  Diff: 191, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 6927989030690593
+  On-Chain:    6927991829479217
+  Diff: 2798788624, %: 0.000040%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 11309470538042504
+  On-Chain:    11309470538042504
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1000351119926963703
+  On-Chain:    1000351327171209083
+  Diff: 207244245380, %: 0.000021%
+✅ User 0x87185eb91e5b583589002e6f7cc732b84962aab6: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 200096922773429
+  On-Chain:    200096923317960
+  Diff: 544531, %: 0.000000%
+  Supply - DB: 4731759
+  On-Chain:    4731759
+  Diff: 0, %: 0.000000%
+✅ User 0xc22368f52be1ca784156f5929144d11e04c108f3: 7 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 3039244357641
+  On-Chain:    3039244362457
+  Diff: 4816, %: 0.000000%
+  Supply - DB: 4286998933983
+  On-Chain:    4286999936695
+  Diff: 1002712, %: 0.000023%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 168501223646191906
+  On-Chain:    168501258600532045
+  Diff: 34954340139, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 2485286027238757311
+  On-Chain:    2485286390232585695
+  Diff: 362993828384, %: 0.000015%
+  Supply - DB: 49330712265747025
+  On-Chain:    49330726245213840
+  Diff: 13979466815, %: 0.000028%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 31091353066193
+  On-Chain:    31091354027193
+  Diff: 961000, %: 0.000003%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 30019040625341
+  On-Chain:    30019046866026
+  Diff: 6240685, %: 0.000021%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100106859233517381
+  On-Chain:    100106865026192280
+  Diff: 5792674899, %: 0.000006%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 306970065038
+  On-Chain:    306970189049
+  Diff: 124011, %: 0.000040%
+✅ User 0xef8873a83827815697fd7264adb47bb3a33b52fd: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 10004972
+  On-Chain:    10004972
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1
+  On-Chain:    1
+  Diff: 0, %: 0.000000%
+✅ User 0x79671b9323d9a5b625bd5e291ff15ee4583729c7: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 400193681292642
+  On-Chain:    400193682381703
+  Diff: 1089061, %: 0.000000%
+  Supply - DB: 2247585
+  On-Chain:    2247585
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2100014869767042
+  On-Chain:    2100014869771729
+  Diff: 4687, %: 0.000000%
+  Supply - DB: 100093545563148
+  On-Chain:    100093566325014
+  Diff: 20761866, %: 0.000021%
+✅ User 0x60ed34d9d7857ef297c06e8379cebf4f6944e9f0: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100583000704082
+  On-Chain:    100583015394949
+  Diff: 14690867, %: 0.000015%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 200144599898100
+  On-Chain:    200144600215498
+  Diff: 317398, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x1fd0b57966df347cac947035ea413483500c619a: 3 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 3301680214432241188
+  On-Chain:    3301680219668202469
+  Diff: 5235961281, %: 0.000000%
+  Supply - DB: 2005600022685148361
+  On-Chain:    2005600492325536469
+  Diff: 469640388108, %: 0.000023%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 5035669
+  On-Chain:    5035671
+  Diff: 2, %: 0.000040%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 94495
+  On-Chain:    94495
+  Diff: 0, %: 0.000000%
+✅ User 0xcbf02d67a14f2f19deba4783e5cf72d2eeb36acf: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x601d2a139742116556319272e438847d817203c3: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 500225752422975653
+  On-Chain:    500225752423692619
+  Diff: 716966, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xbc943f32091dd327002169de5a3142e993849cbc: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 400183449117710
+  On-Chain:    400183450230590
+  Diff: 1112880, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x7f143731c10452652044c9db9b9cc2e4c593ce57: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 8741095637068
+  On-Chain:    8741096947663
+  Diff: 1310595, %: 0.000015%
+  Supply - DB: 60782405321973042
+  On-Chain:    60782423308804707
+  Diff: 17986831665, %: 0.000030%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100128233026012
+  On-Chain:    100128233304461
+  Diff: 278449, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2dea5533f494fd12a2f7f72d022d539a61ec6e10: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1000318413585870
+  On-Chain:    1000318416367681
+  Diff: 2781811, %: 0.000000%
+  Supply - DB: 501086093590771
+  On-Chain:    501086109052811
+  Diff: 15462040, %: 0.000003%
+✅ User 0x5ff9c34f1734c2b62c53231e6923d0967f95a8a3: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x1e93603e5d3614cea5da96c819cf9d125cd0605a: 1 positions validated
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 3000691693195673275
+  On-Chain:    3000691697959776086
+  Diff: 4764102811, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x26a96f58592ad7b7ca27635b46364182f2bdb62e: 4 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1421432130718440846
+  On-Chain:    1421432349352344572
+  Diff: 218633903726, %: 0.000015%
+  Supply - DB: 1005512058540440036
+  On-Chain:    1005512361136529322
+  Diff: 302596089286, %: 0.000030%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 1572142152742
+  On-Chain:    1572142152746
+  Diff: 4, %: 0.000000%
+  Supply - DB: 209037616730536
+  On-Chain:    209037660156383
+  Diff: 43425847, %: 0.000021%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 50405359842
+  On-Chain:    50405359906
+  Diff: 64, %: 0.000000%
+  Supply - DB: 900152916629397651
+  On-Chain:    900152970263816376
+  Diff: 53634418725, %: 0.000006%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100274562879095486
+  On-Chain:    100274603833453465
+  Diff: 40954357979, %: 0.000041%
+✅ User 0xc2f8215962fa3ab238c96b7e73a17edce0cacd31: 6 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 744724794
+  On-Chain:    744724794
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 66617607180
+  On-Chain:    66617634388
+  Diff: 27208, %: 0.000041%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 4160889143943869
+  On-Chain:    4160889143949833
+  Diff: 5964, %: 0.000000%
+  Supply - DB: 11392285368
+  On-Chain:    11392287733
+  Diff: 2365, %: 0.000021%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 744867872062
+  On-Chain:    744867983744
+  Diff: 111682, %: 0.000015%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1806338
+  On-Chain:    1806338
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 230040141
+  On-Chain:    230040236
+  Diff: 95, %: 0.000041%
+✅ User 0x21e4cc94ca129ac1227e441644f95de5bdfc5eea: 4 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 770888768597271
+  On-Chain:    770888768598996
+  Diff: 1725, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 6946108384444090
+  On-Chain:    6946110474787229
+  Diff: 2090343139, %: 0.000030%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 390197013278136146
+  On-Chain:    390197013775774914
+  Diff: 497638768, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3613657205854159
+  On-Chain:    3613658681752000
+  Diff: 1475897841, %: 0.000041%
+✅ User 0xad5704cf57ee6ed668dd2929245292180da35631: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100292666660672434
+  On-Chain:    100292682086929343
+  Diff: 15426256909, %: 0.000015%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa60bfb32e4f44bc4b7254a9ebc316664d0a6eeb2: 6 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 481417621264
+  On-Chain:    481417693446
+  Diff: 72182, %: 0.000015%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 418
+  On-Chain:    418
+  Diff: 0, %: 0.000000%
+  Supply - DB: 13632
+  On-Chain:    13632
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2121841
+  On-Chain:    2121842
+  Diff: 1, %: 0.000047%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 63476765
+  On-Chain:    63476791
+  Diff: 26, %: 0.000041%
+✅ User 0x41fd9c48abc8637e71e7affd174943056f7d010c: 1 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 738767404444289
+  On-Chain:    738767409552538
+  Diff: 5108249, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x6cc2a53fcb9c14addc8f91b3ee5cbba22e6dd16e: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 100002526100228877
+  On-Chain:    100002526100452614
+  Diff: 223737, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xfaef10f741068b2734edb6b384514d06ff79aae0: 4 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 15000072521978427374
+  On-Chain:    15000072522012000034
+  Diff: 33572660, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 5014629242433608588
+  On-Chain:    5014630013745824850
+  Diff: 771312216262, %: 0.000015%
+  Supply - DB: 3021343150727900265
+  On-Chain:    3021344059962766258
+  Diff: 909234865993, %: 0.000030%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 10000288103460849101
+  On-Chain:    10000288116255751649
+  Diff: 12794902548, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1005586588452077687
+  On-Chain:    1005586999155968481
+  Diff: 410703890794, %: 0.000041%
+✅ User 0x08a7e6a6fd1279ffc6ffb28138f7e5c57b6b28f6: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100277737528241304
+  On-Chain:    100277753081815041
+  Diff: 15553573737, %: 0.000016%
+  Supply - DB: 846789938
+  On-Chain:    846790197
+  Diff: 259, %: 0.000031%
+✅ User 0x885906e7236b4c371e9081b3b1c7620f45f5fb71: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100291186775437
+  On-Chain:    100291202590357
+  Diff: 15814920, %: 0.000016%
+  Supply - DB: 274207
+  On-Chain:    274207
+  Diff: 0, %: 0.000000%
+✅ User 0xdf7d6f2a6808f9b0c5512fddc8e82ed79c2b395d: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x75dd52a2497a66cb7a8aee9eec9d54c7a457dec2: 1 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 200000494843076004
+  On-Chain:    200000494843523980
+  Diff: 447976, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xdf8acf9516b0173c1737c346d41680dfe688222d: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 501460646458590727
+  On-Chain:    501460725533937748
+  Diff: 79075347021, %: 0.000016%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 162184285131485644
+  On-Chain:    162184290833708522
+  Diff: 5702222878, %: 0.000004%
+✅ User 0x4f72115ef7550241f51d9112768527a5ea65e539: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 100015379836178
+  On-Chain:    100015384552525
+  Diff: 4716347, %: 0.000005%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x167cfff8d39e96b7b842b0617ac7421be4bd3088: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 100028850408135
+  On-Chain:    100028850698230
+  Diff: 290095, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x94450ee927acf912359a40d7f813f31d1581b786: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 1000004258008522
+  On-Chain:    1000004258047998
+  Diff: 39476, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x89464f6f70e2c83f50d466b2772559649dadd95e: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x10625e91cc564ae83cc38c9982e3f45b5b7723fe: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 10001797238987
+  On-Chain:    10001797267993
+  Diff: 29006, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xc02cc96e676cb88fdf7432d483803abce5c0b7dd: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 1200443550331593
+  On-Chain:    1200443550333319
+  Diff: 1726, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2314913cabf2f8982190aadf7f4509eb40c76039: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 10001796299355
+  On-Chain:    10001796328758
+  Diff: 29403, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x181074bbb5925ff6b1b751104d193b4dc71f36bb: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 21930084165118
+  On-Chain:    21930085570353
+  Diff: 1405235, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x7b76224337e93e768105a0d3ac0bf8b7dcb00744: 4 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 180514261102186137000758
+  On-Chain:    180514261336106741207596
+  Diff: 233920604206838, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 79600162355763835811551
+  On-Chain:    79600162355942266230235
+  Diff: 178430418684, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3187236471362299436608
+  On-Chain:    3187237470485592015261
+  Diff: 999123292578653, %: 0.000031%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 250080096765051015116
+  On-Chain:    250080105847459020019
+  Diff: 9082408004903, %: 0.000004%
+✅ User 0x5e822f529118b76db7f18d33cd170a80982eddb4: 5 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 793766710
+  On-Chain:    793766710
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 7835975899604678
+  On-Chain:    7835977155516638
+  Diff: 1255911960, %: 0.000016%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 67611424498
+  On-Chain:    67611466332
+  Diff: 41834, %: 0.000062%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 254153799
+  On-Chain:    254153852
+  Diff: 53, %: 0.000021%
+✅ User 0x1637447d0ede9012957658d2c1e8a2942646e887: 1 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 68454742818846650
+  On-Chain:    68454743324453553
+  Diff: 505606903, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf9bc62356f6b1caa8d71e0588fa6f5967bf99eb1: 1 positions validated
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 10000000796015935
+  On-Chain:    10000001019220389
+  Diff: 223204454, %: 0.000002%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x171f76e23239c9e70272aa5678fb5e50e6b46a38: 1 positions validated
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 10000000794430367
+  On-Chain:    10000001017634821
+  Diff: 223204454, %: 0.000002%
+  Supply - DB: 43901149
+  On-Chain:    43901177
+  Diff: 28, %: 0.000064%
+✅ User 0x9132f3ccebb01fb9158ae39d7dd83c046aa8ea6f: 17 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 2039749890060385
+  On-Chain:    2039749890063311
+  Diff: 2926, %: 0.000000%
+  Supply - DB: 661649274
+  On-Chain:    661649411
+  Diff: 137, %: 0.000021%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1238634773663
+  On-Chain:    1238635281120
+  Diff: 507457, %: 0.000041%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 399627711
+  On-Chain:    399627711
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 658233823710
+  On-Chain:    658233925805
+  Diff: 102095, %: 0.000016%
+  Supply - DB: 648105974057
+  On-Chain:    648106172347
+  Diff: 198290, %: 0.000031%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 366127538
+  On-Chain:    366127690
+  Diff: 152, %: 0.000042%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1796533
+  On-Chain:    1796533
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 965346570
+  On-Chain:    965346879
+  Diff: 309, %: 0.000032%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 7826541
+  On-Chain:    7826541
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3895768
+  On-Chain:    3895769
+  Diff: 1, %: 0.000026%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 13737615889
+  On-Chain:    13737624389
+  Diff: 8500, %: 0.000062%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 8448774
+  On-Chain:    8448774
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x208ed38f4783328aa9ebfec360d32e7520a9b779:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 26156950440
+  On-Chain:    26156956574
+  Diff: 6134, %: 0.000023%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 190897647778
+  On-Chain:    190897687502
+  Diff: 39724, %: 0.000021%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 366012159104
+  On-Chain:    366012171973
+  Diff: 12869, %: 0.000004%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3606287664137966
+  On-Chain:    3606287882457362
+  Diff: 218319396, %: 0.000006%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 251986
+  On-Chain:    251986
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 62017090059
+  On-Chain:    62017102937
+  Diff: 12878, %: 0.000021%
+✅ User 0x1df4b60560f9d098b1fcf49ad645a174407c680e: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 2000007434886004578
+  On-Chain:    2000007434890489471
+  Diff: 4484893, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 3208562506345871
+  On-Chain:    3208563024745804
+  Diff: 518399933, %: 0.000016%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2fdd86b37ff685be55f5b3f2c4b607e5dfafc1d6: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 6016206267774501
+  On-Chain:    6016207239798864
+  Diff: 972024363, %: 0.000016%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 5083062010853
+  On-Chain:    5083062318574
+  Diff: 307721, %: 0.000006%
+✅ User 0xbc179a3fd1dd0a33cf25063916affad0f7de292e: 5 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 700111068356658
+  On-Chain:    700111070428776
+  Diff: 2072118, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 4010706026859898
+  On-Chain:    4010706674860282
+  Diff: 648000384, %: 0.000016%
+  Supply - DB: 30924057481098
+  On-Chain:    30924067485265
+  Diff: 10004167, %: 0.000032%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10040408120
+  On-Chain:    10040408726
+  Diff: 606, %: 0.000006%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100048660667
+  On-Chain:    100048681494
+  Diff: 20827, %: 0.000021%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 168483091932
+  On-Chain:    168483127186
+  Diff: 35254, %: 0.000021%
+✅ User 0x2e5194180e6ee05be6d1a5b3f9ebe0864f197e42: 2 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 339700167685408812
+  On-Chain:    339700167685408812
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2030304469071103
+  On-Chain:    2030305309881030
+  Diff: 840809927, %: 0.000041%
+✅ User 0x273962282ef2f9324d0dd75e5df4a1d30b89e786: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 1000000137621020
+  On-Chain:    1000000137660540
+  Diff: 39520, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xfa18553cc15b4ff22857229fcc2920f6751d3871: 6 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 190015336873929514
+  On-Chain:    190015336878522619
+  Diff: 4593105, %: 0.000000%
+  Supply - DB: 36188849812300934
+  On-Chain:    36188857359664402
+  Diff: 7547363468, %: 0.000021%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 306772968
+  On-Chain:    306772968
+  Diff: 0, %: 0.000000%
+  Supply - DB: 1001175875938114542
+  On-Chain:    1001175936547841848
+  Diff: 60609727306, %: 0.000006%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 535323042
+  On-Chain:    535323129
+  Diff: 87, %: 0.000016%
+  Supply - DB: 22664733970346
+  On-Chain:    22664741302560
+  Diff: 7332214, %: 0.000032%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 132445332494
+  On-Chain:    132445360208
+  Diff: 27714, %: 0.000021%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 100072155528
+  On-Chain:    100072161521
+  Diff: 5993, %: 0.000006%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2002032688102
+  On-Chain:    2002033331143
+  Diff: 643041, %: 0.000032%
+✅ User 0xd2e5667d08ac5c6671541f9fca293257a38c5262: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 2851475
+  On-Chain:    2851475
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xcfa867320e7e66ea389f2572d94761685d25fc27: 2 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 1000301757279778
+  On-Chain:    1000301757281217
+  Diff: 1439, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 301337971918748
+  On-Chain:    301338096711833
+  Diff: 124793085, %: 0.000041%
+✅ User 0x1fe43e22da8dd4decb725afadac08f284621deca: 2 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 20002689192459442
+  On-Chain:    20002690138375270
+  Diff: 945915828, %: 0.000005%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 8010100357557
+  On-Chain:    8010101651730
+  Diff: 1294173, %: 0.000016%
+  Supply - DB: 1005491967374850111
+  On-Chain:    1005492295180734252
+  Diff: 327805884141, %: 0.000033%
+✅ User 0x502a1ff98cae3e596bbaa3586ffb9cd58826c140: 3 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 300000003216480
+  On-Chain:    300000003216480
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 13339285
+  On-Chain:    13339291
+  Diff: 6, %: 0.000045%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 1000153371043158
+  On-Chain:    1000153418339844
+  Diff: 47296686, %: 0.000005%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa393ce77a3b4487e5c116cb42854b3805de0aa4d: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 20006066958888
+  On-Chain:    20006067020087
+  Diff: 61199, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x29aa7f2e29c67558afffb01881a30f9fdfa8e8a0: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 40326790904
+  On-Chain:    40326793494
+  Diff: 2590, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x75591113fbdc0ab6daafab0dd8e3c03bc8bc1e7f: 1 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 5100916686567101
+  On-Chain:    5100916726246495
+  Diff: 39679394, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x94ba1f3e930a4aa0221528080d237a40a19d0e2b: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 3009923268420289811
+  On-Chain:    3009923461731037894
+  Diff: 193310748083, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 289753090049554737
+  On-Chain:    289753184513529535
+  Diff: 94463974798, %: 0.000033%
+✅ User 0x2ee3435f86b614062135fae9463c56fc29092004: 2 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 80000000699172
+  On-Chain:    80000000699172
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 40176225921400
+  On-Chain:    40176242585059
+  Diff: 16663659, %: 0.000041%
+✅ User 0x5cd4099e5c82acd3a61ff7d7fff8a8e3b7410e9a: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1200152122742399
+  On-Chain:    1200152126413687
+  Diff: 3671288, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 8140678234680223184
+  On-Chain:    8140683281254780306
+  Diff: 5046574557122, %: 0.000062%
+✅ User 0xa9782b261406716a59e74db94bd9e0c7313a1921: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 7044734483015317099
+  On-Chain:    7044734935459705714
+  Diff: 452444388615, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 500420772110122422
+  On-Chain:    500420979666726130
+  Diff: 207556603708, %: 0.000041%
+✅ User 0x2e4656d98baa7cdaf21bfff287b1ddc3568fe95f: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 900112089231332
+  On-Chain:    900112091984791
+  Diff: 2753459, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xadbdfee2200326b4a2acc6be9fb0bcc6a5990774: 3 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100276884383944387
+  On-Chain:    100276901233505916
+  Diff: 16849561529, %: 0.000017%
+  Supply - DB: 5804374495
+  On-Chain:    5804376388
+  Diff: 1893, %: 0.000033%
+  📊 Reserve 0xf4ba497c9b805e4bd88a8a9e6a7b8f74984c3e39:
+  Supply - DB: 9000000748285789
+  On-Chain:    9000000949552435
+  Diff: 201266646, %: 0.000002%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 75880365
+  On-Chain:    75880365
+  Diff: 0, %: 0.000000%
+  Supply - DB: 59481907
+  On-Chain:    59481909
+  Diff: 2, %: 0.000003%
+✅ User 0x4907dcf51cdbfd429641e021b48c32e3097cbdaa: 4 positions validated
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 200030473778089898
+  On-Chain:    200030473782934301
+  Diff: 4844403, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 391059347422
+  On-Chain:    391059371470
+  Diff: 24048, %: 0.000006%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 4219732792408
+  On-Chain:    4219733501452
+  Diff: 709044, %: 0.000017%
+  Supply - DB: 1000412626390165793
+  On-Chain:    1000412952540106459
+  Diff: 326149940666, %: 0.000033%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 10001000000000000
+  On-Chain:    10001000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x40743547d38781e467126fc96abeff64b9cae73f: 2 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 29161364977295
+  On-Chain:    29161365204138
+  Diff: 226843, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 365860011706
+  On-Chain:    365860073181
+  Diff: 61475, %: 0.000017%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x5d2caa115fdf9d2687e9802ea033e9dbd559576d: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 2069529073544601833
+  On-Chain:    2069529421288328349
+  Diff: 347743726516, %: 0.000017%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x36f699656c75b0aa5d6c5d5c0d3152f37c212349: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 353189642927029375
+  On-Chain:    353189665610449516
+  Diff: 22683420141, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf75c19ea5a6da781b8773826a93d759cb3f8ea6b: 1 positions validated
+  📊 Reserve 0xd7d41b5f803b6a40f8a6eaa34e459a4564e39891:
+  Supply - DB: 900000000923831130
+  On-Chain:    900000000923831516
+  Diff: 386, %: 0.000000%
+  Supply - DB: 1026479445
+  On-Chain:    1026479874
+  Diff: 429, %: 0.000042%
+✅ User 0x68b0aba62a0e9c6ea4caf92a18c42e9ab1b151b7: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1000225275019037
+  On-Chain:    1000225278078745
+  Diff: 3059708, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x58cf6496d9cacd04b12480e0b2eefb1bebff62cf: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 2553528733771
+  On-Chain:    2553528733774
+  Diff: 3, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x383180a5c22cabecaddcd649668360a8fbf7ed48: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 100000974844503101
+  On-Chain:    100000974977370710
+  Diff: 132867609, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xdbde1dc4635c0c43d37f7f09e69e8dcc1a43e305: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 900111616364422
+  On-Chain:    900111619153639
+  Diff: 2789217, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x3565651c81bc207bf7c76e5c2dfbb9da2b7266b4: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 199142498901
+  On-Chain:    199142511700
+  Diff: 12799, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf65367a7bba79226f570c00cf04293a7a60dbef2: 3 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 2611479375355469
+  On-Chain:    2611479820914193
+  Diff: 445558724, %: 0.000017%
+  Supply - DB: 3815211391492
+  On-Chain:    3815212673582
+  Diff: 1282090, %: 0.000034%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 87055117385731
+  On-Chain:    87055122805548
+  Diff: 5419817, %: 0.000006%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2001897017559543
+  On-Chain:    2001897097225538
+  Diff: 79665995, %: 0.000004%
+✅ User 0x50cef9e09f896e16a7c41ed51ce1b9f5083e3fe8: 1 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 57417309
+  On-Chain:    57417313
+  Diff: 4, %: 0.000007%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2937692b122479acfdd753d82ff094d5eabe82d6: 4 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 6574933119863616
+  On-Chain:    6574933542777496
+  Diff: 422913880, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 248898468281
+  On-Chain:    248898511391
+  Diff: 43110, %: 0.000017%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 970095316
+  On-Chain:    970095630
+  Diff: 314, %: 0.000032%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 316175028138
+  On-Chain:    316175160278
+  Diff: 132140, %: 0.000042%
+✅ User 0xc2ee6c569e6396c2be2522778c3e77ea2f4a6ec6: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 170611937207
+  On-Chain:    170611966757
+  Diff: 29550, %: 0.000017%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 163205462448
+  On-Chain:    163205496547
+  Diff: 34099, %: 0.000021%
+✅ User 0x03b3db2bf20b7bcfa2030e9c16a069cb20be7853: 1 positions validated
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 15000002248262328
+  On-Chain:    15000002248283976
+  Diff: 21648, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x756894b13557b2cf72671928c0670b1fb4c5cced: 2 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 100242423776494939
+  On-Chain:    100242441268103388
+  Diff: 17491608449, %: 0.000017%
+  Supply - DB: 50224305432944262
+  On-Chain:    50224322436607608
+  Diff: 17003663346, %: 0.000034%
+  📊 Reserve 0x1fbe5229e9d189f26bee77e5bfa24309fda90483:
+  Supply - DB: 3000047628260182969
+  On-Chain:    3000047683803350022
+  Diff: 55543167053, %: 0.000002%
+  Supply - DB: 100052927881326861
+  On-Chain:    100052989595976607
+  Diff: 61714649746, %: 0.000062%
+✅ User 0x845e7360d080655ecf6df37888cee16c1b50e33c: 4 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 4500000000000000
+  On-Chain:    4500000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 633626721308346511
+  On-Chain:    633626986123222504
+  Diff: 264814875993, %: 0.000042%
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 30738223354042521
+  On-Chain:    30738223354309950
+  Diff: 267429, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 832407493
+  On-Chain:    832407667
+  Diff: 174, %: 0.000021%
+✅ User 0x5cc2857aa31b9598dbabd69fcd74131df9fcb3cb: 1 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 35066465028774839835580
+  On-Chain:    35066465559546138766894
+  Diff: 530771298931314, %: 0.000002%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x382456d9fb7ee11b221eefc76d5db4a5b4ae0d21: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 100369576578193628
+  On-Chain:    100369583036632304
+  Diff: 6458438676, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 6464029003750268
+  On-Chain:    6464031705295170
+  Diff: 2701544902, %: 0.000042%
+✅ User 0x01bc7807ba2c874d2aff29913df10ab77d4c5fd5: 7 positions validated
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 14660973119153
+  On-Chain:    14660973119280
+  Diff: 127, %: 0.000000%
+  Supply - DB: 76610249
+  On-Chain:    76610281
+  Diff: 32, %: 0.000042%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 209892207577
+  On-Chain:    209892337941
+  Diff: 130364, %: 0.000062%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 333432402121821
+  On-Chain:    333432515006853
+  Diff: 112885032, %: 0.000034%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 64200146488
+  On-Chain:    64200173319
+  Diff: 26831, %: 0.000042%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 3142
+  On-Chain:    3142
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 664846473
+  On-Chain:    664846612
+  Diff: 139, %: 0.000021%
+✅ User 0xa3458b237793823a2b063d404388ac9e6e6722ef: 5 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1562301792
+  On-Chain:    1562301796
+  Diff: 4, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 467888575413544
+  On-Chain:    467888770960624
+  Diff: 195547080, %: 0.000042%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 57461064293018517683
+  On-Chain:    57461074319576135241
+  Diff: 10026557617558, %: 0.000017%
+  Supply - DB: 44849127780458
+  On-Chain:    44849142964331
+  Diff: 15183873, %: 0.000034%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 16071071
+  On-Chain:    16071071
+  Diff: 0, %: 0.000000%
+  Supply - DB: 263830600563073
+  On-Chain:    263830616642211
+  Diff: 16079138, %: 0.000006%
+✅ User 0x11ca224fd6048d0a4941c085b56641401b22c4f7: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 6279109898812548441
+  On-Chain:    6279110302851776317
+  Diff: 404039227876, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 403129441648559466
+  On-Chain:    403129582173726221
+  Diff: 140525166755, %: 0.000035%
+✅ User 0x8bd581f10b5ca2669406bc4519f2ae277ba13996: 7 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 3714860342713969361
+  On-Chain:    3714860986129751565
+  Diff: 643415782204, %: 0.000017%
+  Supply - DB: 1200889005708
+  On-Chain:    1200889412274
+  Diff: 406566, %: 0.000034%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 7033966974931232
+  On-Chain:    7033967031858343
+  Diff: 56927111, %: 0.000001%
+  Supply - DB: 313788503318
+  On-Chain:    313788515926
+  Diff: 12608, %: 0.000004%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 662979641
+  On-Chain:    662979780
+  Diff: 139, %: 0.000021%
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 103093895102
+  On-Chain:    103093959231
+  Diff: 64129, %: 0.000062%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 1979848
+  On-Chain:    1979848
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0e72af8f58ec5da7f6b0b7b4dad357193966cc32: 1 positions validated
+  📊 Reserve 0x14c5eb2d25dfb834852dfc85744875d1ecb09748:
+  Supply - DB: 50000000000000000000
+  On-Chain:    50000000000000000000
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xa59bc89fe9863df3b1e0dd170c7b1ba64f9b4e63: 3 positions validated
+  📊 Reserve 0x6e81124fc5d2bf666b16a0a5d90066ebf35c7411:
+  Supply - DB: 409496604058630061
+  On-Chain:    409496604062192759
+  Diff: 3562698, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 404041014341
+  On-Chain:    404041155184
+  Diff: 140843, %: 0.000035%
+✅ User 0x89d0b1bca4c9f6195087e6f944ddfff4dc17b69f: 2 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 15073
+  On-Chain:    15073
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0bf453c0d56fecefa35e0bb013802360b4f3e918: 4 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1261662071182
+  On-Chain:    1261662291333
+  Diff: 220151, %: 0.000017%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 98502165506
+  On-Chain:    98502206924
+  Diff: 41418, %: 0.000042%
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 4336186
+  On-Chain:    4336187
+  Diff: 1, %: 0.000023%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 169884607
+  On-Chain:    169884643
+  Diff: 36, %: 0.000021%
+✅ User 0xae0c4fbffd95bd053a700a3a971d8fbfb6a75fbb: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 40001335803433883
+  On-Chain:    40001335932949906
+  Diff: 129516023, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xdc5b4b00f98347e95b9f94911213dab4c687e1e3:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 30235863601
+  On-Chain:    30235869927
+  Diff: 6326, %: 0.000021%
+✅ User 0xce8a548003b0d61e7ece51e0157a5e70fcfaf2f5: 2 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 100714065
+  On-Chain:    100714065
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 135
+  On-Chain:    135
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x987c29e85bc46d8ce549c89d3b7854776873669b: 2 positions validated
+  📊 Reserve 0x6bc8c37cba91f76e68c9e6d689a9c21e4d32079b:
+  Supply - DB: 3963099804974061
+  On-Chain:    3963100060373083
+  Diff: 255399022, %: 0.000006%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 23831263445
+  On-Chain:    23831267727
+  Diff: 4282, %: 0.000018%
+  Supply - DB: 450380584140784
+  On-Chain:    450380741137024
+  Diff: 156996240, %: 0.000035%
+✅ User 0xcfd13865c10daa74936ba7646775e621a8bb3e59: 1 positions validated
+  📊 Reserve 0xe801ca34e19abcbfea12025378d19c4fbe250131:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x9f16e3aba6aa44a9070ef81955691c03f599e28e: 1 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 151000858583654467
+  On-Chain:    151000860872695776
+  Diff: 2289041309, %: 0.000002%
+  Supply - DB: 1000488657999
+  On-Chain:    1000489029895
+  Diff: 371896, %: 0.000037%
+✅ User 0x292ce0501220363c2fe0bb5e452a53c38dfee8ed: 1 positions validated
+  📊 Reserve 0x1f22279c89b213944b7ea41dacb0a868ddcdfd13:
+  Supply - DB: 50000285310678981
+  On-Chain:    50000286068639695
+  Diff: 757960714, %: 0.000002%
+  Supply - DB: 29704025474561301
+  On-Chain:    29704036515983328
+  Diff: 11041422027, %: 0.000037%
+✅ User 0x196fcd025546aca6cc2cfe6ac19fa686940c9d43: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 86810144408
+  On-Chain:    86810144689
+  Diff: 281, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 9278851
+  On-Chain:    9278852
+  Diff: 1, %: 0.000011%
+✅ User 0xccf8e27250f9f9fa4eedb409c01717a782026d13: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 30020899752750692118
+  On-Chain:    30020905146402716151
+  Diff: 5393652024033, %: 0.000018%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xaabb60338f193202bab6b69bb18aff0526c0877b: 2 positions validated
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 335086551584
+  On-Chain:    335086554428
+  Diff: 2844, %: 0.000001%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 2651
+  On-Chain:    2651
+  Diff: 0, %: 0.000000%
+✅ User 0xa67ecc1d85277f60f44d4bf8e2c6032dc167e777: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 864301002
+  On-Chain:    864301003
+  Diff: 1, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xf72fb67dfd1610488d3c36cf93c24b7b5e6b072a: 2 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 254784824771
+  On-Chain:    254784824781
+  Diff: 10, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 104748135668
+  On-Chain:    104748179978
+  Diff: 44310, %: 0.000042%
+✅ User 0x2d24bbaf7bb5953ac0cc107aa81c0ba59f41f604: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 400000005580481
+  On-Chain:    400000005596374
+  Diff: 15893, %: 0.000000%
+  Supply - DB: 110002427615173
+  On-Chain:    110002450746228
+  Diff: 23131055, %: 0.000021%
+✅ User 0xfad0a5a1f83d33236fd7179c1b14aa15e422c9a6: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 3000000041990582
+  On-Chain:    3000000042109956
+  Diff: 119374, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x3ca83d75477bcd4f0d65b4efa4d91edb202bb485: 1 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 200001227556482
+  On-Chain:    200001228219936
+  Diff: 663454, %: 0.000000%
+  Supply - DB: 100006549400514
+  On-Chain:    100006553029715
+  Diff: 3629201, %: 0.000004%
+✅ User 0xf334ab0987a454cfc95b96c2d1e0bbabd899f1b6: 1 positions validated
+  📊 Reserve 0x40cd41b35db9e5109ae7e54b44de8625db320e6b:
+  Supply - DB: 10000000139511980
+  On-Chain:    10000000139909892
+  Diff: 397912, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x2014d6c2efbae8c56a0245c269ee186c8f04ff2a: 6 positions validated
+  📊 Reserve 0x58b0538d7eeaee69ef32f9f1de5cbf32a10a977b:
+  Supply - DB: 1695413002146864952
+  On-Chain:    1695413002153590939
+  Diff: 6725987, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x14238d267557e9d799016ad635b53cd15935d290:
+  Supply - DB: 48000001266420812935
+  On-Chain:    48000001267589038645
+  Diff: 1168225710, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 38322595542639173003240
+  On-Chain:    38322611656214882263901
+  Diff: 16113575709260661, %: 0.000042%
+  📊 Reserve 0xcb6b152d3a943f25157381afca7fefcd2ef5a357:
+  Supply - DB: 24568874411313124614
+  On-Chain:    24568874412809985185
+  Diff: 1496860571, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 487932952460612491
+  On-Chain:    487932952990418872
+  Diff: 529806381, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 953135811430853068369
+  On-Chain:    953135982674318149108
+  Diff: 171243465080739, %: 0.000018%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x6da2dd9667f3479e586e206279bbc1079afb2993: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 3994603336061564137
+  On-Chain:    3994603341549238643
+  Diff: 5487674506, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x0d0f96f4c1b11a4f2dfe459c626dc709ad194d9f: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 10981833247509859340295
+  On-Chain:    10981835277319458497626
+  Diff: 2029809599157331, %: 0.000018%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x35af68e345ecd51a78f0c4e17f28a1ce2e18ad93: 2 positions validated
+  📊 Reserve 0x4effb5813271699683c25c734f4dabc45b363709:
+  Supply - DB: 16000087646580620543
+  On-Chain:    16000087699656870886
+  Diff: 53076250343, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 10011652358080937080710
+  On-Chain:    10011656593097130066554
+  Diff: 4235016192985844, %: 0.000042%
+✅ User 0x2995e63711c1ce0fb06282f192e01e1b6ac8dbf5: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 366440110304808127153037
+  On-Chain:    366440110808213317080078
+  Diff: 503405189927041, %: 0.000000%
+  Supply - DB: 120001678406209698901141
+  On-Chain:    120001686083444433607112
+  Diff: 7677234734705971, %: 0.000006%
+✅ User 0x722af2feafe854d0e8afc7a9d31dfa0db2f4fb3a: 2 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 18084511589638
+  On-Chain:    18084511609410
+  Diff: 19772, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 4539246825474998
+  On-Chain:    4539248745615962
+  Diff: 1920140964, %: 0.000042%
+✅ User 0xed209cc69c6844eb9153c155d7cd3f229782e4b2: 2 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 1410968820852156032
+  On-Chain:    1410968822394795518
+  Diff: 1542639486, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 50049723970951690947435
+  On-Chain:    50049745142421083846088
+  Diff: 21171469392898653, %: 0.000042%
+✅ User 0xeb84db64c5e2f42f2a729a422323bc046000e924: 1 positions validated
+  📊 Reserve 0xdea692287e2ce8cb08fa52917be0f16b1dacdc87:
+  Supply - DB: 225698210323744968
+  On-Chain:    225698221177276434
+  Diff: 10853531466, %: 0.000005%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0xfcf1c3a6655f7179b634ca64758f6a3cc8438984: 2 positions validated
+  📊 Reserve 0x62ecc3eeb80a162c57624b3ff80313fe69f5203e:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x1150cbf685c4063a586c36a2a431e3dc4d9a2df7: 1 positions validated
+  📊 Reserve 0x21685e341de7844135329914be6bd8d16982d834:
+  Supply - DB: 826853813266
+  On-Chain:    826853814402
+  Diff: 1136, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+✅ User 0x8e07d71b8efa74ba400bff7eb3ee49c999f802ff: 2 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 425890165521390
+  On-Chain:    425890165987024
+  Diff: 465634, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0x94dc79ce9c515ba4ae4d195da8e6ab86c69bfc38:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 9786569913034548008
+  On-Chain:    9786574065252114383
+  Diff: 4152217566375, %: 0.000042%
+✅ User 0x05e87bfb0e7c57f127b4733abd60ae58bc42aa89: 2 positions validated
+  📊 Reserve 0x7a1a5555842ad2d0ed274d09b5c4406a95799d5d:
+  Supply - DB: 117707023595
+  On-Chain:    117707023723
+  Diff: 128, %: 0.000000%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  📊 Reserve 0xbdf1f453fcb61424011bbddcb96cfdb30f3fe876:
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+  Supply - DB: 5006198675674964
+  On-Chain:    5006198896174134
+  Diff: 220499170, %: 0.000004%
+✅ User 0x541f02707dc5e99e0f476f83d420eca5d27917d4: 1 positions validated
+  📊 Reserve 0xabbb91c0617090f0028bdc27597cd0d038f3a833:
+  Supply - DB: 1000030740450964907306
+  On-Chain:    1000030925290048753353
+  Diff: 184839083846047, %: 0.000018%
+  Supply - DB: 0
+  On-Chain:    0
+  Diff: 0, %: 0.000000%
+
+📊 Summary: 251 successful users, 0 errors
+
+🎉 Complete validation finished!
