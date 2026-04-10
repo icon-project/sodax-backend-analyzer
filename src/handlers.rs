@@ -408,7 +408,7 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
 
   // Query user_balance_events collection for this user and token type
   let token_type_str = if is_a_token { "aToken" } else { "variableDebtToken" };
-  let balance_events = match find_user_balance_events(&user_address, Some(token_type_str)).await {
+  let balance_events = match find_user_balance_events(&user_address, &position.reserveAddress, Some(token_type_str)).await {
     Ok(events) => events,
     Err(e) => {
       eprintln!("Error fetching user balance events: {}", e);

@@ -321,6 +321,7 @@ pub async fn find_token_events(
 
 pub async fn find_user_balance_events(
   user_address: &str,
+  reserve_address: &str,
   token_type: Option<&str>,
 ) -> Result<Vec<UserBalanceEventDocument>, mongodb::error::Error> {
   let collection: Collection<UserBalanceEventDocument> = get_db()
@@ -328,8 +329,9 @@ pub async fn find_user_balance_events(
     .database()
     .collection(get_collections_config().user_balance_events);
 
-  let regex = create_regex_for_address(user_address);
-  let mut filter = doc! { "userAddress": &regex };
+  let user_regex = create_regex_for_address(user_address);
+  let reserve_regex = create_regex_for_address(reserve_address);
+  let mut filter = doc! { "userAddress": &user_regex, "reserveAddress": &reserve_regex };
 
   if let Some(tt) = token_type {
     filter.insert("tokenType", tt);
