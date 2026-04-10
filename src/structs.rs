@@ -127,6 +127,7 @@ pub struct Collections {
   pub intent_events: &'static str,
   pub eventlog_progress_metadata: &'static str,
   pub solver_volume: &'static str,
+  pub user_balance_events: &'static str,
 }
 
 impl Default for Collections {
@@ -148,6 +149,7 @@ impl Collections {
       intent_events: "intentEvents",
       eventlog_progress_metadata: "event_log_progress_metadata",
       solver_volume: "solver_volume",
+      user_balance_events: "user_balance_events",
     }
   }
 }

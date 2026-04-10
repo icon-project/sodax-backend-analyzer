@@ -13,6 +13,7 @@ use crate::db::{
   find_user_events,
   find_token_events,
   find_user_assets_position,
+  find_user_balance_events,
 };
 use crate::evm::{
   get_last_block, get_balance_of, get_block_timestamp, get_atoken_liquidity_index,
@@ -405,16 +406,29 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
     }
   };
 
-  // Extract eventIds from balance history based on token type
-  let mut balance_history_event_ids = std::collections::HashSet::new();
+  // Query user_balance_events collection for this user and token type
+  let token_type_str = if is_a_token { "aToken" } else { "variableDebtToken" };
+  let balance_events = match find_user_balance_events(&user_address, &position.reserveAddress, Some(token_type_str)).await {
+    Ok(events) => events,
+    Err(e) => {
+      eprintln!("Error fetching user balance events: {}", e);
+      std::process::exit(1);
+    }
+  };
 
-  let balance_history = if is_a_token {
+  // Build set of eventIds from balance events collection
+  let mut balance_history_event_ids = std::collections::HashSet::new();
+  for event in &balance_events {
+    balance_history_event_ids.insert(event.eventId.clone());
+  }
+
+  // Also include any legacy embedded eventIds (for old documents pre-migration)
+  let legacy_balance_history = if is_a_token {
     &position.aTokenBalanceHistory
   } else {
     &position.debtTokenBalanceHistory
   };
-
-  for entry in balance_history {
+  for entry in legacy_balance_history {
     balance_history_event_ids.insert(entry.eventId.clone());
   }
 
