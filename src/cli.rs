@@ -112,6 +112,17 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::ValidateAllReserveIndexes);
         break;
       }
+      "--validate-from-events" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        flags.push(Flag::ValidateFromEvents(args[i + 1].clone()));
+        consumed_next_arg = true;
+      }
+      "--validate-from-events-all" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::ValidateFromEventsAll);
+        break;
+      }
       "--scaled" => {
         validate_flag_does_not_accept_argument(i, &args)?;
         flags.push(Flag::Scaled);
@@ -265,6 +276,16 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     .iter()
     .any(|flag| matches!(flag, Flag::InspectUserPosition(_)));
 
+  // boolean for --validate-from-events
+  let has_validate_from_events = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::ValidateFromEvents(_)));
+
+  // boolean for --validate-from-events-all (used in combination validation below)
+  let _has_validate_from_events_all = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::ValidateFromEventsAll));
+
   // if no flags were added, add the help flag
   if flags.is_empty() {
     flags.push(Flag::Help);
@@ -320,15 +341,28 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   if flags.iter().any(|flag| {
     (matches!(
       flag,
-      Flag::ValidateUsersAll | Flag::ValidateTokenAll | Flag::ValidateAll
+      Flag::ValidateUsersAll | Flag::ValidateTokenAll | Flag::ValidateAll | Flag::ValidateFromEventsAll
     ) && flags.len() > 2)
       || (matches!(flag, Flag::ValidateUserAll(_)) && flags.len() > 3)
   }) {
     if !has_scaled {
-      return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all with --scaled. Use --help for more information.".into());
+      return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all, --validate-from-events-all with --scaled. Use --help for more information.".into());
     }
     if flags.len() > 4 {
-      return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all with --scaled. Use --help for more information.".into());
+      return Err("You can only combine --validate-users-all, --validate-user-all, --validate-token-all, --validate-all, --validate-from-events-all with --scaled. Use --help for more information.".into());
+    }
+  }
+
+  // --validate-from-events can be combined with --reserve-token (optional)
+  if has_validate_from_events {
+    let allowed_companions = flags.iter().all(|flag| {
+      matches!(
+        flag,
+        Flag::ValidateFromEvents(_) | Flag::ReserveToken(_)
+      )
+    });
+    if !allowed_companions {
+      return Err("--validate-from-events can only be combined with --reserve-token. Use --help for more information.".into());
     }
   }
 

@@ -44,6 +44,8 @@ BULK VALIDATION OPTIONS:
     --validate-token-all                 Validate all reserves in the marketplace
     --validate-all                       Validate everything (all reserves + all users)
     --validate-all-reserve-indexes       Validate indexes for all reserves
+    --validate-from-events <USER_ADDRESS> Validate user positions by replaying raw events (3-way: events vs DB vs on-chain)
+    --validate-from-events-all           Validate all users by replaying raw events
 
 SCALED VALIDATION:
     The --scaled flag can be combined with validation flags to compare scaled balances instead of real balances:
@@ -113,6 +115,11 @@ EXAMPLES:
     sodax-backend-analizer --validate-users-all --scaled
     sodax-backend-analizer --validate-token-all --scaled
     sodax-backend-analizer --validate-all --scaled
+
+    # Event replay validation (3-way: events vs DB vs on-chain)
+    sodax-backend-analizer --validate-from-events 0xuser123...
+    sodax-backend-analizer --validate-from-events 0xuser123... --reserve-token 0xtoken456...
+    sodax-backend-analizer --validate-from-events-all
 
 REPORT FILES:
     By default, every command (except --help) saves its output to a report file

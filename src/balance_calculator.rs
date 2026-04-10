@@ -141,6 +141,18 @@ fn extract_event_data(
   }
 }
 
+/// Extracts the index from a mint/burn event regardless of which user it belongs to.
+/// This keeps last_index up-to-date for transfer events that use it as an approximation.
+fn get_event_index(event: &MoneyMarketEventDocument) -> Option<u128> {
+  match event {
+    MoneyMarketEventDocument::ATokenMint(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::ATokenBurn(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::DebtTokenMint(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::DebtTokenBurn(e) => decimal128_to_u128(e.index).ok(),
+    _ => None,
+  }
+}
+
 /// Prints debug information for an event
 fn print_event_debug(
   idx: usize,
@@ -150,7 +162,11 @@ fn print_event_debug(
   scaled_after: i128,
   real_before: i128,
   real_after: i128,
+  verbose: bool,
 ) {
+  if !verbose {
+    return;
+  }
   output!("{:03}. {}", idx + 1, event_data.event_name);
   output!("     Block: {}", event_data.block_number);
 
@@ -208,9 +224,9 @@ fn calculate_scaled_balance(
   let result = match event_type {
     EventType::Mint => {
       // (value - balanceIncrease) * RAY / index
-      let adjusted_value = big_value
-        .checked_sub(big_balance_increase)
-        .ok_or("Underflow in mint calculation")?;
+      // Use saturating_sub: when value < balanceIncrease (pure interest accrual
+      // or rounding), the net new scaled amount is 0.
+      let adjusted_value = big_value.saturating_sub(big_balance_increase);
       let scaled = adjusted_value
         .checked_mul(big_ray)
         .ok_or("Overflow in mint multiplication")?;
@@ -274,6 +290,7 @@ pub fn process_user_token_events(
   user_address: &str,
   token_address: &str,
   current_index: u128,
+  verbose: bool,
 ) -> Result<BalanceResult, Box<dyn std::error::Error>> {
   let user_lower = user_address.to_lowercase();
   let token_lower = token_address.to_lowercase();
@@ -283,10 +300,12 @@ pub fn process_user_token_events(
   let mut last_index = RAY;
   let mut last_event_block: u64 = 0;
 
-  output!("\n=== Processing Events for User and Token ===");
-  output!("User: {}", user_address);
-  output!("Token: {}", token_address);
-  output!("Current Index: {}\n", current_index);
+  if verbose {
+    output!("\n=== Processing Events for User and Token ===");
+    output!("User: {}", user_address);
+    output!("Token: {}", token_address);
+    output!("Current Index: {}\n", current_index);
+  }
 
   for (idx, event) in events.iter().enumerate() {
     // Skip events not related to our token
@@ -298,13 +317,23 @@ pub fn process_user_token_events(
       continue;
     }
 
+    // Update last_index from any mint/burn event's index for this token (regardless of user).
+    // This keeps the index accurate for transfer events that rely on last_known_index,
+    // especially when the events list contains all users' events for this token.
+    // (We already know the event matches our token from the filter above.)
+    if let Some(event_index) = get_event_index(event) {
+      last_index = event_index;
+    }
+
     // Skip transfer events involving zero address
     if should_skip_transfer_event(event) {
-      output!(
-        "{:03}. Skipping transfer event at block {}",
-        idx + 1,
-        event.block_number()
-      );
+      if verbose {
+        output!(
+          "{:03}. Skipping transfer event at block {}",
+          idx + 1,
+          event.block_number()
+        );
+      }
       continue;
     }
 
@@ -313,14 +342,6 @@ pub fn process_user_token_events(
       Some(data) => data,
       None => continue,
     };
-
-    // Update last_index for non-transfer events
-    // NOTE: For transfer events, we use the last known index, accuracy of this is not 100%
-    // ideally we would fetch the index at the block of the transfer, but this is a reasonable
-    // approximation and a good enough trade-off for this tool.
-    if event_data.event_type != EventType::Transfer {
-      last_index = event_data.index;
-    }
 
     // Calculate scaled balance for this event
     let event_scaled = calculate_scaled_balance(
@@ -349,6 +370,7 @@ pub fn process_user_token_events(
       scaled_balance,
       real_before,
       real_balance,
+      verbose,
     );
   }
 
@@ -368,14 +390,16 @@ pub fn process_user_token_events(
   let calculated_real_from_scaled =
     convert_scaled_to_real_balance(final_scaled_balance, last_index)?;
 
-  output!("=== Final Results ===");
-  output!("Final Scaled Balance: {}", final_scaled_balance);
-  output!(
-    "Final Real Balance (from scaled): {}",
-    calculated_real_from_scaled
-  );
-  output!("Final Real Balance (direct sum): {}", final_real_balance);
-  output!("Last Event Block: {}", last_event_block);
+  if verbose {
+    output!("=== Final Results ===");
+    output!("Final Scaled Balance: {}", final_scaled_balance);
+    output!(
+      "Final Real Balance (from scaled): {}",
+      calculated_real_from_scaled
+    );
+    output!("Final Real Balance (direct sum): {}", final_real_balance);
+    output!("Last Event Block: {}", last_event_block);
+  }
 
   Ok(BalanceResult {
     scaled_balance: final_scaled_balance,

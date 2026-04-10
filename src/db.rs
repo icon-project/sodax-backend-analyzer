@@ -319,6 +319,54 @@ pub async fn find_token_events(
   collect_all_with_filter(collection, filter).await
 }
 
+pub async fn find_token_events_sorted(
+  token_address: &str,
+) -> Result<Vec<MoneyMarketEventDocument>, mongodb::error::Error> {
+  let collection: Collection<MoneyMarketEventDocument> = get_db()
+    .await
+    .database()
+    .collection(get_collections_config().money_market_events);
+
+  let reserve_from_a_token = find_reserve_for_a_token(token_address).await?;
+  let reserve_from_debt_token = find_reserve_for_debt_token(token_address).await?;
+
+  let reserve_address = match reserve_from_a_token {
+    Some(reserve) => reserve.reserveAddress,
+    None => match reserve_from_debt_token {
+      Some(reserve) => reserve.reserveAddress,
+      None => {
+        eprintln!("No reserve found for token address: {}", token_address);
+        std::process::exit(1)
+      }
+    },
+  };
+
+  let token_address_regex = create_regex_for_address(token_address);
+  let reserve_regex = create_regex_for_address(&reserve_address);
+
+  let filter = doc! { "$or": [
+      { "tokenAddress": &token_address_regex },
+      { "reserve": &reserve_regex },
+  ]};
+
+  let find_options = FindOptions::builder()
+    .sort(doc! { "blockNumber": 1, "logIndex": 1 })
+    .build();
+
+  let mut docs: Vec<MoneyMarketEventDocument> = vec![];
+  let mut cursor = collection.find(filter).with_options(find_options).await?;
+  while let Some(doc_result) = cursor.next().await {
+    match doc_result {
+      Ok(doc) => docs.push(doc),
+      Err(e) => {
+        eprintln!("Error collecting sorted token events: {}", e);
+        return Err(e);
+      }
+    };
+  }
+  Ok(docs)
+}
+
 pub async fn find_user_balance_events(
   user_address: &str,
   reserve_address: &str,

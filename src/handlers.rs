@@ -12,12 +12,14 @@ use crate::db::{
   find_all_reserve_addresses,
   find_user_events,
   find_token_events,
+  find_token_events_sorted,
   find_user_assets_position,
+  get_user_position,
   find_user_balance_events,
 };
 use crate::evm::{
   get_last_block, get_balance_of, get_block_timestamp, get_atoken_liquidity_index,
-  get_variable_borrow_index,
+  get_variable_borrow_index, get_scaled_balance_of,
 };
 use crate::helpers::{compare_and_report_diff, find_user_scaled_position};
 use crate::validators::{
@@ -30,7 +32,7 @@ use crate::validators::{
 use crate::functions::{
   extract_value_from_flags_or_exit, extract_optional_value_from_flags, decimal128_to_u128,
 };
-use crate::structs::{ReserveTokenField, Flag, FlagType};
+use crate::structs::{ReserveTokenField, Flag, FlagType, ThreeWayComparison, EventValidationResult};
 use crate::models::{ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument};
 use crate::constants::HELP_MESSAGE;
 use futures::future::join_all;
@@ -1477,7 +1479,7 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
   };
 
   // Process events and calculate balance
-  match process_user_token_events(&events, &user_address, &token_address, current_index) {
+  match process_user_token_events(&events, &user_address, &token_address, current_index, true) {
     Ok(result) => {
       output!("\n=== Summary ===");
       output!("Scaled Balance: {}", result.scaled_balance);
@@ -1556,4 +1558,522 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
       std::process::exit(1);
     }
   }
+}
+
+// ============================================================
+// --validate-from-events / --validate-from-events-all handlers
+// ============================================================
+
+pub async fn handle_validate_from_events(flags: Vec<Flag>) {
+  let user_address = extract_value_from_flags_or_exit(
+    flags.clone(),
+    FlagType::ValidateFromEvents,
+    "Error: --validate-from-events requires a user address to be specified.",
+  );
+
+  let reserve_filter = extract_optional_value_from_flags(&flags, FlagType::ReserveToken);
+
+  println!("\n=== Event Replay Validation ===");
+  println!("User: {}", user_address);
+  if let Some(ref reserve) = reserve_filter {
+    println!("Reserve filter: {}", reserve);
+  }
+
+  // Get user positions from DB
+  let user_position = match get_user_position(&user_address).await {
+    Ok(pos) => pos,
+    Err(e) => {
+      eprintln!("Error fetching user position: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  if user_position.positions.is_empty() {
+    println!("\nNo positions found for user: {}", user_address);
+    return;
+  }
+
+  // Filter positions if --reserve-token was provided
+  let positions: Vec<_> = if let Some(ref reserve) = reserve_filter {
+    let reserve_lower = reserve.to_lowercase();
+    user_position
+      .positions
+      .into_iter()
+      .filter(|p| p.reserveAddress.to_lowercase() == reserve_lower)
+      .collect()
+  } else {
+    user_position.positions
+  };
+
+  if positions.is_empty() {
+    println!(
+      "\nNo position found for reserve: {}",
+      reserve_filter.unwrap_or_default()
+    );
+    return;
+  }
+
+  println!("Positions to validate: {}\n", positions.len());
+
+  for position in &positions {
+    let result = validate_position_from_events(&user_address, position, true).await;
+    print_event_validation_result(&result);
+  }
+
+  println!("\n=== Event Replay Validation Complete ===");
+}
+
+pub async fn handle_validate_from_events_all() {
+  println!("\n=== Event Replay Validation (All Users) ===");
+
+  // Fetch all users
+  let users = match find_all_users().await {
+    Ok(users) => users,
+    Err(e) => {
+      eprintln!("Error fetching users: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  let total_users = users.len();
+  println!("Total users to validate: {}\n", total_users);
+
+  let semaphore = Arc::new(Semaphore::new(10));
+
+  let tasks: Vec<_> = users
+    .into_iter()
+    .enumerate()
+    .map(|(idx, user)| {
+      let user_address = user.userAddress.clone();
+      let semaphore = Arc::clone(&semaphore);
+      let total = total_users;
+      task::spawn(async move {
+        let _permit = match semaphore.acquire().await {
+          Ok(permit) => permit,
+          Err(e) => {
+            eprintln!(
+              "Failed to acquire semaphore permit for user {}: {}",
+              user_address, e
+            );
+            return Vec::new();
+          }
+        };
+
+        println!("[{}/{}] Validating user {}...", idx + 1, total, user_address);
+
+        let user_position = match get_user_position(&user_address).await {
+          Ok(pos) => pos,
+          Err(e) => {
+            eprintln!("Error fetching position for user {}: {}", user_address, e);
+            return Vec::new();
+          }
+        };
+
+        let mut results = Vec::new();
+        for position in &user_position.positions {
+          let result = validate_position_from_events(&user_address, position, false).await;
+          results.push(result);
+        }
+        results
+      })
+    })
+    .collect();
+
+  let all_results = join_all(tasks).await;
+
+  // Aggregate results
+  let mut total_positions = 0u64;
+  let mut no_events_count = 0u64;
+  let mut events_vs_chain_mismatches = 0u64;
+  let mut db_vs_chain_mismatches = 0u64;
+  let mut events_vs_db_mismatches = 0u64;
+  let mut error_count = 0u64;
+  // (user, reserve, side, pct, from_events, from_db, on_chain)
+  let mut worst_offenders: Vec<(String, String, String, f64, u128, u128, u128)> = Vec::new();
+
+  for task_result in all_results {
+    match task_result {
+      Ok(results) => {
+        for result in results {
+          if let Some(ref err) = result.error {
+            error_count += 1;
+            println!(
+              "  ❌ User {} | Reserve {}: {}",
+              result.user_address, result.reserve_address, err
+            );
+            continue;
+          }
+
+          // Count no-events gaps (supply=None means no events found, not an error)
+          if result.supply.is_none() {
+            no_events_count += 1;
+          }
+          if result.borrow.is_none() {
+            no_events_count += 1;
+          }
+
+          if let Some(ref supply) = result.supply {
+            total_positions += 1;
+            if supply.events_vs_chain_pct > 0.01 {
+              events_vs_chain_mismatches += 1;
+            }
+            if supply.db_vs_chain_pct > 0.01 {
+              db_vs_chain_mismatches += 1;
+            }
+            if supply.events_vs_db_pct > 0.01 {
+              events_vs_db_mismatches += 1;
+            }
+            let max_pct = supply
+              .events_vs_chain_pct
+              .max(supply.db_vs_chain_pct)
+              .max(supply.events_vs_db_pct);
+            if max_pct > 0.01 {
+              worst_offenders.push((
+                result.user_address.clone(),
+                result.reserve_address.clone(),
+                "Supply".to_string(),
+                max_pct,
+                supply.from_events,
+                supply.from_db,
+                supply.on_chain,
+              ));
+            }
+          }
+
+          if let Some(ref borrow) = result.borrow {
+            total_positions += 1;
+            if borrow.events_vs_chain_pct > 0.01 {
+              events_vs_chain_mismatches += 1;
+            }
+            if borrow.db_vs_chain_pct > 0.01 {
+              db_vs_chain_mismatches += 1;
+            }
+            if borrow.events_vs_db_pct > 0.01 {
+              events_vs_db_mismatches += 1;
+            }
+            let max_pct = borrow
+              .events_vs_chain_pct
+              .max(borrow.db_vs_chain_pct)
+              .max(borrow.events_vs_db_pct);
+            if max_pct > 0.01 {
+              worst_offenders.push((
+                result.user_address.clone(),
+                result.reserve_address.clone(),
+                "Borrow".to_string(),
+                max_pct,
+                borrow.from_events,
+                borrow.from_db,
+                borrow.on_chain,
+              ));
+            }
+          }
+        }
+      }
+      Err(e) => {
+        error_count += 1;
+        eprintln!("Task failed: {}", e);
+      }
+    }
+  }
+
+  // Sort worst offenders by deviation percentage (descending)
+  worst_offenders.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap_or(std::cmp::Ordering::Equal));
+
+  // Print summary
+  println!("\n📊 Summary:");
+  println!("  Total users validated: {}", total_users);
+  println!("  Total positions validated: {}", total_positions);
+  println!("  Positions with no events (skipped): {}", no_events_count);
+  println!(
+    "  Events vs Chain mismatches (>0.01%): {}",
+    events_vs_chain_mismatches
+  );
+  println!(
+    "  DB vs Chain mismatches (>0.01%): {}",
+    db_vs_chain_mismatches
+  );
+  println!(
+    "  Events vs DB mismatches (>0.01%): {}",
+    events_vs_db_mismatches
+  );
+  println!("  Errors: {}", error_count);
+
+  if !worst_offenders.is_empty() {
+    println!("\n🔴 Worst offenders (by max deviation %):");
+    for (i, (user, reserve, side, pct, from_events, from_db, on_chain)) in
+      worst_offenders.iter().take(20).enumerate()
+    {
+      println!(
+        "  {}. {} | {} | {} — {:.4}%",
+        i + 1, user, reserve, side, pct
+      );
+      println!(
+        "     Events: {}  DB: {}  Chain: {}",
+        from_events, from_db, on_chain
+      );
+    }
+  }
+
+  println!("\n=== Event Replay Validation Complete ===");
+}
+
+async fn validate_position_from_events(
+  user_address: &str,
+  position: &crate::models::UserAssetPositionDocument,
+  verbose: bool,
+) -> EventValidationResult {
+  let reserve_address = &position.reserveAddress;
+  let a_token_address = &position.aTokenAddress;
+  let debt_token_address = &position.variableDebtTokenAddress;
+
+  // Get DB scaled balances
+  let db_supply_scaled: u128 = position
+    .aTokenBalance
+    .to_string()
+    .parse::<u128>()
+    .unwrap_or(0);
+  let db_borrow_scaled: u128 = position
+    .variableDebtTokenBalance
+    .to_string()
+    .parse::<u128>()
+    .unwrap_or(0);
+
+  // === Supply side ===
+  let supply_comparison = match validate_side_from_events(
+    user_address,
+    reserve_address,
+    a_token_address,
+    db_supply_scaled,
+    false, // is_debt
+    verbose,
+  )
+  .await
+  {
+    Ok(comparison) => comparison, // None = no events found (expected gap)
+    Err(e) => {
+      if verbose {
+        println!(
+          "  ⚠️  Supply validation error for reserve {}: {}",
+          reserve_address, e
+        );
+      }
+      return EventValidationResult {
+        user_address: user_address.to_string(),
+        reserve_address: reserve_address.to_string(),
+        supply: None,
+        borrow: None,
+        error: Some(format!("Supply error: {}", e)),
+      };
+    }
+  };
+
+  // === Borrow side ===
+  let borrow_comparison = match validate_side_from_events(
+    user_address,
+    reserve_address,
+    debt_token_address,
+    db_borrow_scaled,
+    true, // is_debt
+    verbose,
+  )
+  .await
+  {
+    Ok(comparison) => comparison, // None = no events found (expected gap)
+    Err(e) => {
+      if verbose {
+        println!(
+          "  ⚠️  Borrow validation error for reserve {}: {}",
+          reserve_address, e
+        );
+      }
+      // Return with supply result but borrow error
+      return EventValidationResult {
+        user_address: user_address.to_string(),
+        reserve_address: reserve_address.to_string(),
+        supply: supply_comparison,
+        borrow: None,
+        error: Some(format!("Borrow error: {}", e)),
+      };
+    }
+  };
+
+  EventValidationResult {
+    user_address: user_address.to_string(),
+    reserve_address: reserve_address.to_string(),
+    supply: supply_comparison,
+    borrow: borrow_comparison,
+    error: None,
+  }
+}
+
+/// Retries an async RPC call once after a short delay on failure.
+async fn retry_rpc<F, Fut, T>(f: F) -> Result<T, Box<dyn std::error::Error + Send + Sync>>
+where
+  F: Fn() -> Fut,
+  Fut: std::future::Future<Output = Result<T, Box<dyn std::error::Error + Send + Sync>>>,
+{
+  match f().await {
+    Ok(v) => Ok(v),
+    Err(_first_err) => {
+      tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+      f().await
+    }
+  }
+}
+
+/// Returns None if no events found for this user+token (expected gap, not an error).
+async fn validate_side_from_events(
+  user_address: &str,
+  reserve_address: &str,
+  token_address: &str,
+  db_scaled_balance: u128,
+  is_debt: bool,
+  verbose: bool,
+) -> Result<Option<ThreeWayComparison>, Box<dyn std::error::Error + Send + Sync>> {
+  // Fetch sorted events for this token
+  let events = find_token_events_sorted(token_address)
+    .await
+    .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+      Box::new(std::io::Error::other(
+        format!("Failed to fetch events: {}", e),
+      ))
+    })?;
+
+  // Get current index (with retry for RPC timeouts)
+  let reserve_addr = reserve_address.to_string();
+  let current_index = if is_debt {
+    let r = reserve_addr.clone();
+    retry_rpc(|| {
+      let r = r.clone();
+      async move {
+        get_variable_borrow_index(&r)
+          .await
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(std::io::Error::other(
+              format!("Failed to fetch borrow index: {}", e),
+            ))
+          })
+      }
+    })
+    .await?
+  } else {
+    let r = reserve_addr.clone();
+    retry_rpc(|| {
+      let r = r.clone();
+      async move {
+        get_atoken_liquidity_index(&r)
+          .await
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(std::io::Error::other(
+              format!("Failed to fetch liquidity index: {}", e),
+            ))
+          })
+      }
+    })
+    .await?
+  };
+
+  // Process events to calculate balance from event replay
+  let replay_result = process_user_token_events(&events, user_address, token_address, current_index, verbose)
+    .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+      Box::new(std::io::Error::other(
+        format!("Failed to process events: {}", e),
+      ))
+    })?;
+
+  let events_scaled = replay_result.scaled_balance;
+  let last_event_block = replay_result.last_event_block;
+
+  // No events found for this user+token — report as gap, not mismatch
+  if last_event_block == 0 {
+    return Ok(None);
+  }
+
+  // Get on-chain scaled balance at last event block (with retry)
+  let token_addr = token_address.to_string();
+  let user_addr = user_address.to_string();
+  let on_chain_scaled = retry_rpc(|| {
+    let t = token_addr.clone();
+    let u = user_addr.clone();
+    async move {
+      get_scaled_balance_of(&t, &u, Some(last_event_block))
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+          Box::new(std::io::Error::other(
+            format!("Failed to fetch on-chain scaled balance: {}", e),
+          ))
+        })
+    }
+  })
+  .await?;
+
+  Ok(Some(ThreeWayComparison::new(events_scaled, db_scaled_balance, on_chain_scaled)))
+}
+
+fn print_event_validation_result(result: &EventValidationResult) {
+  if let Some(ref err) = result.error {
+    println!(
+      "❌ User {} | Reserve {}: {}",
+      result.user_address, result.reserve_address, err
+    );
+  }
+
+  match &result.supply {
+    Some(supply) => print_three_way("Supply", &result.user_address, &result.reserve_address, supply),
+    None if result.error.is_none() => println!(
+      "  ⏭️  User {} | Reserve {} | Supply: no events found (skipped)",
+      result.user_address, result.reserve_address
+    ),
+    _ => {}
+  }
+
+  match &result.borrow {
+    Some(borrow) => print_three_way("Borrow", &result.user_address, &result.reserve_address, borrow),
+    None if result.error.is_none() => println!(
+      "  ⏭️  User {} | Reserve {} | Borrow: no events found (skipped)",
+      result.user_address, result.reserve_address
+    ),
+    _ => {}
+  }
+}
+
+fn print_three_way(
+  side: &str,
+  user_address: &str,
+  reserve_address: &str,
+  comparison: &ThreeWayComparison,
+) {
+  let status = if comparison.events_vs_chain_diff == 0
+    && comparison.db_vs_chain_diff == 0
+    && comparison.events_vs_db_diff == 0
+  {
+    "✅"
+  } else if comparison.events_vs_chain_pct < 1.0
+    && comparison.db_vs_chain_pct < 1.0
+    && comparison.events_vs_db_pct < 1.0
+  {
+    "⚠️"
+  } else {
+    "❌"
+  };
+
+  println!(
+    "\n{} 📊 User {} | Reserve {} | {}",
+    status, user_address, reserve_address, side
+  );
+  println!("  From Events:     {}", comparison.from_events);
+  println!("  From DB:         {}", comparison.from_db);
+  println!("  On-Chain:        {}", comparison.on_chain);
+  println!(
+    "  Events vs Chain: {} ({:.4}%)",
+    comparison.events_vs_chain_diff, comparison.events_vs_chain_pct
+  );
+  println!(
+    "  DB vs Chain:     {} ({:.4}%)",
+    comparison.db_vs_chain_diff, comparison.db_vs_chain_pct
+  );
+  println!(
+    "  Events vs DB:    {} ({:.4}%)",
+    comparison.events_vs_db_diff, comparison.events_vs_db_pct
+  );
 }
