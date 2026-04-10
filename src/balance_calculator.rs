@@ -140,6 +140,18 @@ fn extract_event_data(
   }
 }
 
+/// Extracts the index from a mint/burn event regardless of which user it belongs to.
+/// This keeps last_index up-to-date for transfer events that use it as an approximation.
+fn get_event_index(event: &MoneyMarketEventDocument) -> Option<u128> {
+  match event {
+    MoneyMarketEventDocument::ATokenMint(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::ATokenBurn(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::DebtTokenMint(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::DebtTokenBurn(e) => decimal128_to_u128(e.index).ok(),
+    _ => None,
+  }
+}
+
 /// Prints debug information for an event
 fn print_event_debug(
   idx: usize,
@@ -304,6 +316,14 @@ pub fn process_user_token_events(
       continue;
     }
 
+    // Update last_index from any mint/burn event's index for this token (regardless of user).
+    // This keeps the index accurate for transfer events that rely on last_known_index,
+    // especially when the events list contains all users' events for this token.
+    // (We already know the event matches our token from the filter above.)
+    if let Some(event_index) = get_event_index(event) {
+      last_index = event_index;
+    }
+
     // Skip transfer events involving zero address
     if should_skip_transfer_event(event) {
       if verbose {
@@ -321,14 +341,6 @@ pub fn process_user_token_events(
       Some(data) => data,
       None => continue,
     };
-
-    // Update last_index for non-transfer events
-    // NOTE: For transfer events, we use the last known index, accuracy of this is not 100%
-    // ideally we would fetch the index at the block of the transfer, but this is a reasonable
-    // approximation and a good enough trade-off for this tool.
-    if event_data.event_type != EventType::Transfer {
-      last_index = event_data.index;
-    }
 
     // Calculate scaled balance for this event
     let event_scaled = calculate_scaled_balance(
