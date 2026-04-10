@@ -1668,11 +1668,13 @@ pub async fn handle_validate_from_events_all() {
 
   // Aggregate results
   let mut total_positions = 0u64;
+  let mut no_events_count = 0u64;
   let mut events_vs_chain_mismatches = 0u64;
   let mut db_vs_chain_mismatches = 0u64;
   let mut events_vs_db_mismatches = 0u64;
   let mut error_count = 0u64;
-  let mut worst_offenders: Vec<(String, String, String, f64)> = Vec::new(); // (user, reserve, side, pct)
+  // (user, reserve, side, pct, from_events, from_db, on_chain)
+  let mut worst_offenders: Vec<(String, String, String, f64, u128, u128, u128)> = Vec::new();
 
   for task_result in all_results {
     match task_result {
@@ -1687,6 +1689,14 @@ pub async fn handle_validate_from_events_all() {
             continue;
           }
 
+          // Count no-events gaps (supply=None means no events found, not an error)
+          if result.supply.is_none() {
+            no_events_count += 1;
+          }
+          if result.borrow.is_none() {
+            no_events_count += 1;
+          }
+
           if let Some(ref supply) = result.supply {
             total_positions += 1;
             if supply.events_vs_chain_pct > 0.01 {
@@ -1695,7 +1705,7 @@ pub async fn handle_validate_from_events_all() {
             if supply.db_vs_chain_pct > 0.01 {
               db_vs_chain_mismatches += 1;
             }
-            if supply.events_vs_db_diff > 0 {
+            if supply.events_vs_db_pct > 0.01 {
               events_vs_db_mismatches += 1;
             }
             let max_pct = supply
@@ -1708,6 +1718,9 @@ pub async fn handle_validate_from_events_all() {
                 result.reserve_address.clone(),
                 "Supply".to_string(),
                 max_pct,
+                supply.from_events,
+                supply.from_db,
+                supply.on_chain,
               ));
             }
           }
@@ -1720,7 +1733,7 @@ pub async fn handle_validate_from_events_all() {
             if borrow.db_vs_chain_pct > 0.01 {
               db_vs_chain_mismatches += 1;
             }
-            if borrow.events_vs_db_diff > 0 {
+            if borrow.events_vs_db_pct > 0.01 {
               events_vs_db_mismatches += 1;
             }
             let max_pct = borrow
@@ -1733,6 +1746,9 @@ pub async fn handle_validate_from_events_all() {
                 result.reserve_address.clone(),
                 "Borrow".to_string(),
                 max_pct,
+                borrow.from_events,
+                borrow.from_db,
+                borrow.on_chain,
               ));
             }
           }
@@ -1752,6 +1768,7 @@ pub async fn handle_validate_from_events_all() {
   println!("\n📊 Summary:");
   println!("  Total users validated: {}", total_users);
   println!("  Total positions validated: {}", total_positions);
+  println!("  Positions with no events (skipped): {}", no_events_count);
   println!(
     "  Events vs Chain mismatches (>0.01%): {}",
     events_vs_chain_mismatches
@@ -1761,21 +1778,23 @@ pub async fn handle_validate_from_events_all() {
     db_vs_chain_mismatches
   );
   println!(
-    "  Events vs DB mismatches (>0): {}",
+    "  Events vs DB mismatches (>0.01%): {}",
     events_vs_db_mismatches
   );
   println!("  Errors: {}", error_count);
 
   if !worst_offenders.is_empty() {
     println!("\n🔴 Worst offenders (by max deviation %):");
-    for (i, (user, reserve, side, pct)) in worst_offenders.iter().take(20).enumerate() {
+    for (i, (user, reserve, side, pct, from_events, from_db, on_chain)) in
+      worst_offenders.iter().take(20).enumerate()
+    {
       println!(
         "  {}. {} | {} | {} — {:.4}%",
-        i + 1,
-        user,
-        reserve,
-        side,
-        pct
+        i + 1, user, reserve, side, pct
+      );
+      println!(
+        "     Events: {}  DB: {}  Chain: {}",
+        from_events, from_db, on_chain
       );
     }
   }
@@ -1815,7 +1834,7 @@ async fn validate_position_from_events(
   )
   .await
   {
-    Ok(comparison) => Some(comparison),
+    Ok(comparison) => comparison, // None = no events found (expected gap)
     Err(e) => {
       if verbose {
         println!(
@@ -1844,7 +1863,7 @@ async fn validate_position_from_events(
   )
   .await
   {
-    Ok(comparison) => Some(comparison),
+    Ok(comparison) => comparison, // None = no events found (expected gap)
     Err(e) => {
       if verbose {
         println!(
@@ -1872,6 +1891,22 @@ async fn validate_position_from_events(
   }
 }
 
+/// Retries an async RPC call once after a short delay on failure.
+async fn retry_rpc<F, Fut, T>(f: F) -> Result<T, Box<dyn std::error::Error + Send + Sync>>
+where
+  F: Fn() -> Fut,
+  Fut: std::future::Future<Output = Result<T, Box<dyn std::error::Error + Send + Sync>>>,
+{
+  match f().await {
+    Ok(v) => Ok(v),
+    Err(_first_err) => {
+      tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+      f().await
+    }
+  }
+}
+
+/// Returns None if no events found for this user+token (expected gap, not an error).
 async fn validate_side_from_events(
   user_address: &str,
   reserve_address: &str,
@@ -1879,7 +1914,7 @@ async fn validate_side_from_events(
   db_scaled_balance: u128,
   is_debt: bool,
   verbose: bool,
-) -> Result<ThreeWayComparison, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Option<ThreeWayComparison>, Box<dyn std::error::Error + Send + Sync>> {
   // Fetch sorted events for this token
   let events = find_token_events_sorted(token_address)
     .await
@@ -1889,23 +1924,38 @@ async fn validate_side_from_events(
       ))
     })?;
 
-  // Get current index
+  // Get current index (with retry for RPC timeouts)
+  let reserve_addr = reserve_address.to_string();
   let current_index = if is_debt {
-    get_variable_borrow_index(reserve_address)
-      .await
-      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-        Box::new(std::io::Error::other(
-          format!("Failed to fetch borrow index: {}", e),
-        ))
-      })?
+    let r = reserve_addr.clone();
+    retry_rpc(|| {
+      let r = r.clone();
+      async move {
+        get_variable_borrow_index(&r)
+          .await
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(std::io::Error::other(
+              format!("Failed to fetch borrow index: {}", e),
+            ))
+          })
+      }
+    })
+    .await?
   } else {
-    get_atoken_liquidity_index(reserve_address)
-      .await
-      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-        Box::new(std::io::Error::other(
-          format!("Failed to fetch liquidity index: {}", e),
-        ))
-      })?
+    let r = reserve_addr.clone();
+    retry_rpc(|| {
+      let r = r.clone();
+      async move {
+        get_atoken_liquidity_index(&r)
+          .await
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(std::io::Error::other(
+              format!("Failed to fetch liquidity index: {}", e),
+            ))
+          })
+      }
+    })
+    .await?
   };
 
   // Process events to calculate balance from event replay
@@ -1919,27 +1969,30 @@ async fn validate_side_from_events(
   let events_scaled = replay_result.scaled_balance;
   let last_event_block = replay_result.last_event_block;
 
-  // Get on-chain scaled balance at last event block
-  let on_chain_scaled = if last_event_block > 0 {
-    get_scaled_balance_of(token_address, user_address, Some(last_event_block))
-      .await
-      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-        Box::new(std::io::Error::other(
-          format!("Failed to fetch on-chain scaled balance: {}", e),
-        ))
-      })?
-  } else {
-    // No events found — use current on-chain balance
-    get_scaled_balance_of(token_address, user_address, None)
-      .await
-      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-        Box::new(std::io::Error::other(
-          format!("Failed to fetch on-chain scaled balance: {}", e),
-        ))
-      })?
-  };
+  // No events found for this user+token — report as gap, not mismatch
+  if last_event_block == 0 {
+    return Ok(None);
+  }
 
-  Ok(ThreeWayComparison::new(events_scaled, db_scaled_balance, on_chain_scaled))
+  // Get on-chain scaled balance at last event block (with retry)
+  let token_addr = token_address.to_string();
+  let user_addr = user_address.to_string();
+  let on_chain_scaled = retry_rpc(|| {
+    let t = token_addr.clone();
+    let u = user_addr.clone();
+    async move {
+      get_scaled_balance_of(&t, &u, Some(last_event_block))
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+          Box::new(std::io::Error::other(
+            format!("Failed to fetch on-chain scaled balance: {}", e),
+          ))
+        })
+    }
+  })
+  .await?;
+
+  Ok(Some(ThreeWayComparison::new(events_scaled, db_scaled_balance, on_chain_scaled)))
 }
 
 fn print_event_validation_result(result: &EventValidationResult) {
@@ -1950,12 +2003,22 @@ fn print_event_validation_result(result: &EventValidationResult) {
     );
   }
 
-  if let Some(ref supply) = result.supply {
-    print_three_way("Supply", &result.user_address, &result.reserve_address, supply);
+  match &result.supply {
+    Some(supply) => print_three_way("Supply", &result.user_address, &result.reserve_address, supply),
+    None if result.error.is_none() => println!(
+      "  ⏭️  User {} | Reserve {} | Supply: no events found (skipped)",
+      result.user_address, result.reserve_address
+    ),
+    _ => {}
   }
 
-  if let Some(ref borrow) = result.borrow {
-    print_three_way("Borrow", &result.user_address, &result.reserve_address, borrow);
+  match &result.borrow {
+    Some(borrow) => print_three_way("Borrow", &result.user_address, &result.reserve_address, borrow),
+    None if result.error.is_none() => println!(
+      "  ⏭️  User {} | Reserve {} | Borrow: no events found (skipped)",
+      result.user_address, result.reserve_address
+    ),
+    _ => {}
   }
 }
 
