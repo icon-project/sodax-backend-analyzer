@@ -31,6 +31,8 @@ pub enum Flag {
   CalculateFromEvents(String),
   Block(u64),
   InspectUserPosition(String),
+  ValidateFromEvents(String),
+  ValidateFromEventsAll,
 }
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -176,4 +178,61 @@ pub enum FlagType {
   CalculateFromEvents,
   Block,
   InspectUserPosition,
+  ValidateFromEvents,
+}
+
+#[derive(Debug, Clone)]
+pub struct ThreeWayComparison {
+  pub from_events: u128,
+  pub from_db: u128,
+  pub on_chain: u128,
+  pub events_vs_chain_diff: u128,
+  pub events_vs_chain_pct: f64,
+  pub db_vs_chain_diff: u128,
+  pub db_vs_chain_pct: f64,
+  pub events_vs_db_diff: u128,
+  pub events_vs_db_pct: f64,
+}
+
+impl ThreeWayComparison {
+  pub fn new(from_events: u128, from_db: u128, on_chain: u128) -> Self {
+    let events_vs_chain_diff = from_events.abs_diff(on_chain);
+    let db_vs_chain_diff = from_db.abs_diff(on_chain);
+    let events_vs_db_diff = from_events.abs_diff(from_db);
+
+    let pct = |diff: u128, base: u128| -> f64 {
+      if base == 0 {
+        if diff == 0 { 0.0 } else { 100.0 }
+      } else {
+        (diff as f64 / base as f64) * 100.0
+      }
+    };
+
+    ThreeWayComparison {
+      from_events,
+      from_db,
+      on_chain,
+      events_vs_chain_diff,
+      events_vs_chain_pct: pct(events_vs_chain_diff, on_chain),
+      db_vs_chain_diff,
+      db_vs_chain_pct: pct(db_vs_chain_diff, on_chain),
+      events_vs_db_diff,
+      events_vs_db_pct: pct(events_vs_db_diff, from_db),
+    }
+  }
+
+  pub fn has_mismatch(&self, threshold_pct: f64) -> bool {
+    self.events_vs_chain_pct > threshold_pct
+      || self.db_vs_chain_pct > threshold_pct
+      || self.events_vs_db_pct > threshold_pct
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventValidationResult {
+  pub user_address: String,
+  pub reserve_address: String,
+  pub supply: Option<ThreeWayComparison>,
+  pub borrow: Option<ThreeWayComparison>,
+  pub error: Option<String>,
 }

@@ -11,6 +11,7 @@ use sodax_backend_analizer::handlers::{
   handle_get_all_debt_tokens, handle_get_token_events, handle_get_user_events,
   handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
   handle_calculate_from_events, handle_inspect_user_position,
+  handle_validate_from_events, handle_validate_from_events_all,
 };
 use sodax_backend_analizer::cli::parse_args;
 use sodax_backend_analizer::structs::Flag;
@@ -82,6 +83,16 @@ async fn main() {
     } else {
       handle_validate_user_all(flags).await;
     }
+    std::process::exit(0);
+
+  // if the --validate-from-events-all flag was passed
+  } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateFromEventsAll)) {
+    handle_validate_from_events_all().await;
+    std::process::exit(0);
+
+  // if the --validate-from-events flag was passed
+  } else if flags.iter().any(|f: &Flag| matches!(f, Flag::ValidateFromEvents(_))) {
+    handle_validate_from_events(flags).await;
     std::process::exit(0);
 
   // if the --validate-all flag was passed

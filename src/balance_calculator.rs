@@ -149,7 +149,11 @@ fn print_event_debug(
   scaled_after: i128,
   real_before: i128,
   real_after: i128,
+  verbose: bool,
 ) {
+  if !verbose {
+    return;
+  }
   println!("{:03}. {}", idx + 1, event_data.event_name);
   println!("     Block: {}", event_data.block_number);
 
@@ -273,6 +277,7 @@ pub fn process_user_token_events(
   user_address: &str,
   token_address: &str,
   current_index: u128,
+  verbose: bool,
 ) -> Result<BalanceResult, Box<dyn std::error::Error>> {
   let user_lower = user_address.to_lowercase();
   let token_lower = token_address.to_lowercase();
@@ -282,10 +287,12 @@ pub fn process_user_token_events(
   let mut last_index = RAY;
   let mut last_event_block: u64 = 0;
 
-  println!("\n=== Processing Events for User and Token ===");
-  println!("User: {}", user_address);
-  println!("Token: {}", token_address);
-  println!("Current Index: {}\n", current_index);
+  if verbose {
+    println!("\n=== Processing Events for User and Token ===");
+    println!("User: {}", user_address);
+    println!("Token: {}", token_address);
+    println!("Current Index: {}\n", current_index);
+  }
 
   for (idx, event) in events.iter().enumerate() {
     // Skip events not related to our token
@@ -299,11 +306,13 @@ pub fn process_user_token_events(
 
     // Skip transfer events involving zero address
     if should_skip_transfer_event(event) {
-      println!(
-        "{:03}. Skipping transfer event at block {}",
-        idx + 1,
-        event.block_number()
-      );
+      if verbose {
+        println!(
+          "{:03}. Skipping transfer event at block {}",
+          idx + 1,
+          event.block_number()
+        );
+      }
       continue;
     }
 
@@ -348,6 +357,7 @@ pub fn process_user_token_events(
       scaled_balance,
       real_before,
       real_balance,
+      verbose,
     );
   }
 
@@ -367,14 +377,16 @@ pub fn process_user_token_events(
   let calculated_real_from_scaled =
     convert_scaled_to_real_balance(final_scaled_balance, last_index)?;
 
-  println!("=== Final Results ===");
-  println!("Final Scaled Balance: {}", final_scaled_balance);
-  println!(
-    "Final Real Balance (from scaled): {}",
-    calculated_real_from_scaled
-  );
-  println!("Final Real Balance (direct sum): {}", final_real_balance);
-  println!("Last Event Block: {}", last_event_block);
+  if verbose {
+    println!("=== Final Results ===");
+    println!("Final Scaled Balance: {}", final_scaled_balance);
+    println!(
+      "Final Real Balance (from scaled): {}",
+      calculated_real_from_scaled
+    );
+    println!("Final Real Balance (direct sum): {}", final_real_balance);
+    println!("Last Event Block: {}", last_event_block);
+  }
 
   Ok(BalanceResult {
     scaled_balance: final_scaled_balance,
