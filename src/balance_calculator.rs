@@ -154,6 +154,7 @@ fn get_event_index(event: &MoneyMarketEventDocument) -> Option<u128> {
 }
 
 /// Prints debug information for an event
+#[allow(clippy::too_many_arguments)]
 fn print_event_debug(
   idx: usize,
   event_data: &EventData,
@@ -190,7 +191,7 @@ fn print_event_debug(
 }
 
 /// Determines if a transfer event should be skipped (involves zero address)
-fn should_skip_transfer_event(event: &MoneyMarketEventDocument) -> bool {
+pub fn should_skip_transfer_event(event: &MoneyMarketEventDocument) -> bool {
   match event {
     MoneyMarketEventDocument::ATokenTransfer(e) => {
       e.to.to_lowercase() == ZERO_ADDRESS.to_lowercase()
