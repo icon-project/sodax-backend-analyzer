@@ -523,4 +523,11 @@ impl MoneyMarketEventDocument {
       _ => None,
     }
   }
+
+  pub fn transfer_from(&self) -> Option<&str> {
+    match self {
+      Self::ATokenTransfer(e) => Some(&e.from),
+      _ => None,
+    }
+  }
 }
