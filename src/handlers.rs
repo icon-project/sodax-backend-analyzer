@@ -469,12 +469,30 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
     }
 
     relevant_event_count += 1;
-    let event_id = format!(
-      "{}-{}-{}",
-      event.block_number(),
-      event.tx_hash(),
-      event.log_index()
-    );
+
+    // For a-token-transfer events where the inspected user is the sender,
+    // the sodax-backend stores the balance_event with a "-from" suffix on
+    // the eventId (the counterpart "to" side uses the plain form).
+    let is_outgoing_transfer = event
+      .transfer_from()
+      .map(|from| from.to_lowercase() == user_address.to_lowercase())
+      .unwrap_or(false);
+
+    let event_id = if is_outgoing_transfer {
+      format!(
+        "{}-{}-{}-from",
+        event.block_number(),
+        event.tx_hash(),
+        event.log_index()
+      )
+    } else {
+      format!(
+        "{}-{}-{}",
+        event.block_number(),
+        event.tx_hash(),
+        event.log_index()
+      )
+    };
     money_market_event_ids.insert(event_id.clone());
 
     if !balance_history_event_ids.contains(&event_id) {
