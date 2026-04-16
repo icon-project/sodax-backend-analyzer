@@ -1,5 +1,5 @@
 use crate::output;
-use crate::balance_calculator::process_user_token_events;
+use crate::balance_calculator::{process_user_token_events, should_skip_transfer_event};
 #[allow(unused_imports)]
 use crate::db::{
   find_all_reserves,
@@ -459,6 +459,12 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
       }
     } else {
       // Event doesn't have a token address, skip it
+      continue;
+    }
+
+    // Skip a-token-transfer events involving the zero address — the sodax-backend
+    // does not record them in user balance history (they correspond to mint/burn).
+    if should_skip_transfer_event(event) {
       continue;
     }
 
