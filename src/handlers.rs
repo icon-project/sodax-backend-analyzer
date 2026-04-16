@@ -343,6 +343,24 @@ pub async fn handle_user_position(flags: Vec<Flag>) {
   }
 }
 
+/// Reconstructs the eventId in the format the sodax-backend writes to
+/// `user_balance_events`. For `a-token-transfer` events where the inspected
+/// user is the sender, the backend appends a `-from` suffix; every other
+/// relevant event uses the plain `<block>-<tx>-<logIndex>` form.
+fn reconstruct_balance_event_id(
+  block_number: u64,
+  tx_hash: &str,
+  log_index: i64,
+  transfer_from: Option<&str>,
+  user_address: &str,
+) -> String {
+  let is_outgoing_transfer = transfer_from
+    .map(|from| from.eq_ignore_ascii_case(user_address))
+    .unwrap_or(false);
+  let suffix = if is_outgoing_transfer { "-from" } else { "" };
+  format!("{}-{}-{}{}", block_number, tx_hash, log_index, suffix)
+}
+
 pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
   let error_message = "Error: --inspect-user-position requires a user address to be specified.";
   let user_address =
@@ -470,29 +488,13 @@ pub async fn handle_inspect_user_position(flags: Vec<Flag>) {
 
     relevant_event_count += 1;
 
-    // For a-token-transfer events where the inspected user is the sender,
-    // the sodax-backend stores the balance_event with a "-from" suffix on
-    // the eventId (the counterpart "to" side uses the plain form).
-    let is_outgoing_transfer = event
-      .transfer_from()
-      .map(|from| from.to_lowercase() == user_address.to_lowercase())
-      .unwrap_or(false);
-
-    let event_id = if is_outgoing_transfer {
-      format!(
-        "{}-{}-{}-from",
-        event.block_number(),
-        event.tx_hash(),
-        event.log_index()
-      )
-    } else {
-      format!(
-        "{}-{}-{}",
-        event.block_number(),
-        event.tx_hash(),
-        event.log_index()
-      )
-    };
+    let event_id = reconstruct_balance_event_id(
+      event.block_number(),
+      event.tx_hash(),
+      event.log_index(),
+      event.transfer_from(),
+      &user_address,
+    );
     money_market_event_ids.insert(event_id.clone());
 
     if !balance_history_event_ids.contains(&event_id) {
@@ -2100,4 +2102,51 @@ fn print_three_way(
     "  Events vs DB:    {} ({:.4}%)",
     comparison.events_vs_db_diff, comparison.events_vs_db_pct
   );
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn outgoing_transfer_gets_from_suffix() {
+    let id = reconstruct_balance_event_id(
+      55211680,
+      "0x004493f6d37af994c464920f64f657b9425092db69ac9b96714f9c3e91342e44",
+      102,
+      Some("0x996752752F887000C8136ceFB023d12719DAD24a"),
+      "0x996752752f887000c8136cefb023d12719dad24a",
+    );
+    assert_eq!(
+      id,
+      "55211680-0x004493f6d37af994c464920f64f657b9425092db69ac9b96714f9c3e91342e44-102-from"
+    );
+  }
+
+  #[test]
+  fn incoming_transfer_uses_plain_form() {
+    let id = reconstruct_balance_event_id(
+      55211680,
+      "0x004493f6d37af994c464920f64f657b9425092db69ac9b96714f9c3e91342e44",
+      102,
+      Some("0xf2E26765949731f251D5d15f30f483b7a321b3A4"),
+      "0x996752752f887000c8136cefb023d12719dad24a",
+    );
+    assert_eq!(
+      id,
+      "55211680-0x004493f6d37af994c464920f64f657b9425092db69ac9b96714f9c3e91342e44-102"
+    );
+  }
+
+  #[test]
+  fn non_transfer_event_uses_plain_form() {
+    let id = reconstruct_balance_event_id(
+      100,
+      "0xabc",
+      5,
+      None,
+      "0x996752752f887000c8136cefb023d12719dad24a",
+    );
+    assert_eq!(id, "100-0xabc-5");
+  }
 }
