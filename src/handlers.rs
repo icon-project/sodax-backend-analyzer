@@ -16,6 +16,8 @@ use crate::db::{
   find_user_assets_position,
   get_user_position,
   find_user_balance_events,
+  get_partner_asset,
+  find_partner_asset_for_receiver,
 };
 use crate::evm::{
   get_last_block, get_balance_of, get_block_timestamp, get_atoken_liquidity_index,
@@ -33,7 +35,11 @@ use crate::functions::{
   extract_value_from_flags_or_exit, extract_optional_value_from_flags, decimal128_to_u128,
 };
 use crate::structs::{ReserveTokenField, Flag, FlagType, ThreeWayComparison, EventValidationResult};
-use crate::models::{ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument};
+use crate::models::{
+  ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument, PartnerAssetDocument,
+  PartnerOutput,
+};
+use crate::intent_data_decoder::{extract_fee_from_intent_data, FeeIntentData};
 use crate::constants::HELP_MESSAGE;
 use futures::future::join_all;
 use tokio::task;
@@ -2102,6 +2108,461 @@ fn print_three_way(
     "  Events vs DB:    {} ({:.4}%)",
     comparison.events_vs_db_diff, comparison.events_vs_db_pct
   );
+}
+
+// ============================================================================
+// --validate-partner-asset
+// ============================================================================
+//
+// Recomputes the canonical `partner_asset` aggregate from `solver_volume`
+// (which is correct, unique-indexed) and reports per-row drift against the
+// stored values. Used to verify the data-transformator `$inc`-bug from
+// sodax-backend issue #498.
+
+const DEFAULT_PARTNER_ASSET_THRESHOLD: f64 = 0.0001;
+
+#[derive(Debug, Clone)]
+struct OutputTotals {
+  total_fee_in: alloy::primitives::U256,
+  total_volume_out: alloy::primitives::U256,
+  tx_count: u64,
+}
+
+impl OutputTotals {
+  fn new() -> Self {
+    Self {
+      total_fee_in: alloy::primitives::U256::ZERO,
+      total_volume_out: alloy::primitives::U256::ZERO,
+      tx_count: 0,
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
+struct DriftRow {
+  receiver: String,
+  asset: String,
+  chain_id: u64,
+  output_token: String,
+  stored_cnt: u64,
+  computed_cnt: u64,
+  stored_fee: String,
+  computed_fee: String,
+  stored_vol: String,
+  computed_vol: String,
+  cnt_ratio: Option<f64>,
+  fee_ratio: Option<f64>,
+  vol_ratio: Option<f64>,
+  status: &'static str,
+}
+
+fn decimal128_to_u256(d: &mongodb::bson::Decimal128) -> Option<alloy::primitives::U256> {
+  alloy::primitives::U256::from_str_radix(&d.to_string(), 10).ok()
+}
+
+fn u256_to_f64(value: &alloy::primitives::U256) -> f64 {
+  value.to_string().parse::<f64>().unwrap_or(0.0)
+}
+
+fn safe_ratio(stored: f64, computed: f64) -> Option<f64> {
+  if computed == 0.0 {
+    None
+  } else {
+    Some(stored / computed)
+  }
+}
+
+fn ratio_within(ratio: Option<f64>, threshold: f64) -> bool {
+  match ratio {
+    Some(r) => (r - 1.0).abs() <= threshold,
+    None => false,
+  }
+}
+
+pub async fn handle_validate_partner_asset(flags: Vec<Flag>) {
+  let partner_filter = extract_optional_value_from_flags(&flags, FlagType::Partner)
+    .map(|p| p.to_lowercase());
+  let output_json = flags.iter().any(|f| matches!(f, Flag::Json));
+  let threshold = flags
+    .iter()
+    .find_map(|f| match f {
+      Flag::Threshold(t) => Some(*t),
+      _ => None,
+    })
+    .unwrap_or(DEFAULT_PARTNER_ASSET_THRESHOLD);
+
+  if !output_json {
+    output!("\n=== Partner Asset Validation ===");
+    if let Some(ref p) = partner_filter {
+      output!("Partner filter: {}", p);
+    }
+    output!("Threshold: {} (rows within ±{}% are suppressed from table)", threshold, threshold * 100.0);
+  }
+
+  // 1. Load solver_volume (authoritative source) and sort by (blockNumber, logIndex)
+  //    so that any future $max-style accumulation matches the stored convention.
+  let mut solver_rows = match get_solver_volume().await {
+    Ok(rows) => rows,
+    Err(e) => {
+      eprintln!("Error fetching solver_volume: {}", e);
+      std::process::exit(1);
+    }
+  };
+  solver_rows.sort_by_key(|r: &SolverVolumeDocument| (r.blockNumber, r.logIndex));
+
+  if !output_json {
+    output!("Loaded {} solver_volume rows.", solver_rows.len());
+  }
+
+  // 2. Decode + aggregate.
+  type Key = (String, String, u64);
+  let mut computed: std::collections::HashMap<
+    Key,
+    std::collections::HashMap<String, OutputTotals>,
+  > = std::collections::HashMap::new();
+  let mut last_block: std::collections::HashMap<Key, u64> = std::collections::HashMap::new();
+  let mut rows_skipped_no_fee: u64 = 0;
+  let mut rows_skipped_filter: u64 = 0;
+  let mut rows_aggregated: u64 = 0;
+
+  for row in &solver_rows {
+    let Some(FeeIntentData { fee, receiver }) = extract_fee_from_intent_data(&row.data) else {
+      rows_skipped_no_fee += 1;
+      continue;
+    };
+    let receiver_lower = format!("{:#x}", receiver);
+    if let Some(ref pf) = partner_filter
+      && &receiver_lower != pf
+    {
+      rows_skipped_filter += 1;
+      continue;
+    }
+    let asset_lower = row.inputToken.to_lowercase();
+    let output_lower = row.outputToken.to_lowercase();
+    let key: Key = (receiver_lower, asset_lower, row.chainId);
+
+    let amount = match decimal128_to_u256(&row.amount) {
+      Some(a) => a,
+      None => {
+        eprintln!(
+          "Warning: could not parse amount {} as U256 (tx {}); skipping row.",
+          row.amount, row.txHash
+        );
+        continue;
+      }
+    };
+
+    let bucket = computed
+      .entry(key.clone())
+      .or_default()
+      .entry(output_lower)
+      .or_insert_with(OutputTotals::new);
+    bucket.total_fee_in += fee;
+    bucket.total_volume_out += amount;
+    bucket.tx_count += 1;
+
+    let block_entry = last_block.entry(key).or_insert(0);
+    if row.blockNumber > *block_entry {
+      *block_entry = row.blockNumber;
+    }
+    rows_aggregated += 1;
+  }
+
+  if !output_json {
+    output!(
+      "Aggregated {} rows; skipped {} without fee data; {} filtered out by --partner.",
+      rows_aggregated, rows_skipped_no_fee, rows_skipped_filter
+    );
+  }
+
+  // 3. Load partner_asset stored docs.
+  let stored_docs: Vec<PartnerAssetDocument> = match &partner_filter {
+    Some(p) => match find_partner_asset_for_receiver(p).await {
+      Ok(d) => d,
+      Err(e) => {
+        eprintln!("Error fetching partner_asset for receiver {}: {}", p, e);
+        std::process::exit(1);
+      }
+    },
+    None => match get_partner_asset().await {
+      Ok(d) => d,
+      Err(e) => {
+        eprintln!("Error fetching partner_asset: {}", e);
+        std::process::exit(1);
+      }
+    },
+  };
+
+  // Index stored docs by (receiver_lower, asset_lower, chainId) for O(1) lookup.
+  let mut stored: std::collections::HashMap<Key, &PartnerAssetDocument> =
+    std::collections::HashMap::new();
+  for d in &stored_docs {
+    let key: Key = (d.receiver.to_lowercase(), d.asset.to_lowercase(), d.chainId);
+    stored.insert(key, d);
+  }
+
+  // 4. Build the set of all keys to report on (union of computed + stored).
+  let mut all_keys: std::collections::HashSet<Key> = std::collections::HashSet::new();
+  for k in computed.keys() {
+    all_keys.insert(k.clone());
+  }
+  for k in stored.keys() {
+    all_keys.insert(k.clone());
+  }
+
+  // 5. Per (receiver, asset, chainId) × outputToken row build comparison drift entries.
+  let mut drift_rows: Vec<DriftRow> = Vec::new();
+  for key in &all_keys {
+    let empty_outputs: std::collections::HashMap<String, PartnerOutput> =
+      std::collections::HashMap::new();
+    let stored_outputs = stored
+      .get(key)
+      .map(|d| &d.outputs)
+      .unwrap_or(&empty_outputs);
+    let empty_computed: std::collections::HashMap<String, OutputTotals> =
+      std::collections::HashMap::new();
+    let computed_outputs = computed.get(key).unwrap_or(&empty_computed);
+
+    let mut output_tokens: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for ot in stored_outputs.keys() {
+      output_tokens.insert(ot.to_lowercase());
+    }
+    for ot in computed_outputs.keys() {
+      output_tokens.insert(ot.clone());
+    }
+
+    for output_token in &output_tokens {
+      // Stored outputs may be keyed by mixed-case token addresses; do a case-insensitive lookup.
+      let stored_entry = stored_outputs
+        .iter()
+        .find(|(k, _)| k.to_lowercase() == *output_token)
+        .map(|(_, v)| v);
+      let computed_entry = computed_outputs.get(output_token);
+
+      let stored_cnt = stored_entry.map(|s| s.txCount as u64).unwrap_or(0);
+      let computed_cnt = computed_entry.map(|c| c.tx_count).unwrap_or(0);
+
+      let stored_fee_str = stored_entry
+        .map(|s| s.totalFeeIn.to_string())
+        .unwrap_or_else(|| "0".to_string());
+      let computed_fee_str = computed_entry
+        .map(|c| c.total_fee_in.to_string())
+        .unwrap_or_else(|| "0".to_string());
+      let stored_vol_str = stored_entry
+        .map(|s| s.totalVolumeOut.to_string())
+        .unwrap_or_else(|| "0".to_string());
+      let computed_vol_str = computed_entry
+        .map(|c| c.total_volume_out.to_string())
+        .unwrap_or_else(|| "0".to_string());
+
+      let stored_fee_f = stored_fee_str.parse::<f64>().unwrap_or(0.0);
+      let computed_fee_f = computed_entry
+        .map(|c| u256_to_f64(&c.total_fee_in))
+        .unwrap_or(0.0);
+      let stored_vol_f = stored_vol_str.parse::<f64>().unwrap_or(0.0);
+      let computed_vol_f = computed_entry
+        .map(|c| u256_to_f64(&c.total_volume_out))
+        .unwrap_or(0.0);
+
+      let cnt_ratio = safe_ratio(stored_cnt as f64, computed_cnt as f64);
+      let fee_ratio = safe_ratio(stored_fee_f, computed_fee_f);
+      let vol_ratio = safe_ratio(stored_vol_f, computed_vol_f);
+
+      let status = if computed_cnt > 0 && stored_cnt == 0 {
+        "MISSING_IN_STORED"
+      } else if stored_cnt > 0 && computed_cnt == 0 {
+        "EXTRA_IN_STORED"
+      } else if ratio_within(cnt_ratio, threshold)
+        && ratio_within(fee_ratio, threshold)
+        && ratio_within(vol_ratio, threshold)
+      {
+        "OK"
+      } else {
+        "DRIFT"
+      };
+
+      drift_rows.push(DriftRow {
+        receiver: key.0.clone(),
+        asset: key.1.clone(),
+        chain_id: key.2,
+        output_token: output_token.clone(),
+        stored_cnt,
+        computed_cnt,
+        stored_fee: stored_fee_str,
+        computed_fee: computed_fee_str,
+        stored_vol: stored_vol_str,
+        computed_vol: computed_vol_str,
+        cnt_ratio,
+        fee_ratio,
+        vol_ratio,
+        status,
+      });
+    }
+  }
+
+  // Stable ordering for output.
+  drift_rows.sort_by(|a, b| {
+    a.receiver
+      .cmp(&b.receiver)
+      .then(a.asset.cmp(&b.asset))
+      .then(a.chain_id.cmp(&b.chain_id))
+      .then(a.output_token.cmp(&b.output_token))
+  });
+
+  // 6. Summary metrics.
+  let total_rows = drift_rows.len();
+  let rows_ok = drift_rows.iter().filter(|r| r.status == "OK").count();
+  let rows_drift = drift_rows.iter().filter(|r| r.status == "DRIFT").count();
+  let rows_missing = drift_rows
+    .iter()
+    .filter(|r| r.status == "MISSING_IN_STORED")
+    .count();
+  let rows_extra = drift_rows
+    .iter()
+    .filter(|r| r.status == "EXTRA_IN_STORED")
+    .count();
+  let rows_over = drift_rows
+    .iter()
+    .filter(|r| {
+      r.cnt_ratio.map(|x| x > 1.0 + threshold).unwrap_or(false)
+        || r.fee_ratio.map(|x| x > 1.0 + threshold).unwrap_or(false)
+        || r.vol_ratio.map(|x| x > 1.0 + threshold).unwrap_or(false)
+    })
+    .count();
+  let rows_under = drift_rows
+    .iter()
+    .filter(|r| {
+      r.cnt_ratio.map(|x| x < 1.0 - threshold).unwrap_or(false)
+        || r.fee_ratio.map(|x| x < 1.0 - threshold).unwrap_or(false)
+        || r.vol_ratio.map(|x| x < 1.0 - threshold).unwrap_or(false)
+    })
+    .count();
+
+  let cnt_ratios: Vec<f64> = drift_rows.iter().filter_map(|r| r.cnt_ratio).collect();
+  let max_cnt_ratio = cnt_ratios
+    .iter()
+    .cloned()
+    .fold(f64::NEG_INFINITY, f64::max);
+  let min_cnt_ratio = cnt_ratios.iter().cloned().fold(f64::INFINITY, f64::min);
+  let unique_cnt_ratios = {
+    let mut buckets: Vec<f64> = Vec::new();
+    for r in &cnt_ratios {
+      let rounded = (r * 1000.0).round() / 1000.0;
+      if !buckets.iter().any(|b| (b - rounded).abs() < 1e-9) {
+        buckets.push(rounded);
+      }
+    }
+    buckets.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    buckets
+  };
+
+  if output_json {
+    let rows_json: Vec<_> = drift_rows
+      .iter()
+      .map(|r| {
+        serde_json::json!({
+          "receiver": r.receiver,
+          "asset": r.asset,
+          "chainId": r.chain_id,
+          "outputToken": r.output_token,
+          "storedCnt": r.stored_cnt,
+          "computedCnt": r.computed_cnt,
+          "storedFee": r.stored_fee,
+          "computedFee": r.computed_fee,
+          "storedVol": r.stored_vol,
+          "computedVol": r.computed_vol,
+          "cntRatio": r.cnt_ratio,
+          "feeRatio": r.fee_ratio,
+          "volRatio": r.vol_ratio,
+          "status": r.status,
+        })
+      })
+      .collect();
+
+    let summary = serde_json::json!({
+      "partnerAssetDocs": stored_docs.len(),
+      "computedKeys": computed.len(),
+      "rowsTotal": total_rows,
+      "rowsAgreeingWithinThreshold": rows_ok,
+      "rowsWithDrift": rows_drift,
+      "rowsMissingInStored": rows_missing,
+      "rowsExtraInStored": rows_extra,
+      "rowsOverCountedByStored": rows_over,
+      "rowsUnderCountedByStored": rows_under,
+      "maxCntRatio": if cnt_ratios.is_empty() { None } else { Some(max_cnt_ratio) },
+      "minCntRatio": if cnt_ratios.is_empty() { None } else { Some(min_cnt_ratio) },
+      "uniqueCntRatios": unique_cnt_ratios,
+      "solverVolumeRowsAggregated": rows_aggregated,
+      "solverVolumeRowsSkippedNoFee": rows_skipped_no_fee,
+      "solverVolumeRowsSkippedFilter": rows_skipped_filter,
+      "threshold": threshold,
+    });
+    let out = serde_json::json!({
+      "summary": summary,
+      "rows": rows_json,
+    });
+    output!("{}", serde_json::to_string_pretty(&out).unwrap());
+    return;
+  }
+
+  // 7. Human-readable table.
+  output!(
+    "\n{:<44} {:<44} {:<11} {:<44} {:<10} {:<12} {:<9} {:<9} {:<9} {}",
+    "RECEIVER", "ASSET", "CHAIN", "OUTPUT_TOKEN", "STORED_CNT", "COMPUTED_CNT",
+    "CNT_RATIO", "FEE_RATIO", "VOL_RATIO", "STATUS"
+  );
+  let mut printed_rows = 0;
+  for r in &drift_rows {
+    if r.status == "OK" {
+      continue;
+    }
+    let cnt_ratio_s = r
+      .cnt_ratio
+      .map(|x| format!("{:.4}", x))
+      .unwrap_or_else(|| "inf".to_string());
+    let fee_ratio_s = r
+      .fee_ratio
+      .map(|x| format!("{:.4}", x))
+      .unwrap_or_else(|| "inf".to_string());
+    let vol_ratio_s = r
+      .vol_ratio
+      .map(|x| format!("{:.4}", x))
+      .unwrap_or_else(|| "inf".to_string());
+    output!(
+      "{:<44} {:<44} {:<11} {:<44} {:<10} {:<12} {:<9} {:<9} {:<9} {}",
+      r.receiver, r.asset, r.chain_id, r.output_token,
+      r.stored_cnt, r.computed_cnt,
+      cnt_ratio_s, fee_ratio_s, vol_ratio_s, r.status
+    );
+    printed_rows += 1;
+  }
+  if printed_rows == 0 {
+    output!("(no rows outside threshold)");
+  }
+
+  // Summary block.
+  output!("\nSUMMARY:");
+  output!("  partner_asset docs:                {}", stored_docs.len());
+  output!("  computed (receiver, asset) keys:   {}", computed.len());
+  output!("  rows total:                        {}", total_rows);
+  output!("  rows agreeing within threshold:    {} / {}", rows_ok, total_rows);
+  output!("  rows with drift:                   {}", rows_drift);
+  output!("  rows missing in partner_asset:     {}", rows_missing);
+  output!("  rows extra in partner_asset:       {} (no solver_volume backing)", rows_extra);
+  output!("  rows over-counted by stored:       {}", rows_over);
+  output!("  rows under-counted by stored:      {} (should be 0; investigate if not)", rows_under);
+  output!("  solver_volume rows aggregated:     {}", rows_aggregated);
+  output!("  solver_volume rows skipped (no fee data): {}", rows_skipped_no_fee);
+  if cnt_ratios.is_empty() {
+    output!("  max CNT_RATIO observed:            n/a");
+    output!("  min CNT_RATIO observed:            n/a");
+  } else {
+    output!("  max CNT_RATIO observed:            {:.4}", max_cnt_ratio);
+    output!("  min CNT_RATIO observed:            {:.4}", min_cnt_ratio);
+  }
+  let unique_s: Vec<String> = unique_cnt_ratios.iter().map(|r| format!("{:.3}", r)).collect();
+  output!("  unique CNT_RATIO values:           [{}]", unique_s.join(", "));
+  output!("\n=== Partner Asset Validation Complete ===");
 }
 
 #[cfg(test)]

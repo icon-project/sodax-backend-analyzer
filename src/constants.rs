@@ -46,6 +46,10 @@ BULK VALIDATION OPTIONS:
     --validate-all-reserve-indexes       Validate indexes for all reserves
     --validate-from-events <USER_ADDRESS> Validate user positions by replaying raw events (3-way: events vs DB vs on-chain)
     --validate-from-events-all           Validate all users by replaying raw events
+    --validate-partner-asset             Recompute partner_asset aggregates from solver_volume and report drift
+    --partner <ADDRESS>                  Optional: limit --validate-partner-asset to a single receiver address
+    --json                               Optional: emit --validate-partner-asset output as JSON
+    --threshold <PCT>                    Optional: rows within ±PCT of 1.0 are suppressed from the --validate-partner-asset table (default 0.0001)
 
 SCALED VALIDATION:
     The --scaled flag can be combined with validation flags to compare scaled balances instead of real balances:
@@ -120,6 +124,12 @@ EXAMPLES:
     sodax-backend-analizer --validate-from-events 0xuser123...
     sodax-backend-analizer --validate-from-events 0xuser123... --reserve-token 0xtoken456...
     sodax-backend-analizer --validate-from-events-all
+
+    # Partner asset drift validation (recompute from solver_volume)
+    sodax-backend-analizer --validate-partner-asset
+    sodax-backend-analizer --validate-partner-asset --partner 0xpartner123...
+    sodax-backend-analizer --validate-partner-asset --threshold 0
+    sodax-backend-analizer --validate-partner-asset --json
 
 REPORT FILES:
     By default, every command (except --help) saves its output to a report file

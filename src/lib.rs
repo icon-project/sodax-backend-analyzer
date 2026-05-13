@@ -7,6 +7,7 @@ pub mod evm;
 pub mod functions;
 pub mod handlers;
 pub mod helpers;
+pub mod intent_data_decoder;
 pub mod models;
 pub mod report;
 pub mod structs;

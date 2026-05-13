@@ -8,6 +8,7 @@ use crate::models::{
   MoneyMarketEventDocument,
   UserAssetPositionDocument,
   UserBalanceEventDocument,
+  PartnerAssetDocument,
   // IntentEventDocument
 };
 // For async iteration over cursor
@@ -92,6 +93,28 @@ pub async fn get_solver_volume() -> Result<Vec<SolverVolumeDocument>, mongodb::e
     .collection(get_collections_config().solver_volume);
   let docs: Vec<SolverVolumeDocument> = collect_all(collection).await?;
   Ok(docs)
+}
+
+pub async fn get_partner_asset() -> Result<Vec<PartnerAssetDocument>, mongodb::error::Error> {
+  let collection: Collection<PartnerAssetDocument> = get_db()
+    .await
+    .database()
+    .collection(get_collections_config().partner_asset);
+  let docs: Vec<PartnerAssetDocument> = collect_all(collection).await?;
+  Ok(docs)
+}
+
+pub async fn find_partner_asset_for_receiver(
+  receiver: &str,
+) -> Result<Vec<PartnerAssetDocument>, mongodb::error::Error> {
+  let collection: Collection<PartnerAssetDocument> = get_db()
+    .await
+    .database()
+    .collection(get_collections_config().partner_asset);
+
+  let regex = create_regex_for_address(receiver);
+  let filter = doc! { "receiver": &regex };
+  collect_all_with_filter(collection, filter).await
 }
 
 pub async fn find_docs_with_non_null_timestamp()

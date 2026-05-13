@@ -440,10 +440,10 @@ No additional fields.
 | `asset` | String (Address) | |
 | `chainId` | Number | |
 | `lastBlockNumber` | Number | |
-| `outputs` | Map | keyed by solver address |
-| `outputs.<solver>.totalVolumeOut` | Decimal128 | |
-| `outputs.<solver>.totalFeeIn` | Decimal128 | |
-| `outputs.<solver>.txCount` | Number | |
+| `outputs` | Map | keyed by output token address |
+| `outputs.<outputToken>.totalVolumeOut` | Decimal128 | |
+| `outputs.<outputToken>.totalFeeIn` | Decimal128 | |
+| `outputs.<outputToken>.txCount` | Number | |
 | `createdAt` | Date | |
 | `updatedAt` | Date | |
 

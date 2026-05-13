@@ -150,12 +150,42 @@ pub struct SolverVolumeDocument {
   pub txHash: String,
   pub intentHash: String,
   pub solver: String,
+  #[serde(default)]
+  pub inputToken: String,
   pub outputToken: String,
   pub amount: Decimal128,
   pub chainId: u64,
   pub blockNumber: u64,
+  #[serde(default)]
+  pub logIndex: i64,
   pub timestamp: Option<DateTime>,
-  data: String,
+  #[serde(default)]
+  pub data: String,
+  #[serde(rename = "__v")]
+  pub version: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[allow(non_snake_case)]
+pub struct PartnerOutput {
+  pub totalVolumeOut: Decimal128,
+  pub totalFeeIn: Decimal128,
+  pub txCount: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[allow(non_snake_case)]
+pub struct PartnerAssetDocument {
+  #[serde(rename = "_id")]
+  pub id: ObjectId,
+  pub receiver: String,
+  pub asset: String,
+  pub chainId: u64,
+  pub lastBlockNumber: u64,
+  #[serde(default)]
+  pub outputs: std::collections::HashMap<String, PartnerOutput>,
+  pub createdAt: DateTime,
+  pub updatedAt: DateTime,
   #[serde(rename = "__v")]
   pub version: i32,
 }
