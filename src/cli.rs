@@ -202,6 +202,32 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::InspectUserPosition(args[i + 1].clone()));
         consumed_next_arg = true;
       }
+      "--validate-partner-asset" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::ValidatePartnerAsset);
+      }
+      "--partner" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        flags.push(Flag::Partner(args[i + 1].clone()));
+        consumed_next_arg = true;
+      }
+      "--json" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::Json);
+      }
+      "--threshold" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        let threshold = args[i + 1].parse::<f64>().map_err(|_| {
+          format!(
+            "Invalid threshold: {}. Must be a valid floating-point number.",
+            args[i + 1]
+          )
+        })?;
+        flags.push(Flag::Threshold(threshold));
+        consumed_next_arg = true;
+      }
       _ => return Err(format!("Unknown argument: {}", arg).into()),
     }
     // Move to the next argument
@@ -364,6 +390,33 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     if !allowed_companions {
       return Err("--validate-from-events can only be combined with --reserve-token. Use --help for more information.".into());
     }
+  }
+
+  // --validate-partner-asset can be combined with --partner, --json, --threshold (all optional)
+  let has_validate_partner_asset = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::ValidatePartnerAsset));
+  if has_validate_partner_asset {
+    let allowed_companions = flags.iter().all(|flag| {
+      matches!(
+        flag,
+        Flag::ValidatePartnerAsset | Flag::Partner(_) | Flag::Json | Flag::Threshold(_)
+      )
+    });
+    if !allowed_companions {
+      return Err("--validate-partner-asset can only be combined with --partner, --json, --threshold. Use --help for more information.".into());
+    }
+  }
+
+  // --partner, --json and --threshold are only valid alongside --validate-partner-asset
+  let has_partner_companion = flags.iter().any(|flag| {
+    matches!(
+      flag,
+      Flag::Partner(_) | Flag::Json | Flag::Threshold(_)
+    )
+  });
+  if has_partner_companion && !has_validate_partner_asset {
+    return Err("--partner, --json and --threshold can only be used with --validate-partner-asset.".into());
   }
 
   // the following flags need to be used acompanied by

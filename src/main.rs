@@ -12,6 +12,7 @@ use sodax_backend_analizer::handlers::{
   handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
   handle_calculate_from_events, handle_inspect_user_position,
   handle_validate_from_events, handle_validate_from_events_all,
+  handle_validate_partner_asset,
 };
 use sodax_backend_analizer::cli::parse_args;
 use sodax_backend_analizer::report::{init_report, report_path};
@@ -202,6 +203,14 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::CalculateFromEvents(_)))
   {
     handle_calculate_from_events(flags).await;
+    exit_success();
+
+  // if the --validate-partner-asset flag was passed
+  } else if flags
+    .iter()
+    .any(|f: &Flag| matches!(f, Flag::ValidatePartnerAsset))
+  {
+    handle_validate_partner_asset(flags).await;
     exit_success();
   }
 

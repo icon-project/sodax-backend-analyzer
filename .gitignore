@@ -31,3 +31,6 @@ target
 # Reports
 report.txt
 reports/
+
+# Scratch (local-only notes, specs, drafts)
+scratch/

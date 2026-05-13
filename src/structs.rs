@@ -33,6 +33,10 @@ pub enum Flag {
   InspectUserPosition(String),
   ValidateFromEvents(String),
   ValidateFromEventsAll,
+  ValidatePartnerAsset,
+  Partner(String),
+  Json,
+  Threshold(f64),
 }
 #[derive(Debug, Clone)]
 pub struct EntryState {
@@ -130,6 +134,7 @@ pub struct Collections {
   pub eventlog_progress_metadata: &'static str,
   pub solver_volume: &'static str,
   pub user_balance_events: &'static str,
+  pub partner_asset: &'static str,
 }
 
 impl Default for Collections {
@@ -152,6 +157,7 @@ impl Collections {
       eventlog_progress_metadata: "event_log_progress_metadata",
       solver_volume: "solver_volume",
       user_balance_events: "user_balance_events",
+      partner_asset: "partner_asset",
     }
   }
 }
@@ -181,6 +187,7 @@ pub enum FlagType {
   Block,
   InspectUserPosition,
   ValidateFromEvents,
+  Partner,
 }
 
 #[derive(Debug, Clone)]
