@@ -40,7 +40,7 @@ use crate::models::{
   PartnerOutput,
 };
 use crate::intent_data_decoder::{extract_fee_from_intent_data, FeeIntentData};
-use crate::constants::HELP_MESSAGE;
+use crate::constants::{HELP_MESSAGE, RAY};
 use futures::future::join_all;
 use tokio::task;
 use tokio::sync::Semaphore;
@@ -2572,9 +2572,10 @@ pub async fn handle_validate_partner_asset(flags: Vec<Flag>) {
 #[derive(Debug, Clone)]
 struct ReserveReplayRow {
   user: String,
-  scaled: u128,
-  real: u128,
-  on_chain: u128,
+  /// Scaled balance from event replay (the "DB view").
+  db_scaled: u128,
+  /// Scaled balance from on-chain `scaledBalanceOf`, pinned to `last_event_block`.
+  chain_scaled: u128,
   diff: u128,
   pct: f64,
   last_event_block: u64,
@@ -2583,7 +2584,7 @@ struct ReserveReplayRow {
 
 impl ReserveReplayRow {
   fn verdict(&self) -> &'static str {
-    classify_verdict(self.diff, self.on_chain, self.error.is_some())
+    classify_verdict(self.diff, self.chain_scaled, self.error.is_some())
   }
 
   fn verdict_symbol(&self) -> &'static str {
@@ -2596,47 +2597,50 @@ impl ReserveReplayRow {
   }
 }
 
-/// Classifies a (diff, on_chain) pair into a verdict using integer math.
+/// Classifies a (diff, baseline) pair into a verdict using integer math.
 ///
 /// The `pct` field on `ReserveReplayRow` is f64 for display, but f64 loses precision once
 /// values exceed ~2^53 — large enough that a balance comparison could flip buckets purely
 /// from rounding. This function compares against the 1% and 0.01% thresholds with u128
 /// arithmetic so the verdict stays exact regardless of balance magnitude.
 ///
+/// `baseline` is the denominator — in this command's caller it's the on-chain scaled
+/// balance, so the percentage is "how far does the replayed value drift from chain?"
+///
 /// Semantics:
 /// - error set → `"ERROR"` (precedence over numeric verdict)
 /// - diff == 0 → `"PERFECT"`
-/// - on_chain == 0 with diff > 0 → `"SIGNIFICANT"` (db has a balance, chain has none — total mismatch).
-///   Note: this differs from `--calculate-from-events`, which reports such cases as 0% / "Excellent".
-///   The reserve handler aligns with `EntryState::new` in `structs.rs` instead.
-/// - diff/on_chain ≥ 1/100 → `"SIGNIFICANT"`   (≥ 1%)
-/// - diff/on_chain ≥ 1/10000 → `"MINOR"`       (≥ 0.01%)
+/// - baseline == 0 with diff > 0 → `"SIGNIFICANT"` (db replay produced a balance, chain has none).
+///   Note: this differs from `--calculate-from-events`, which reports such cases as 0% /
+///   "Excellent". The reserve handler aligns with `EntryState::new` in `structs.rs` instead.
+/// - diff/baseline ≥ 1/100 → `"SIGNIFICANT"`   (≥ 1%)
+/// - diff/baseline ≥ 1/10000 → `"MINOR"`       (≥ 0.01%)
 /// - otherwise → `"EXCELLENT"`
 ///
 /// `checked_mul` overflows are treated as threshold-met (a `diff` so large that
-/// `diff * 100` or `diff * 10000` overflows u128 implies the ratio against `on_chain` is
+/// `diff * 100` or `diff * 10000` overflows u128 implies the ratio against `baseline` is
 /// astronomically high — well past any threshold).
-fn classify_verdict(diff: u128, on_chain: u128, has_error: bool) -> &'static str {
+fn classify_verdict(diff: u128, baseline: u128, has_error: bool) -> &'static str {
   if has_error {
     return "ERROR";
   }
   if diff == 0 {
     return "PERFECT";
   }
-  if on_chain == 0 {
+  if baseline == 0 {
     return "SIGNIFICANT";
   }
-  // diff/on_chain ≥ 1/100  ⟺  diff*100 ≥ on_chain
+  // diff/baseline ≥ 1/100  ⟺  diff*100 ≥ baseline
   let geq_1pct = diff
     .checked_mul(100)
-    .is_none_or(|v| v >= on_chain);
+    .is_none_or(|v| v >= baseline);
   if geq_1pct {
     return "SIGNIFICANT";
   }
-  // diff/on_chain ≥ 1/10000  ⟺  diff*10000 ≥ on_chain
+  // diff/baseline ≥ 1/10000  ⟺  diff*10000 ≥ baseline
   let geq_0_01pct = diff
     .checked_mul(10000)
-    .is_none_or(|v| v >= on_chain);
+    .is_none_or(|v| v >= baseline);
   if geq_0_01pct {
     return "MINOR";
   }
@@ -2656,9 +2660,8 @@ const RESERVE_REPLAY_CONCURRENCY: usize = 10;
 fn err_row(user: String, msg: String) -> ReserveReplayRow {
   ReserveReplayRow {
     user,
-    scaled: 0,
-    real: 0,
-    on_chain: 0,
+    db_scaled: 0,
+    chain_scaled: 0,
     diff: 0,
     pct: 0.0,
     last_event_block: 0,
@@ -2703,7 +2706,6 @@ async fn prefetch_user_events(users: &[String]) -> EventsCache {
 async fn replay_one_user(
   user_address: String,
   token_address: String,
-  current_index: u128,
   verbose: bool,
   events: CachedEvents,
 ) -> ReserveReplayRow {
@@ -2712,42 +2714,44 @@ async fn replay_one_user(
     Err(e) => return err_row(user_address, format!("fetch events: {}", e)),
   };
 
-  let result = match process_user_token_events(&events, &user_address, &token_address, current_index, verbose) {
+  // We compare scaled-vs-scaled, so the `current_index` argument to
+  // process_user_token_events is unused for the comparison (it's only consulted by the
+  // function's verbose printout). Pass RAY (= 1.0) as a neutral placeholder.
+  let result = match process_user_token_events(&events, &user_address, &token_address, RAY, verbose) {
     Ok(r) => r,
     Err(e) => return err_row(user_address, format!("replay: {}", e)),
   };
 
-  // Compare against on-chain at the block of the last event (meaningful comparison).
-  // Fall back to latest block only if no events were observed for this token.
+  // Compare scaled balance from replay vs. scaled balance on-chain, both pinned to the
+  // user's last event block. This sidesteps the index entirely — no f64 conversion, no
+  // index-timing question. Discrepancies are pure data integrity issues.
   let block = if result.last_event_block > 0 { Some(result.last_event_block) } else { None };
-  let on_chain = match get_balance_of(&token_address, &user_address, block).await {
+  let chain_scaled = match get_scaled_balance_of(&token_address, &user_address, block).await {
     Ok(b) => b,
     Err(e) => {
       return ReserveReplayRow {
         user: user_address,
-        scaled: result.scaled_balance,
-        real: result.real_balance,
-        on_chain: 0,
+        db_scaled: result.scaled_balance,
+        chain_scaled: 0,
         diff: 0,
         pct: 0.0,
         last_event_block: result.last_event_block,
-        error: Some(format!("on-chain balance: {}", e)),
+        error: Some(format!("on-chain scaledBalanceOf: {}", e)),
       };
     }
   };
 
-  let diff = result.real_balance.abs_diff(on_chain);
-  let pct = if on_chain == 0 {
+  let diff = result.scaled_balance.abs_diff(chain_scaled);
+  let pct = if chain_scaled == 0 {
     if diff == 0 { 0.0 } else { 100.0 }
   } else {
-    (diff as f64 / on_chain as f64) * 100.0
+    (diff as f64 / chain_scaled as f64) * 100.0
   };
 
   ReserveReplayRow {
     user: user_address,
-    scaled: result.scaled_balance,
-    real: result.real_balance,
-    on_chain,
+    db_scaled: result.scaled_balance,
+    chain_scaled,
     diff,
     pct,
     last_event_block: result.last_event_block,
@@ -2769,7 +2773,6 @@ fn lookup_events(user: &str, cache: &EventsCache) -> CachedEvents {
 async fn replay_side(
   users: &[String],
   token_address: &str,
-  current_index: u128,
   verbose: bool,
   cache: &EventsCache,
 ) -> Vec<ReserveReplayRow> {
@@ -2784,7 +2787,6 @@ async fn replay_side(
       let row = replay_one_user(
         user.clone(),
         token_address.to_string(),
-        current_index,
         true,
         events,
       )
@@ -2802,7 +2804,7 @@ async fn replay_side(
     .map(|user| {
       let events = lookup_events(&user, cache);
       let token_address = token_address.to_string();
-      async move { replay_one_user(user, token_address, current_index, false, events).await }
+      async move { replay_one_user(user, token_address, false, events).await }
     })
     .buffered(RESERVE_REPLAY_CONCURRENCY)
     .collect()
@@ -2816,19 +2818,19 @@ fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow
     return;
   }
   output!(
-    "{:<44} {:>22} {:>22} {:>22} {:>10} {}",
-    "User", "Scaled", "Real", "On-chain", "Diff%", "Verdict"
+    "{:<44} {:>26} {:>26} {:>10} {}",
+    "User", "DB Scaled", "Chain Scaled", "Diff%", "Verdict"
   );
   for row in rows {
     if let Some(err) = &row.error {
       output!(
-        "{:<44} {:>22} {:>22} {:>22} {:>10} {} {}",
-        row.user, "-", "-", "-", "-", row.verdict_symbol(), err
+        "{:<44} {:>26} {:>26} {:>10} {} {}",
+        row.user, "-", "-", "-", row.verdict_symbol(), err
       );
     } else {
       output!(
-        "{:<44} {:>22} {:>22} {:>22} {:>9.4}% {}",
-        row.user, row.scaled, row.real, row.on_chain, row.pct, row.verdict_symbol()
+        "{:<44} {:>26} {:>26} {:>9.4}% {}",
+        row.user, row.db_scaled, row.chain_scaled, row.pct, row.verdict_symbol()
       );
     }
   }
@@ -2866,9 +2868,8 @@ fn rows_to_json(rows: &[ReserveReplayRow]) -> Vec<serde_json::Value> {
     .map(|r| {
       serde_json::json!({
         "user": r.user,
-        "scaled": r.scaled.to_string(),
-        "real": r.real.to_string(),
-        "onChain": r.on_chain.to_string(),
+        "dbScaled": r.db_scaled.to_string(),
+        "chainScaled": r.chain_scaled.to_string(),
         "diff": r.diff.to_string(),
         "percentage": r.pct,
         "lastEventBlock": r.last_event_block,
@@ -2937,29 +2938,10 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     }
   };
 
-  // Fetch indexes only for the sides we'll process
-  let liquidity_index = if do_supply {
-    match get_atoken_liquidity_index(&reserve_data.reserveAddress).await {
-      Ok(idx) => Some(idx),
-      Err(e) => {
-        eprintln!("Error fetching aToken liquidity index: {}", e);
-        std::process::exit(1);
-      }
-    }
-  } else {
-    None
-  };
-  let borrow_index = if do_borrow {
-    match get_variable_borrow_index(&reserve_data.reserveAddress).await {
-      Ok(idx) => Some(idx),
-      Err(e) => {
-        eprintln!("Error fetching variable borrow index: {}", e);
-        std::process::exit(1);
-      }
-    }
-  } else {
-    None
-  };
+  // No reserve index fetch needed — we compare scaled balances directly (replay's
+  // scaled_balance vs. on-chain scaledBalanceOf), so the liquidity / variableBorrowIndex
+  // never enters the picture. This sidesteps every index-timing question and removes the
+  // f64 precision loss path for large balances.
 
   let mode_label = if a_token_only {
     "supply only"
@@ -3010,7 +2992,6 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     replay_side(
       &reserve_data.suppliers,
       &reserve_data.aTokenAddress,
-      liquidity_index.expect("liquidity_index set when do_supply"),
       verbose && !output_json,
       &events_cache,
     )
@@ -3026,7 +3007,6 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     replay_side(
       &reserve_data.borrowers,
       &reserve_data.variableDebtTokenAddress,
-      borrow_index.expect("borrow_index set when do_borrow"),
       verbose && !output_json,
       &events_cache,
     )
@@ -3042,17 +3022,16 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       "aTokenAddress": reserve_data.aTokenAddress,
       "variableDebtTokenAddress": reserve_data.variableDebtTokenAddress,
       "mode": mode_label,
+      "comparison": "scaled-vs-scaled",
     });
     if do_supply {
       out["supply"] = serde_json::json!({
-        "currentIndex": liquidity_index.unwrap().to_string(),
         "users": rows_to_json(&supply_rows),
         "summary": rows_summary_json(&supply_rows),
       });
     }
     if do_borrow {
       out["borrow"] = serde_json::json!({
-        "currentIndex": borrow_index.unwrap().to_string(),
         "users": rows_to_json(&borrow_rows),
         "summary": rows_summary_json(&borrow_rows),
       });
@@ -3126,20 +3105,18 @@ mod tests {
   // --calculate-from-events-reserve verdict / JSON tests
   // ----------------------------------------------------------
 
-  /// Build a row where the diff/on_chain ratio falls into the target verdict bucket.
-  /// `pct` is set consistently with diff/on_chain (it's now display-only — verdict reads
-  /// the integer fields directly).
-  fn ok_row(diff: u128, on_chain: u128) -> ReserveReplayRow {
-    let pct = if on_chain == 0 {
+  /// Build a row where diff/chain_scaled falls into the target verdict bucket.
+  /// `pct` is set consistently for display only — verdict reads the integer fields.
+  fn ok_row(diff: u128, chain_scaled: u128) -> ReserveReplayRow {
+    let pct = if chain_scaled == 0 {
       if diff == 0 { 0.0 } else { 100.0 }
     } else {
-      (diff as f64 / on_chain as f64) * 100.0
+      (diff as f64 / chain_scaled as f64) * 100.0
     };
     ReserveReplayRow {
       user: "0xuser".to_string(),
-      scaled: 0,
-      real: 0,
-      on_chain,
+      db_scaled: 0,
+      chain_scaled,
       diff,
       pct,
       last_event_block: 100,
@@ -3228,12 +3205,11 @@ mod tests {
 
   #[test]
   fn rows_to_json_emits_u128_as_strings() {
-    // diff=7, on_chain=42: ratio ≈ 16.7% → SIGNIFICANT under integer math.
+    // diff=7, chain_scaled=42: ratio ≈ 16.7% → SIGNIFICANT under integer math.
     let row = ReserveReplayRow {
       user: "0xabc".to_string(),
-      scaled: u128::MAX,
-      real: u128::MAX - 1,
-      on_chain: 42,
+      db_scaled: u128::MAX,
+      chain_scaled: 42,
       diff: 7,
       pct: 16.666_666_666_666_668,
       last_event_block: 12345,
@@ -3243,9 +3219,8 @@ mod tests {
     let v = &arr[0];
     // u128 fields are stringified so they survive JSON without precision loss.
     assert_eq!(v["user"], "0xabc");
-    assert_eq!(v["scaled"], u128::MAX.to_string());
-    assert_eq!(v["real"], (u128::MAX - 1).to_string());
-    assert_eq!(v["onChain"], "42");
+    assert_eq!(v["dbScaled"], u128::MAX.to_string());
+    assert_eq!(v["chainScaled"], "42");
     assert_eq!(v["diff"], "7");
     assert_eq!(v["percentage"], 16.666_666_666_666_668);
     assert_eq!(v["lastEventBlock"], 12345);
@@ -3257,18 +3232,17 @@ mod tests {
   fn rows_to_json_preserves_error_message() {
     let row = ReserveReplayRow {
       user: "0xdef".to_string(),
-      scaled: 0,
-      real: 0,
-      on_chain: 0,
+      db_scaled: 0,
+      chain_scaled: 0,
       diff: 0,
       pct: 0.0,
       last_event_block: 0,
-      error: Some("on-chain balance: rpc unreachable".to_string()),
+      error: Some("on-chain scaledBalanceOf: rpc unreachable".to_string()),
     };
     let arr = rows_to_json(&[row]);
     let v = &arr[0];
     assert_eq!(v["verdict"], "ERROR");
-    assert_eq!(v["error"], "on-chain balance: rpc unreachable");
+    assert_eq!(v["error"], "on-chain scaledBalanceOf: rpc unreachable");
   }
 
   // ----------------------------------------------------------

@@ -408,21 +408,23 @@ cargo run -- --calculate-from-events 0xuser... --debt-token 0xdebt...
 
 ### `--calculate-from-events-reserve <RESERVE_ADDRESS>`
 
-Reserve-scoped version of `--calculate-from-events`: runs the same per-user event replay + on-chain comparison, but iterates **every user with a position in the reserve** (both supply and borrow sides by default).
+Reserve-scoped event-replay reconstruction: iterates **every user with a position in the reserve** (both supply and borrow sides by default) and verifies that the DB's view of each user's scaled balance matches what the chain reports.
 
 For each user × selected side, the handler:
 
 1. Pulls the user's events for that token from `money_market_events`.
-2. Replays them to compute the scaled balance, then derives the real balance using the current liquidity index (supply) or variable borrow index (borrow).
-3. Compares against the on-chain balance at the user's last event block (latest block as fallback if the user has no events).
-4. Classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
+2. Replays them to compute the **scaled** balance (the raw value stored on-chain before the liquidity / variable-borrow index is applied).
+3. Calls `scaledBalanceOf(user)` on the chain, **pinned to the user's last event block** (`alloy`'s `.block(N)` historical call). This sidesteps the liquidity / variable-borrow index entirely — no f64 conversion, no question of whether the index was queried at the same block as the balance, no drift from interest accrual between snapshots. If a discrepancy shows up, it's a real data integrity issue (missing events, wrong scaled math) rather than a timing artifact.
+4. Compares `db_scaled` to `chain_scaled` and classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
+
+> **Why scaled, not real?** Real balances on Aave-style markets are `scaledBalance × index / RAY` where `index` keeps moving as interest accrues. Comparing real-vs-real requires both sides to agree on the index at exactly the same block; comparing scaled-vs-scaled is a direct integer equality check that needs no index at all. We pin the on-chain call to `last_event_block` so the chain reads the scaled balance as it stood at the moment the user's last replayed event was applied.
 
 Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve_tokens.borrowers`. Within a single side, up to 10 user replays run in parallel; the two sides are processed sequentially (supply then borrow), so peak concurrency across the whole command is ~10 — not 20. Row order in the output matches the input user list (the implementation uses an ordered `buffered` stream).
 
 **Output modes:**
-- Default: one compact table per side (user, scaled, real, on-chain, diff%, verdict) plus a per-side summary count.
+- Default: one compact table per side (User, DB Scaled, Chain Scaled, Diff%, Verdict) plus a per-side summary count.
 - `--verbose`: prints the full per-user replay block (matching `--calculate-from-events`) for every user. Useful for debugging a small reserve; noisy on large ones. Replays run **sequentially** in this mode so each user's block stays contiguous (rather than interleaved across concurrent tasks).
-- `--json`: emits the full result (per-user rows + summary, per side) as a single JSON document for downstream tooling.
+- `--json`: emits the full result (per-user rows + summary, per side) as a single JSON document for downstream tooling. Each user row has `dbScaled`, `chainScaled`, `diff` (all u128 as strings to survive JSON precision), `percentage` (f64, display), `lastEventBlock`, `verdict`, and `error`.
 - `--verbose` and `--json` are mutually exclusive.
 
 **Performance:**
@@ -430,8 +432,8 @@ Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve
 - Non-verbose replays run with up to 10 users in parallel within a side; supply and borrow are processed sequentially, so peak concurrency is ~10 across the command. Verbose runs sequentially.
 
 **Verdict math:**
-- The verdict bucket (`PERFECT` / `EXCELLENT` / `MINOR` / `SIGNIFICANT` / `ERROR`) is computed from `diff` and `on_chain` with u128 integer arithmetic, so it's exact regardless of balance magnitude. The `percentage` field in the JSON / table is f64 for display only.
-- When `on_chain == 0` but `diff > 0` (DB shows a balance the chain doesn't have), the row is classified `SIGNIFICANT`. This aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat the reserve handler as authoritative.
+- The verdict bucket is computed from `diff` and `chain_scaled` with u128 integer arithmetic, so it's exact regardless of balance magnitude. `percentage` is f64 for display only.
+- When `chain_scaled == 0` but `diff > 0` (DB replay produced a balance the chain doesn't have), the row is classified `SIGNIFICANT`. This aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat this handler as authoritative.
 
 **Side selection:**
 - Default: process both supply and borrow.
