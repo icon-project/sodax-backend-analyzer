@@ -3246,6 +3246,18 @@ async fn run_reserve_side(
       reserve.borrowers.as_slice(),
     ),
   };
+  // Short-circuit zero-user sides BEFORE fetching events. A reserve with no
+  // suppliers/borrowers on this side has nothing to replay, so spending a DB roundtrip
+  // on its event stream is wasted — and worse, if that fetch happens to fail (token
+  // never traded, RPC blip, etc.) the side would surface as a fetch_error and land in
+  // `reservesWithErrors`, producing false-positive alerts for reserves that didn't
+  // actually drift. Treat empty sides as neutral instead.
+  if users.is_empty() {
+    return ReserveSideResult {
+      rows: Vec::new(),
+      fetch_error: None,
+    };
+  }
   let token_events = match find_token_events_sorted(token_address).await {
     Ok(events) => Arc::new(events),
     Err(e) => {
