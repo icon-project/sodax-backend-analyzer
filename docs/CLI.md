@@ -423,12 +423,12 @@ This isolates two independent integrity gates:
 - **DB Events Scaled vs Chain Scaled** (the primary `Diff%` and `Verdict` columns) — does the event log we ingest match what the chain applied? Failures here mean missed / wrong events in `money_market_events`.
 - **DB Events Scaled vs Position Scaled** (eyeball comparison) — does the backend's `user_positions` derivation logic agree with our replay of the same events? Failures here mean a bug in how the backend computes `user_positions` from `money_market_events`.
 
-For each user × selected side, the handler:
+The handler fetches the full token-event stream **once per side** (one query for the aToken, one for the variable-debt token) via `find_token_events_sorted`. That stream is shared by `Arc` across every user's replay. For each user × selected side, the handler then:
 
-1. Pulls the user's events for that token from `money_market_events`.
-2. Replays them to compute the **scaled** balance (raw value before liquidity / variable-borrow index is applied).
+1. Runs `process_user_token_events` against the **full token-event stream**. The function filters the deltas to the target user internally, but processes every event in block / logIndex order first — so `last_index` is updated by any mint/burn by *any* user before our user's transfer events land. (Earlier per-user-only fetches missed cross-user mints that defined the pool's liquidity index at transfer time, which caused transfers-as-first-event to credit an inflated scaled balance.)
+2. The result is the **scaled** balance (raw value before liquidity / variable-borrow index is applied) plus the user's `last_event_block`.
 3. Looks up the user's `user_positions` document and pulls the scaled balance for this reserve + side.
-4. Calls `scaledBalanceOf(user)` on the chain, **pinned to the user's last event block** (alloy's `.block(N)` historical call). This sidesteps the liquidity / variable-borrow index entirely — no f64 conversion, no question of whether the index was queried at the same block as the balance, no drift from interest accrual between snapshots.
+4. Calls `scaledBalanceOf(user)` on the chain, **pinned to the user's last event block** (alloy's `.block(N)` historical call). This sidesteps the liquidity / variable-borrow index entirely — no f64 conversion, no question of whether the index was queried at the same block as the balance, no drift from interest accrual between snapshots. If `last_event_block == 0` (no matching events found for the user in the token stream), the row is classified `ERROR` rather than degrading to an unpinned latest-block comparison.
 5. Compares `db_scaled` to `chain_scaled` and classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
 
 > **Why scaled, not real?** Real balances on Aave-style markets are `scaledBalance × index / RAY` where `index` keeps moving as interest accrues. Comparing real-vs-real requires both sides to agree on the index at exactly the same block; comparing scaled-vs-scaled is a direct integer equality check that needs no index at all. Both `user_positions` and `scaledBalanceOf` are stored / computed in scaled units, so the three-way comparison is apples-to-apples.

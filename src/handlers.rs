@@ -2743,6 +2743,7 @@ async fn replay_one_user(
   verbose: bool,
   token_events: Arc<Vec<MoneyMarketEventDocument>>,
   position_scaled: Result<u128, String>,
+  current_index_for_display: u128,
 ) -> ReserveReplayRow {
   // We pass the full token-event stream (all users, sorted by block/logIndex), not just
   // events involving our user. `process_user_token_events` filters to the target user
@@ -2752,10 +2753,11 @@ async fn replay_one_user(
   // (set by some earlier user's mint/burn), instead of staying stuck at RAY=1.0 and
   // crediting an inflated scaled balance.
   //
-  // We compare scaled-vs-scaled, so the `current_index` argument to
-  // process_user_token_events is unused for the comparison (it's only consulted by the
-  // function's verbose printout). Pass RAY (= 1.0) as a neutral placeholder.
-  let result = match process_user_token_events(&token_events, &user_address, &token_address, RAY, verbose) {
+  // The `current_index_for_display` argument is purely informational — it's only consulted
+  // by the function's verbose printout. The scaled-vs-scaled comparison does not use it.
+  // In verbose mode the caller fetches the real current index from chain and passes it
+  // here; in non-verbose mode the caller passes RAY since no one reads it.
+  let result = match process_user_token_events(&token_events, &user_address, &token_address, current_index_for_display, verbose) {
     Ok(r) => r,
     Err(e) => {
       let mut row = err_row(user_address, format!("replay: {}", e));
@@ -2764,10 +2766,30 @@ async fn replay_one_user(
     }
   };
 
+  // If the replay found no matching events for this user × token, last_event_block is 0.
+  // That means the user is in suppliers/borrowers but the token-event stream has no entry
+  // touching them — itself a data integrity signal worth surfacing. Treat as ERROR rather
+  // than silently degrading to a "compare at latest block" call (which would be unpinned
+  // and could read a balance reflecting accrued interest the replay never saw).
+  if result.last_event_block == 0 {
+    return ReserveReplayRow {
+      user: user_address,
+      db_scaled: result.scaled_balance,
+      position_scaled,
+      chain_scaled: 0,
+      diff: 0,
+      pct: 0.0,
+      last_event_block: 0,
+      error: Some(
+        "no events found for user in token-event stream (cannot pin chain comparison to a block)".to_string(),
+      ),
+    };
+  }
+
   // Compare scaled balance from replay vs. scaled balance on-chain, both pinned to the
   // user's last event block. This sidesteps the index entirely — no f64 conversion, no
   // index-timing question. Discrepancies are pure data integrity issues.
-  let block = if result.last_event_block > 0 { Some(result.last_event_block) } else { None };
+  let block = Some(result.last_event_block);
   let chain_scaled = match get_scaled_balance_of(&token_address, &user_address, block).await {
     Ok(b) => b,
     Err(e) => {
@@ -2803,6 +2825,7 @@ async fn replay_one_user(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn replay_side(
   users: &[String],
   token_address: &str,
@@ -2811,6 +2834,7 @@ async fn replay_side(
   verbose: bool,
   token_events: Arc<Vec<MoneyMarketEventDocument>>,
   positions_cache: &PositionsCache,
+  current_index_for_display: u128,
 ) -> Vec<ReserveReplayRow> {
   use futures::stream::{self, StreamExt};
 
@@ -2826,6 +2850,7 @@ async fn replay_side(
         true,
         Arc::clone(&token_events),
         position,
+        current_index_for_display,
       )
       .await;
       rows.push(row);
@@ -2842,7 +2867,7 @@ async fn replay_side(
       let position = lookup_position_scaled(&user, reserve_address, side, positions_cache);
       let token_address = token_address.to_string();
       let events = Arc::clone(&token_events);
-      async move { replay_one_user(user, token_address, false, events, position).await }
+      async move { replay_one_user(user, token_address, false, events, position, current_index_for_display).await }
     })
     .buffered(RESERVE_REPLAY_CONCURRENCY)
     .collect()
@@ -2986,10 +3011,29 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     }
   };
 
-  // No reserve index fetch needed — we compare scaled balances directly (replay's
-  // scaled_balance vs. on-chain scaledBalanceOf), so the liquidity / variableBorrowIndex
-  // never enters the picture. This sidesteps every index-timing question and removes the
-  // f64 precision loss path for large balances.
+  // No reserve index fetch needed for the verdict — we compare scaled balances directly
+  // (replay's scaled_balance vs. on-chain scaledBalanceOf), so the liquidity /
+  // variableBorrowIndex never enters the comparison. The verdict math sidesteps every
+  // index-timing question and the f64 precision loss path for large balances.
+  //
+  // We still fetch the current pool indexes when --verbose is set so the per-user replay
+  // header (printed by process_user_token_events) shows a real number instead of the RAY
+  // placeholder. The number is informational and not used in the verdict.
+  let want_index_for_verbose = verbose && !output_json;
+  let supply_current_index = if do_supply && want_index_for_verbose {
+    get_atoken_liquidity_index(&reserve_data.reserveAddress)
+      .await
+      .unwrap_or(RAY)
+  } else {
+    RAY
+  };
+  let borrow_current_index = if do_borrow && want_index_for_verbose {
+    get_variable_borrow_index(&reserve_data.reserveAddress)
+      .await
+      .unwrap_or(RAY)
+  } else {
+    RAY
+  };
 
   let mode_label = if a_token_only {
     "supply only"
@@ -3081,6 +3125,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       verbose && !output_json,
       supply_token_events.clone().expect("supply_token_events set when do_supply"),
       &positions_cache,
+      supply_current_index,
     )
     .await
   } else {
@@ -3099,6 +3144,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       verbose && !output_json,
       borrow_token_events.clone().expect("borrow_token_events set when do_borrow"),
       &positions_cache,
+      borrow_current_index,
     )
     .await
   } else {
