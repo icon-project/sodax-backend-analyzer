@@ -442,8 +442,9 @@ Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve
 - `--verbose` and `--json` are mutually exclusive.
 
 **Performance:**
-- Both events and `user_positions` are prefetched once per unique user (the union of `suppliers` and `borrowers`, case-insensitive), so users present on both sides aren't fetched twice. Total memory still scales with the sum of all users' event payloads — only the concurrent fan-out is bounded, not the cache itself.
-- Both prefetches and non-verbose replays use bounded concurrency (10 in flight). Supply and borrow sides are processed sequentially, so peak concurrency is ~10 across the command. Verbose runs sequentially.
+- Events are fetched **once per side** (one query for the aToken, one for the variable-debt token) and shared across every user via `Arc`. This is N=2 DB queries for events regardless of user count, and — crucially — captures mints/burns by *every* user for the token. `process_user_token_events` filters to the target user internally, but sees the full stream first, so `last_index` is always up-to-date by the time a user's transfer lands. (Earlier per-user-only fetches missed cross-user mints that defined the pool's liquidity index at transfer time, which produced inflated scaled balances for users whose first event for a token was a transfer.)
+- `user_positions` are prefetched once per unique user (case-insensitive union of `suppliers` and `borrowers`) with bounded fan-out (`buffered(10)`).
+- Non-verbose replays use bounded concurrency (10 in flight). Supply and borrow sides are processed sequentially, so peak concurrency is ~10 across the command. Verbose runs sequentially.
 
 **Verdict math:**
 - The verdict bucket is computed from `diff` and `chain_scaled` with u128 integer arithmetic, so it's exact regardless of balance magnitude. `percentage` is f64 for display only.

@@ -2651,14 +2651,6 @@ fn classify_verdict(diff: u128, baseline: u128, has_error: bool) -> &'static str
   "EXCELLENT"
 }
 
-/// Per-user event cache value. `Arc<Vec<_>>` lets us share the same vector across both
-/// supply and borrow replays for users present on both sides — no clones of the event payload.
-type CachedEvents = Result<Arc<Vec<MoneyMarketEventDocument>>, String>;
-
-/// Per-user event cache. Keyed by lowercased address. Storing the events behind an `Arc`
-/// means we never copy the event payload, even across multiple replays of the same user.
-type EventsCache = std::collections::HashMap<String, CachedEvents>;
-
 /// Per-user user_positions cache value. We need read-only access to the user's positions
 /// array (one entry per reserve they hold), keyed by reserve address.
 type CachedPositions = Result<Arc<Vec<UserAssetPositionDocument>>, String>;
@@ -2685,40 +2677,6 @@ fn err_row(user: String, msg: String) -> ReserveReplayRow {
     last_event_block: 0,
     error: Some(msg),
   }
-}
-
-/// Fetch each user's events once. Fan-out is bounded by `buffered` — at most
-/// `RESERVE_REPLAY_CONCURRENCY` futures in flight at any time, no upfront spawn of N tasks.
-/// `buffered` (rather than `buffer_unordered`) preserves the input order; only the order
-/// here is incidental since the cache is keyed by address, but it keeps the function
-/// behavior deterministic.
-///
-/// Note: the function still buffers every user's events into the returned cache, so total
-/// memory scales with the sum of all users' event payloads. Only the *concurrent fan-out*
-/// is bounded — this is not a streaming pipeline.
-///
-/// Errors are stored per-user so a single failure doesn't take down the whole scan.
-async fn prefetch_user_events(users: &[String]) -> EventsCache {
-  use futures::stream::{self, StreamExt};
-
-  let results: Vec<(String, CachedEvents)> =
-    stream::iter(users.iter().cloned())
-      .map(|user| async move {
-        let res = find_user_events(&user)
-          .await
-          .map(Arc::new)
-          .map_err(|e| e.to_string());
-        (user.to_lowercase(), res)
-      })
-      .buffered(RESERVE_REPLAY_CONCURRENCY)
-      .collect()
-      .await;
-
-  let mut map: EventsCache = std::collections::HashMap::with_capacity(results.len());
-  for (key, res) in results {
-    map.insert(key, res);
-  }
-  map
 }
 
 /// Fetch each user's `user_positions` document once with bounded fan-out. Stores the
@@ -2783,22 +2741,21 @@ async fn replay_one_user(
   user_address: String,
   token_address: String,
   verbose: bool,
-  events: CachedEvents,
+  token_events: Arc<Vec<MoneyMarketEventDocument>>,
   position_scaled: Result<u128, String>,
 ) -> ReserveReplayRow {
-  let events = match events {
-    Ok(e) => e,
-    Err(e) => {
-      let mut row = err_row(user_address, format!("fetch events: {}", e));
-      row.position_scaled = position_scaled;
-      return row;
-    }
-  };
-
+  // We pass the full token-event stream (all users, sorted by block/logIndex), not just
+  // events involving our user. `process_user_token_events` filters to the target user
+  // inside, but it crucially also updates `last_index` from any mint/burn event on the
+  // token before that filter — so when our user's first event for the token is a
+  // transfer, `last_index` already reflects the pool's liquidity index at that block
+  // (set by some earlier user's mint/burn), instead of staying stuck at RAY=1.0 and
+  // crediting an inflated scaled balance.
+  //
   // We compare scaled-vs-scaled, so the `current_index` argument to
   // process_user_token_events is unused for the comparison (it's only consulted by the
   // function's verbose printout). Pass RAY (= 1.0) as a neutral placeholder.
-  let result = match process_user_token_events(&events, &user_address, &token_address, RAY, verbose) {
+  let result = match process_user_token_events(&token_events, &user_address, &token_address, RAY, verbose) {
     Ok(r) => r,
     Err(e) => {
       let mut row = err_row(user_address, format!("replay: {}", e));
@@ -2846,24 +2803,13 @@ async fn replay_one_user(
   }
 }
 
-/// Look up cached events for a user (case-insensitive). Returns a clone of the shared
-/// `Arc` on hit (no payload copy), the stored fetch error on prefetch failure, or a
-/// "not in cache" sentinel otherwise.
-fn lookup_events(user: &str, cache: &EventsCache) -> CachedEvents {
-  match cache.get(&user.to_lowercase()) {
-    Some(Ok(events)) => Ok(Arc::clone(events)),
-    Some(Err(e)) => Err(e.clone()),
-    None => Err("events not in prefetch cache".to_string()),
-  }
-}
-
 async fn replay_side(
   users: &[String],
   token_address: &str,
   reserve_address: &str,
   side: PositionSide,
   verbose: bool,
-  events_cache: &EventsCache,
+  token_events: Arc<Vec<MoneyMarketEventDocument>>,
   positions_cache: &PositionsCache,
 ) -> Vec<ReserveReplayRow> {
   use futures::stream::{self, StreamExt};
@@ -2873,13 +2819,12 @@ async fn replay_side(
   if verbose {
     let mut rows = Vec::with_capacity(users.len());
     for user in users {
-      let events = lookup_events(user, events_cache);
       let position = lookup_position_scaled(user, reserve_address, side, positions_cache);
       let row = replay_one_user(
         user.clone(),
         token_address.to_string(),
         true,
-        events,
+        Arc::clone(&token_events),
         position,
       )
       .await;
@@ -2894,9 +2839,9 @@ async fn replay_side(
   // RESERVE_REPLAY_CONCURRENCY futures in flight; no upfront fan-out.
   stream::iter(users.iter().cloned())
     .map(|user| {
-      let events = lookup_events(&user, events_cache);
       let position = lookup_position_scaled(&user, reserve_address, side, positions_cache);
       let token_address = token_address.to_string();
+      let events = Arc::clone(&token_events);
       async move { replay_one_user(user, token_address, false, events, position).await }
     })
     .buffered(RESERVE_REPLAY_CONCURRENCY)
@@ -3082,14 +3027,45 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     set.into_iter().collect()
   };
   if !output_json {
-    output!("\nPrefetching events for {} unique users…", unique_users.len());
-  }
-  let events_cache = prefetch_user_events(&unique_users).await;
-
-  if !output_json {
     output!("Prefetching user_positions for {} unique users…", unique_users.len());
   }
   let positions_cache = prefetch_user_positions(&unique_users).await;
+
+  // Fetch the full token-event stream once per side. This is N=1 DB query per side
+  // regardless of user count and — critically — captures mints/burns by *every* user
+  // for this token. `process_user_token_events` filters to the target user internally,
+  // but sees the full stream first, so `last_index` is always up-to-date by the time
+  // a user's transfer event lands. (Per-user event fetches missed cross-user mints
+  // that defined the pool's liquidity index at transfer time, which previously caused
+  // transfers-as-first-event to credit an inflated scaled balance.)
+  let supply_token_events = if do_supply {
+    if !output_json {
+      output!("\nFetching aToken events…");
+    }
+    match find_token_events_sorted(&reserve_data.aTokenAddress).await {
+      Ok(events) => Some(Arc::new(events)),
+      Err(e) => {
+        eprintln!("Error fetching aToken events: {}", e);
+        std::process::exit(1);
+      }
+    }
+  } else {
+    None
+  };
+  let borrow_token_events = if do_borrow {
+    if !output_json {
+      output!("Fetching variable debt token events…");
+    }
+    match find_token_events_sorted(&reserve_data.variableDebtTokenAddress).await {
+      Ok(events) => Some(Arc::new(events)),
+      Err(e) => {
+        eprintln!("Error fetching variable debt token events: {}", e);
+        std::process::exit(1);
+      }
+    }
+  } else {
+    None
+  };
 
   // Run each selected side. In verbose mode, process_user_token_events prints per-event
   // detail as it runs, so we suppress the compact table afterward to avoid duplication.
@@ -3103,7 +3079,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       &reserve_data.reserveAddress,
       PositionSide::Supply,
       verbose && !output_json,
-      &events_cache,
+      supply_token_events.clone().expect("supply_token_events set when do_supply"),
       &positions_cache,
     )
     .await
@@ -3121,7 +3097,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       &reserve_data.reserveAddress,
       PositionSide::Borrow,
       verbose && !output_json,
-      &events_cache,
+      borrow_token_events.clone().expect("borrow_token_events set when do_borrow"),
       &positions_cache,
     )
     .await
