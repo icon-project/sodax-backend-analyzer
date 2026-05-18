@@ -5,10 +5,6 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   let args: Vec<String> = env::args().collect();
   let mut flags: Vec<Flag> = Vec::new();
 
-  if args.len() < 2 {
-    return Err("Not enough arguments".into());
-  }
-
   let mut i: usize = 1; // Start from 1 to skip the program name
   while i < args.len() {
     // Track whether this flag consumed the following argument
