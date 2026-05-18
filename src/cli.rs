@@ -109,6 +109,10 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::CalculateFromEventsReserve(args[i + 1].clone()));
         consumed_next_arg = true;
       }
+      "--calculate-from-events-reserve-all" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::CalculateFromEventsReserveAll);
+      }
       "--a-token-only" => {
         validate_flag_does_not_accept_argument(i, &args)?;
         flags.push(Flag::ATokenOnly);
@@ -427,6 +431,9 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   let has_calculate_from_events_reserve = flags
     .iter()
     .any(|flag| matches!(flag, Flag::CalculateFromEventsReserve(_)));
+  let has_calculate_from_events_reserve_all = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::CalculateFromEventsReserveAll));
   let has_a_token_only = flags.iter().any(|flag| matches!(flag, Flag::ATokenOnly));
   let has_debt_token_only = flags.iter().any(|flag| matches!(flag, Flag::DebtTokenOnly));
   if has_calculate_from_events_reserve {
@@ -455,10 +462,29 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     }
   }
 
+  // --calculate-from-events-reserve-all is the market-wide variant. It accepts the same
+  // companions as --calculate-from-events-reserve except --verbose: running the verbose
+  // per-event replay across every reserve in the market produces unusable amounts of
+  // output, so verbose's value is restricted to single-reserve debugging.
+  if has_calculate_from_events_reserve_all {
+    let allowed_companions = flags.iter().all(|flag| {
+      matches!(
+        flag,
+        Flag::CalculateFromEventsReserveAll | Flag::ATokenOnly | Flag::DebtTokenOnly | Flag::Json
+      )
+    });
+    if !allowed_companions {
+      return Err("--calculate-from-events-reserve-all can only be combined with --a-token-only, --debt-token-only, --json. Use --help for more information.".into());
+    }
+    if has_a_token_only && has_debt_token_only {
+      return Err("--a-token-only and --debt-token-only are mutually exclusive.".into());
+    }
+  }
+
   // --partner and --threshold are only valid alongside --validate-partner-asset.
-  // --json is valid with --validate-partner-asset OR --calculate-from-events-reserve.
-  // --a-token-only, --debt-token-only, --verbose are only valid alongside
-  // --calculate-from-events-reserve.
+  // --json is valid with --validate-partner-asset OR either of the reserve-event-replay
+  // flags. --a-token-only / --debt-token-only / --verbose pair only with the
+  // reserve-event-replay flags (verbose with the single-reserve variant only).
   let has_partner_only_companion = flags
     .iter()
     .any(|flag| matches!(flag, Flag::Partner(_) | Flag::Threshold(_)));
@@ -467,13 +493,23 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
   }
 
   let has_json = flags.iter().any(|flag| matches!(flag, Flag::Json));
-  if has_json && !has_validate_partner_asset && !has_calculate_from_events_reserve {
-    return Err("--json can only be used with --validate-partner-asset or --calculate-from-events-reserve.".into());
+  if has_json
+    && !has_validate_partner_asset
+    && !has_calculate_from_events_reserve
+    && !has_calculate_from_events_reserve_all
+  {
+    return Err("--json can only be used with --validate-partner-asset, --calculate-from-events-reserve, or --calculate-from-events-reserve-all.".into());
   }
 
   let has_verbose = flags.iter().any(|flag| matches!(flag, Flag::Verbose));
-  if (has_a_token_only || has_debt_token_only || has_verbose) && !has_calculate_from_events_reserve {
-    return Err("--a-token-only, --debt-token-only and --verbose can only be used with --calculate-from-events-reserve.".into());
+  if has_verbose && !has_calculate_from_events_reserve {
+    return Err("--verbose can only be used with --calculate-from-events-reserve.".into());
+  }
+  if (has_a_token_only || has_debt_token_only)
+    && !has_calculate_from_events_reserve
+    && !has_calculate_from_events_reserve_all
+  {
+    return Err("--a-token-only and --debt-token-only can only be used with --calculate-from-events-reserve or --calculate-from-events-reserve-all.".into());
   }
 
   // the following flags need to be used acompanied by

@@ -28,9 +28,10 @@ OPTIONS:
     --get-user-events <USER_ADDRESS>  Get events for a specific user
     --calculate-from-events <USER_ADDRESS>  Calculate user's token balance from events (requires one of: --reserve-token, --a-token, or --debt-token)
     --calculate-from-events-reserve <RESERVE_ADDRESS>  Calculate token balances from events for every user in a reserve (compact table by default)
-    --a-token-only                          Restrict --calculate-from-events-reserve to supply (aToken) side only
-    --debt-token-only                       Restrict --calculate-from-events-reserve to variable-debt side only
-    --verbose                               With --calculate-from-events-reserve, print the full per-user replay block instead of the compact table
+    --calculate-from-events-reserve-all     Run --calculate-from-events-reserve across every reserve in the marketplace and emit a market-wide summary
+    --a-token-only                          Restrict --calculate-from-events-reserve / --calculate-from-events-reserve-all to supply (aToken) side only
+    --debt-token-only                       Restrict --calculate-from-events-reserve / --calculate-from-events-reserve-all to variable-debt side only
+    --verbose                               With --calculate-from-events-reserve, print the full per-user replay block instead of the compact table (not valid with the -all variant)
     --inspect-user-position <USER_ADDRESS>  Inspect detailed user position for a specific token (requires either --a-token or --debt-token)
     --scaled                 Use scaled balances instead of real balances for validation (adds to validation flags)
     --no-report              Disable automatic report file generation (reports are saved to reports/ by default)
@@ -52,7 +53,7 @@ BULK VALIDATION OPTIONS:
     --validate-from-events-all           Validate all users by replaying raw events
     --validate-partner-asset             Recompute partner_asset aggregates from solver_volume and report drift
     --partner <ADDRESS>                  Optional: limit --validate-partner-asset to a single receiver address
-    --json                               Optional: emit JSON output (valid with --validate-partner-asset or --calculate-from-events-reserve)
+    --json                               Optional: emit JSON output (valid with --validate-partner-asset, --calculate-from-events-reserve, or --calculate-from-events-reserve-all)
     --threshold <PCT>                    Optional: rows within ±PCT of 1.0 are suppressed from the --validate-partner-asset table (default 0.0001)
 
 SCALED VALIDATION:
@@ -135,6 +136,11 @@ EXAMPLES:
     sodax-backend-analizer --calculate-from-events-reserve 0xreserve... --debt-token-only
     sodax-backend-analizer --calculate-from-events-reserve 0xreserve... --verbose
     sodax-backend-analizer --calculate-from-events-reserve 0xreserve... --json
+
+    # Market-wide event replay (every reserve)
+    sodax-backend-analizer --calculate-from-events-reserve-all
+    sodax-backend-analizer --calculate-from-events-reserve-all --a-token-only
+    sodax-backend-analizer --calculate-from-events-reserve-all --json
 
     # Partner asset drift validation (recompute from solver_volume)
     sodax-backend-analizer --validate-partner-asset

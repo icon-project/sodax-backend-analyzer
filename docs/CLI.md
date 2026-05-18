@@ -79,14 +79,15 @@ Source of truth for the parser and dispatch:
 | `--validate-all` | — | opt. `--scaled` | Validate every reserve + every user |
 | `--calculate-from-events` | user | one token flag | Reconstruct balance from event history |
 | `--calculate-from-events-reserve` | reserve | opt. `--a-token-only`/`--debt-token-only`, `--verbose`, `--json` | Reconstruct balances for every user in a reserve |
-| `--a-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to supply side |
-| `--debt-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to debt side |
-| `--verbose` | — | `--calculate-from-events-reserve` | Print full per-user replay block instead of the compact table |
+| `--calculate-from-events-reserve-all` | — | opt. `--a-token-only`/`--debt-token-only`, `--json` | Reconstruct balances for every user in every reserve (market-wide health check) |
+| `--a-token-only` | — | `--calculate-from-events-reserve` / `--calculate-from-events-reserve-all` | Limit reserve replay to supply side |
+| `--debt-token-only` | — | `--calculate-from-events-reserve` / `--calculate-from-events-reserve-all` | Limit reserve replay to debt side |
+| `--verbose` | — | `--calculate-from-events-reserve` | Print full per-user replay block instead of the compact table (not valid with the -all variant) |
 | `--validate-from-events` | user | opt. `--reserve-token` | 3-way validate (events vs DB vs chain) for one user |
 | `--validate-from-events-all` | — | none | 3-way validate every user |
 | `--validate-partner-asset` | — | opt. `--partner`, `--json`, `--threshold` | Recompute `partner_asset` aggregates and report drift |
 | `--partner` | address | `--validate-partner-asset` | Restrict to one receiver |
-| `--json` | — | `--validate-partner-asset` or `--calculate-from-events-reserve` | Emit JSON output |
+| `--json` | — | `--validate-partner-asset`, `--calculate-from-events-reserve`, or `--calculate-from-events-reserve-all` | Emit JSON output |
 | `--threshold` | float | `--validate-partner-asset` | Suppress rows within ±PCT of 1.0 (default 0.0001) |
 | `--scaled` | — | validation flags | Compare scaled (raw) balances instead of real |
 
@@ -473,6 +474,43 @@ cargo run -- --calculate-from-events-reserve 0xreserve... --verbose
 cargo run -- --calculate-from-events-reserve 0xreserve... --json
 ```
 
+### `--calculate-from-events-reserve-all`
+
+Market-wide variant of `--calculate-from-events-reserve`: iterates **every reserve** returned by `find_all_reserves()` and runs the same per-user × per-side scaled-vs-scaled comparison for each. Designed for a regular health check across the whole money market — no need to keep a hand-maintained list of reserve addresses in sync.
+
+For each reserve the output mirrors the single-reserve flag's compact-table format (one supply table + one borrow table, with the same `Position Scaled` column and `Verdict` classification). At the end, the handler prints a **market-wide summary**: total reserves processed, aggregate verdict bucket counts (separately per side), and the list of reserves that contributed any `SIGNIFICANT` (❌), `MINOR` (⚠️), or `ERROR` (‼️) row on either side.
+
+**Per-reserve behavior:**
+- Reuses the existing replay helpers (`replay_side`, `print_replay_table`, `rows_summary_json`, `count_buckets`) — no separate code path for the per-reserve work.
+- `--a-token-only` / `--debt-token-only` apply across every reserve in the scan, exactly as for the single-reserve flag.
+- **Reserve-level failures don't abort the run.** If `find_token_events_sorted` fails for one side of one reserve (e.g. RPC hiccup, missing collection entry), every user on that side is counted as `ERROR` in both the per-reserve summary line and the market-wide aggregate, and the scan moves on to the next reserve. The fetch-error message is printed in place of the per-user table and surfaces as `fetchError` on the side in `--json` output.
+
+**`--verbose` is rejected.** Running the verbose per-event replay across every reserve produces unusable amounts of output; verbose's value is in single-reserve debugging via the existing `--calculate-from-events-reserve <ADDR> --verbose` form.
+
+**Concurrency.** Reserves are processed **sequentially**, one at a time. Each reserve already fans out up to 10 user replays in parallel internally; stacking reserve-level concurrency on top would multiply DB / RPC load. Peak in-flight concurrency stays at ~10 across the whole command — same as the single-reserve flag.
+
+**Performance.**
+- `user_positions` are prefetched once for the **union** of every selected side's user list across every reserve (case-insensitive). Users active in multiple reserves (the common case) hit the DB once instead of once-per-reserve. Bounded fan-out via `buffered(10)`, matching the existing prefetch helper.
+- Token events are still fetched once per reserve × selected side via `find_token_events_sorted`.
+
+**Output modes:**
+- Default (text): per-reserve section (header + supply table + borrow table + per-side summary line) for each reserve, followed by the market-wide summary block.
+- `--json`: emits a single JSON object `{ "reserves": [ ...per-reserve docs..., shaped exactly like --calculate-from-events-reserve --json output... ], "summary": { ...market-wide aggregate... } }`. Each per-reserve doc carries an optional `fetchError` string on `supply` / `borrow` when that side's event fetch failed. The market-wide `summary` includes `reservesProcessed`, `mode`, per-side `BucketCounts` (or `null` if the side was skipped), and the `reservesWithSignificant` / `reservesWithMinor` / `reservesWithErrors` lists (each an array of `{ "symbol", "reserve" }`).
+
+```bash
+# Compact market-wide scan (both sides)
+cargo run -- --calculate-from-events-reserve-all
+
+# Supply side only across every reserve
+cargo run -- --calculate-from-events-reserve-all --a-token-only
+
+# Debt side only across every reserve
+cargo run -- --calculate-from-events-reserve-all --debt-token-only
+
+# Machine-readable, for ingest into monitoring / CI
+cargo run -- --calculate-from-events-reserve-all --json
+```
+
 ### `--validate-from-events <USER_ADDRESS>`
 
 3-way validation for one user across all positions (or one position when filtered):
@@ -567,12 +605,13 @@ You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single in
 
 **Reserve event-replay subgroup:**
 - `--calculate-from-events-reserve` accepts `--a-token-only`, `--debt-token-only`, `--verbose`, `--json` (all optional).
-- `--a-token-only` and `--debt-token-only` are mutually exclusive.
-- `--verbose` and `--json` are mutually exclusive.
-- `--a-token-only`, `--debt-token-only`, `--verbose` are rejected if used without `--calculate-from-events-reserve`.
+- `--calculate-from-events-reserve-all` accepts `--a-token-only`, `--debt-token-only`, `--json` (all optional). `--verbose` is **rejected** because verbose output across every reserve is impractical — drill into a single reserve with `--calculate-from-events-reserve <ADDR> --verbose` instead.
+- `--a-token-only` and `--debt-token-only` are mutually exclusive (applies to both flags).
+- `--verbose` and `--json` are mutually exclusive (single-reserve flag only).
+- `--a-token-only` / `--debt-token-only` are rejected if used without one of the reserve-event-replay flags. `--verbose` is rejected if used without `--calculate-from-events-reserve`.
 
 **Shared modifier:**
-- `--json` is valid with either `--validate-partner-asset` or `--calculate-from-events-reserve`; rejected otherwise.
+- `--json` is valid with `--validate-partner-asset`, `--calculate-from-events-reserve`, or `--calculate-from-events-reserve-all`; rejected otherwise.
 
 **Event-replay companions:**
 - `--validate-from-events` accepts `--reserve-token` (optional). No other combinations.

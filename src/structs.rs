@@ -30,6 +30,7 @@ pub enum Flag {
   ValidateAllReserveIndexes,
   CalculateFromEvents(String),
   CalculateFromEventsReserve(String),
+  CalculateFromEventsReserveAll,
   ATokenOnly,
   DebtTokenOnly,
   Verbose,

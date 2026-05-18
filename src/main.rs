@@ -11,6 +11,7 @@ use sodax_backend_analizer::handlers::{
   handle_get_all_debt_tokens, handle_get_token_events, handle_get_user_events,
   handle_validate_reserve_indexes, handle_validate_all_reserve_indexes,
   handle_calculate_from_events, handle_calculate_from_events_reserve,
+  handle_calculate_from_events_reserve_all,
   handle_inspect_user_position,
   handle_validate_from_events, handle_validate_from_events_all,
   handle_validate_partner_asset,
@@ -212,6 +213,14 @@ async fn main() {
     .any(|f: &Flag| matches!(f, Flag::CalculateFromEventsReserve(_)))
   {
     handle_calculate_from_events_reserve(flags).await;
+    exit_success();
+
+  // if the --calculate-from-events-reserve-all flag was passed
+  } else if flags
+    .iter()
+    .any(|f: &Flag| matches!(f, Flag::CalculateFromEventsReserveAll))
+  {
+    handle_calculate_from_events_reserve_all(flags).await;
     exit_success();
 
   // if the --validate-partner-asset flag was passed
