@@ -2734,7 +2734,14 @@ fn lookup_position_scaled(
     PositionSide::Supply => pos.aTokenBalance,
     PositionSide::Borrow => pos.variableDebtTokenBalance,
   };
-  Ok(decimal128_to_u128(balance))
+  // Parse safely — the shared `decimal128_to_u128` helper panics on malformed input,
+  // and we don't want a single bad position value to crash the entire reserve scan.
+  // A row-level Err lets the rest of the run continue and surfaces the failure in the
+  // `Position Scaled` column / `positionError` JSON field.
+  balance
+    .to_string()
+    .parse::<u128>()
+    .map_err(|e| format!("parse position balance: {}", e))
 }
 
 async fn replay_one_user(
@@ -2825,6 +2832,15 @@ async fn replay_one_user(
   }
 }
 
+// Complexity note: each user replay iterates the full token-event stream — overall this
+// is O(users × token_events) per side. We accept that for correctness (cross-user mints
+// must be visible so `last_index` is up-to-date for transfer-as-first-event cases) and
+// for simplicity. The current reserve sizes (tens of users, tens of thousands of events)
+// run in low seconds with the existing concurrency bound. A future optimization could
+// precompute a per-block `last_index` annotation, then have each user iterate only their
+// own events while looking up the index from the annotation — but that change would also
+// need to flow into `process_user_token_events`, which is shared with
+// `--calculate-from-events`, so it's intentionally deferred.
 #[allow(clippy::too_many_arguments)]
 async fn replay_side(
   users: &[String],
@@ -2874,6 +2890,32 @@ async fn replay_side(
     .await
 }
 
+/// Aggregate verdict counts. Single source of truth for both the text-table summary line
+/// and the JSON summary object — keeps them in lockstep if bucket thresholds ever change.
+#[derive(Debug, Default, Clone, Copy)]
+struct BucketCounts {
+  perfect: u64,
+  excellent: u64,
+  minor: u64,
+  significant: u64,
+  errors: u64,
+}
+
+fn count_buckets(rows: &[ReserveReplayRow]) -> BucketCounts {
+  let mut counts = BucketCounts::default();
+  for row in rows {
+    match row.verdict() {
+      "PERFECT" => counts.perfect += 1,
+      "EXCELLENT" => counts.excellent += 1,
+      "MINOR" => counts.minor += 1,
+      "SIGNIFICANT" => counts.significant += 1,
+      "ERROR" => counts.errors += 1,
+      _ => {}
+    }
+  }
+  counts
+}
+
 fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow]) {
   output!("\n=== {} ({}) ===", label, token_address);
   if rows.is_empty() {
@@ -2902,30 +2944,16 @@ fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow
     }
   }
 
-  let mut perfect = 0usize;
-  let mut excellent = 0usize;
-  let mut minor = 0usize;
-  let mut significant = 0usize;
-  let mut error_count = 0usize;
-  for row in rows {
-    match row.verdict() {
-      "PERFECT" => perfect += 1,
-      "EXCELLENT" => excellent += 1,
-      "MINOR" => minor += 1,
-      "SIGNIFICANT" => significant += 1,
-      "ERROR" => error_count += 1,
-      _ => {}
-    }
-  }
+  let c = count_buckets(rows);
   output!(
     "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
     label,
     rows.len(),
-    perfect,
-    excellent,
-    minor,
-    significant,
-    error_count,
+    c.perfect,
+    c.excellent,
+    c.minor,
+    c.significant,
+    c.errors,
   );
 }
 
@@ -2954,28 +2982,14 @@ fn rows_to_json(rows: &[ReserveReplayRow]) -> Vec<serde_json::Value> {
 }
 
 fn rows_summary_json(rows: &[ReserveReplayRow]) -> serde_json::Value {
-  let mut perfect = 0u64;
-  let mut excellent = 0u64;
-  let mut minor = 0u64;
-  let mut significant = 0u64;
-  let mut error_count = 0u64;
-  for r in rows {
-    match r.verdict() {
-      "PERFECT" => perfect += 1,
-      "EXCELLENT" => excellent += 1,
-      "MINOR" => minor += 1,
-      "SIGNIFICANT" => significant += 1,
-      "ERROR" => error_count += 1,
-      _ => {}
-    }
-  }
+  let c = count_buckets(rows);
   serde_json::json!({
     "totalUsers": rows.len(),
-    "perfect": perfect,
-    "excellent": excellent,
-    "minor": minor,
-    "significant": significant,
-    "errors": error_count,
+    "perfect": c.perfect,
+    "excellent": c.excellent,
+    "minor": c.minor,
+    "significant": c.significant,
+    "errors": c.errors,
   })
 }
 
