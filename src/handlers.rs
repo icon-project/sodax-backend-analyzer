@@ -2901,6 +2901,20 @@ struct BucketCounts {
   errors: u64,
 }
 
+impl BucketCounts {
+  fn total(&self) -> u64 {
+    self.perfect + self.excellent + self.minor + self.significant + self.errors
+  }
+
+  fn add(&mut self, other: &BucketCounts) {
+    self.perfect += other.perfect;
+    self.excellent += other.excellent;
+    self.minor += other.minor;
+    self.significant += other.significant;
+    self.errors += other.errors;
+  }
+}
+
 fn count_buckets(rows: &[ReserveReplayRow]) -> BucketCounts {
   let mut counts = BucketCounts::default();
   for row in rows {
@@ -3205,6 +3219,408 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
   output!("\n=== Reserve Event-Replay Reconstruction Complete ===");
 }
 
+// ============================================================
+// --calculate-from-events-reserve-all handler
+// ============================================================
+
+/// Per-reserve, per-side replay result. `fetch_error` is set when the token-event fetch
+/// itself failed; in that case `rows` is populated with one synthetic ERROR row per user
+/// on that side, so bucket counts / JSON shape stay consistent with the success path.
+/// The marker is still kept so text mode can print a single error line rather than N
+/// duplicate rows.
+#[derive(Debug, Clone)]
+struct ReserveSideResult {
+  rows: Vec<ReserveReplayRow>,
+  fetch_error: Option<String>,
+}
+
+async fn run_reserve_side(
+  reserve: &ReserveTokenDocument,
+  side: PositionSide,
+  positions_cache: &PositionsCache,
+) -> ReserveSideResult {
+  let (token_address, users) = match side {
+    PositionSide::Supply => (reserve.aTokenAddress.as_str(), reserve.suppliers.as_slice()),
+    PositionSide::Borrow => (
+      reserve.variableDebtTokenAddress.as_str(),
+      reserve.borrowers.as_slice(),
+    ),
+  };
+  // Short-circuit zero-user sides BEFORE fetching events. A reserve with no
+  // suppliers/borrowers on this side has nothing to replay, so spending a DB roundtrip
+  // on its event stream is wasted — and worse, if that fetch happens to fail (token
+  // never traded, RPC blip, etc.) the side would surface as a fetch_error and land in
+  // `reservesWithErrors`, producing false-positive alerts for reserves that didn't
+  // actually drift. Treat empty sides as neutral instead.
+  if users.is_empty() {
+    return ReserveSideResult {
+      rows: Vec::new(),
+      fetch_error: None,
+    };
+  }
+  let token_events = match find_token_events_sorted(token_address).await {
+    Ok(events) => Arc::new(events),
+    Err(e) => {
+      // Reserve-level event fetch failure. Synthesize one ERROR row per user so the
+      // per-reserve summary line / aggregate counts still reflect the right number of
+      // users on this side, and JSON consumers get a uniform `rows` shape across reserves.
+      let msg = format!("token-event fetch failed: {}", e);
+      let rows = users
+        .iter()
+        .map(|u| err_row(u.clone(), msg.clone()))
+        .collect();
+      return ReserveSideResult {
+        rows,
+        fetch_error: Some(msg),
+      };
+    }
+  };
+  let rows = replay_side(
+    users,
+    token_address,
+    &reserve.reserveAddress,
+    side,
+    false, // never verbose for the market-wide scan
+    token_events,
+    positions_cache,
+    RAY,
+  )
+  .await;
+  ReserveSideResult {
+    rows,
+    fetch_error: None,
+  }
+}
+
+fn print_reserve_side(label: &str, token_address: &str, result: &ReserveSideResult) {
+  match &result.fetch_error {
+    Some(err) => {
+      // Suppress the per-user table — the rows are all duplicate synthetic errors. Emit
+      // one error line plus the standard summary so aggregate counts stay readable.
+      output!("\n=== {} ({}) ===", label, token_address);
+      output!(
+        "‼️ Fetch failed: {} ({} users counted as ERROR)",
+        err,
+        result.rows.len()
+      );
+      let c = count_buckets(&result.rows);
+      output!(
+        "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+        label,
+        result.rows.len(),
+        c.perfect,
+        c.excellent,
+        c.minor,
+        c.significant,
+        c.errors,
+      );
+    }
+    None => print_replay_table(label, token_address, &result.rows),
+  }
+}
+
+fn reserve_side_json(result: &ReserveSideResult) -> serde_json::Value {
+  let mut doc = serde_json::json!({
+    "users": rows_to_json(&result.rows),
+    "summary": rows_summary_json(&result.rows),
+  });
+  if let Some(err) = &result.fetch_error {
+    doc["fetchError"] = serde_json::Value::String(err.clone());
+  }
+  doc
+}
+
+/// Tracks reserves that contributed any non-green verdict, for the market-wide summary
+/// section. Each entry is `(symbol, reserveAddress)` so the printout / JSON identifies
+/// the offender unambiguously even if symbols ever collide.
+#[derive(Debug, Default, Clone)]
+struct MarketNonGreenReserves {
+  significant: Vec<(String, String)>,
+  minor: Vec<(String, String)>,
+  errors: Vec<(String, String)>,
+}
+
+fn reserve_side_has_significant(r: &ReserveSideResult) -> bool {
+  count_buckets(&r.rows).significant > 0
+}
+
+fn reserve_side_has_minor(r: &ReserveSideResult) -> bool {
+  count_buckets(&r.rows).minor > 0
+}
+
+fn reserve_side_has_errors(r: &ReserveSideResult) -> bool {
+  // Either a side-level fetch error (already counted via synthetic rows) or any
+  // individual row classified ERROR (e.g. last_event_block == 0 for a user).
+  r.fetch_error.is_some() || count_buckets(&r.rows).errors > 0
+}
+
+fn build_market_summary_json(
+  reserves_processed: u64,
+  mode: &str,
+  supply: Option<BucketCounts>,
+  borrow: Option<BucketCounts>,
+  non_green: &MarketNonGreenReserves,
+) -> serde_json::Value {
+  let bucket_to_json = |c: BucketCounts| -> serde_json::Value {
+    serde_json::json!({
+      "totalUsers": c.total(),
+      "perfect": c.perfect,
+      "excellent": c.excellent,
+      "minor": c.minor,
+      "significant": c.significant,
+      "errors": c.errors,
+    })
+  };
+  let list_to_json = |list: &[(String, String)]| -> serde_json::Value {
+    serde_json::Value::Array(
+      list
+        .iter()
+        .map(|(sym, addr)| serde_json::json!({ "symbol": sym, "reserve": addr }))
+        .collect(),
+    )
+  };
+  serde_json::json!({
+    "reservesProcessed": reserves_processed,
+    "mode": mode,
+    "supply": supply.map(bucket_to_json),
+    "borrow": borrow.map(bucket_to_json),
+    "reservesWithSignificant": list_to_json(&non_green.significant),
+    "reservesWithMinor": list_to_json(&non_green.minor),
+    "reservesWithErrors": list_to_json(&non_green.errors),
+  })
+}
+
+pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
+  let a_token_only = flags.iter().any(|f| matches!(f, Flag::ATokenOnly));
+  let debt_token_only = flags.iter().any(|f| matches!(f, Flag::DebtTokenOnly));
+  let output_json = flags.iter().any(|f| matches!(f, Flag::Json));
+
+  let do_supply = !debt_token_only;
+  let do_borrow = !a_token_only;
+
+  let mode_label = if a_token_only {
+    "supply only"
+  } else if debt_token_only {
+    "borrow only"
+  } else {
+    "supply + borrow"
+  };
+
+  let reserves = match find_all_reserves().await {
+    Ok(r) => r,
+    Err(e) => {
+      eprintln!("Error fetching reserves: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  if reserves.is_empty() {
+    if output_json {
+      let out = serde_json::json!({
+        "reserves": [],
+        "summary": build_market_summary_json(
+          0,
+          mode_label,
+          do_supply.then(BucketCounts::default),
+          do_borrow.then(BucketCounts::default),
+          &MarketNonGreenReserves::default(),
+        ),
+      });
+      output!("{}", serde_json::to_string_pretty(&out).unwrap());
+      return;
+    }
+    output!("\n=== Money Market Event-Replay Reconstruction ===");
+    output!("No reserves found in the database.");
+    return;
+  }
+
+  if !output_json {
+    output!("\n=== Money Market Event-Replay Reconstruction ===");
+    output!("Total reserves: {} · Mode: {}", reserves.len(), mode_label);
+  }
+
+  // Prefetch user_positions for the union of every reserve's suppliers + borrowers in a
+  // single batch. Users active in multiple reserves (the common case across a market)
+  // would otherwise hit the DB once per reserve they appear in. The cache is keyed by
+  // lowercased address so per-reserve lookups work regardless of casing.
+  let unique_users: Vec<String> = {
+    let mut set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for r in &reserves {
+      if do_supply {
+        for u in &r.suppliers {
+          set.insert(u.to_lowercase());
+        }
+      }
+      if do_borrow {
+        for u in &r.borrowers {
+          set.insert(u.to_lowercase());
+        }
+      }
+    }
+    set.into_iter().collect()
+  };
+  if !output_json {
+    output!(
+      "Prefetching user_positions for {} unique users (union across all reserves)…",
+      unique_users.len()
+    );
+  }
+  let positions_cache = prefetch_user_positions(&unique_users).await;
+
+  // Process reserves sequentially. Each reserve already fans out up to 10 user replays
+  // in parallel internally (RESERVE_REPLAY_CONCURRENCY in replay_side); stacking
+  // reserve-level parallelism on top would multiply DB / RPC load without bounding peak
+  // concurrency. Sequential keeps peak concurrency at ~10 across the whole command.
+  let mut market_supply = BucketCounts::default();
+  let mut market_borrow = BucketCounts::default();
+  let mut non_green = MarketNonGreenReserves::default();
+  let mut reserve_json_docs: Vec<serde_json::Value> = Vec::new();
+
+  let total = reserves.len();
+  for (idx, reserve) in reserves.iter().enumerate() {
+    if !output_json {
+      output!(
+        "\n[{}/{}] Reserve {} ({}) ─────────────────────────",
+        idx + 1,
+        total,
+        reserve.symbol,
+        reserve.reserveAddress
+      );
+    }
+
+    let supply_result = if do_supply {
+      Some(run_reserve_side(reserve, PositionSide::Supply, &positions_cache).await)
+    } else {
+      None
+    };
+    let borrow_result = if do_borrow {
+      Some(run_reserve_side(reserve, PositionSide::Borrow, &positions_cache).await)
+    } else {
+      None
+    };
+
+    // Accumulate market-wide bucket totals before consuming the per-reserve results.
+    if let Some(r) = &supply_result {
+      market_supply.add(&count_buckets(&r.rows));
+    }
+    if let Some(r) = &borrow_result {
+      market_borrow.add(&count_buckets(&r.rows));
+    }
+
+    // Flag the reserve in the non-green lists if any selected side hit a non-green bucket.
+    let any_side = |pred: fn(&ReserveSideResult) -> bool| -> bool {
+      supply_result.as_ref().is_some_and(pred) || borrow_result.as_ref().is_some_and(pred)
+    };
+    let has_significant = any_side(reserve_side_has_significant);
+    let has_minor = any_side(reserve_side_has_minor);
+    let has_errors = any_side(reserve_side_has_errors);
+    if has_significant {
+      non_green
+        .significant
+        .push((reserve.symbol.clone(), reserve.reserveAddress.clone()));
+    }
+    if has_minor {
+      non_green
+        .minor
+        .push((reserve.symbol.clone(), reserve.reserveAddress.clone()));
+    }
+    if has_errors {
+      non_green
+        .errors
+        .push((reserve.symbol.clone(), reserve.reserveAddress.clone()));
+    }
+
+    if output_json {
+      let mut doc = serde_json::json!({
+        "reserve": reserve.reserveAddress,
+        "symbol": reserve.symbol,
+        "aTokenAddress": reserve.aTokenAddress,
+        "variableDebtTokenAddress": reserve.variableDebtTokenAddress,
+        "mode": mode_label,
+        "comparison": "scaled-vs-scaled",
+      });
+      if let Some(r) = &supply_result {
+        doc["supply"] = reserve_side_json(r);
+      }
+      if let Some(r) = &borrow_result {
+        doc["borrow"] = reserve_side_json(r);
+      }
+      reserve_json_docs.push(doc);
+    } else {
+      if let Some(r) = &supply_result {
+        print_reserve_side("Supply", &reserve.aTokenAddress, r);
+      }
+      if let Some(r) = &borrow_result {
+        print_reserve_side("Borrow", &reserve.variableDebtTokenAddress, r);
+      }
+    }
+  }
+
+  if output_json {
+    let summary = build_market_summary_json(
+      total as u64,
+      mode_label,
+      do_supply.then_some(market_supply),
+      do_borrow.then_some(market_borrow),
+      &non_green,
+    );
+    let out = serde_json::json!({
+      "reserves": reserve_json_docs,
+      "summary": summary,
+    });
+    output!("{}", serde_json::to_string_pretty(&out).unwrap());
+    return;
+  }
+
+  output!("\n=== Market-Wide Summary ===");
+  output!("Reserves processed: {}", total);
+  if do_supply {
+    output!(
+      "Supply users: {}  ·  ✅ {} / {}  ·  ⚠️ {}  ·  ❌ {}  ·  ‼️ {}",
+      market_supply.total(),
+      market_supply.perfect,
+      market_supply.excellent,
+      market_supply.minor,
+      market_supply.significant,
+      market_supply.errors,
+    );
+  }
+  if do_borrow {
+    output!(
+      "Borrow users: {}  ·  ✅ {} / {}  ·  ⚠️ {}  ·  ❌ {}  ·  ‼️ {}",
+      market_borrow.total(),
+      market_borrow.perfect,
+      market_borrow.excellent,
+      market_borrow.minor,
+      market_borrow.significant,
+      market_borrow.errors,
+    );
+  }
+  let fmt_list = |list: &[(String, String)]| -> String {
+    if list.is_empty() {
+      return "0".to_string();
+    }
+    let items: Vec<String> = list
+      .iter()
+      .map(|(sym, addr)| format!("{} / {}", sym, addr))
+      .collect();
+    format!("{} ({})", list.len(), items.join(", "))
+  };
+  output!(
+    "Reserves with at least one ❌: {}",
+    fmt_list(&non_green.significant)
+  );
+  output!(
+    "Reserves with at least one ⚠️: {}",
+    fmt_list(&non_green.minor)
+  );
+  output!(
+    "Reserves with at least one ‼️: {}",
+    fmt_list(&non_green.errors)
+  );
+  output!("\n=== Money Market Event-Replay Reconstruction Complete ===");
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -3485,5 +3901,167 @@ mod tests {
     let diff = u128::MAX / 50; // diff*100 overflows
     assert_eq!(classify_verdict(diff, 1, false), "SIGNIFICANT");
     assert_eq!(classify_verdict(diff, u128::MAX, false), "SIGNIFICANT");
+  }
+
+  // ----------------------------------------------------------
+  // --calculate-from-events-reserve-all aggregation
+  // ----------------------------------------------------------
+
+  #[test]
+  fn bucket_counts_total_sums_all_fields() {
+    let c = BucketCounts {
+      perfect: 1,
+      excellent: 2,
+      minor: 3,
+      significant: 4,
+      errors: 5,
+    };
+    assert_eq!(c.total(), 15);
+  }
+
+  #[test]
+  fn bucket_counts_add_accumulates_each_field() {
+    let mut a = BucketCounts {
+      perfect: 1,
+      excellent: 2,
+      minor: 3,
+      significant: 4,
+      errors: 5,
+    };
+    let b = BucketCounts {
+      perfect: 10,
+      excellent: 20,
+      minor: 30,
+      significant: 40,
+      errors: 50,
+    };
+    a.add(&b);
+    assert_eq!(a.perfect, 11);
+    assert_eq!(a.excellent, 22);
+    assert_eq!(a.minor, 33);
+    assert_eq!(a.significant, 44);
+    assert_eq!(a.errors, 55);
+    assert_eq!(a.total(), 165);
+  }
+
+  #[test]
+  fn bucket_counts_add_default_is_identity() {
+    let mut a = BucketCounts {
+      perfect: 7,
+      excellent: 0,
+      minor: 0,
+      significant: 1,
+      errors: 0,
+    };
+    a.add(&BucketCounts::default());
+    assert_eq!(a.perfect, 7);
+    assert_eq!(a.significant, 1);
+    assert_eq!(a.total(), 8);
+  }
+
+  /// Reserve-side helpers should consider the side green when every row classifies as
+  /// PERFECT / EXCELLENT and no fetch_error is set. This is the dominant path on healthy
+  /// markets, so getting it right keeps the market-wide summary uncluttered.
+  #[test]
+  fn reserve_side_has_helpers_all_false_on_green_rows() {
+    let result = ReserveSideResult {
+      rows: vec![ok_row(0, 100), ok_row(1, 20_000)], // PERFECT + EXCELLENT
+      fetch_error: None,
+    };
+    assert!(!reserve_side_has_significant(&result));
+    assert!(!reserve_side_has_minor(&result));
+    assert!(!reserve_side_has_errors(&result));
+  }
+
+  #[test]
+  fn reserve_side_has_significant_detects_any_significant_row() {
+    let result = ReserveSideResult {
+      rows: vec![ok_row(0, 100), ok_row(1, 100)], // PERFECT + SIGNIFICANT (1%)
+      fetch_error: None,
+    };
+    assert!(reserve_side_has_significant(&result));
+  }
+
+  #[test]
+  fn reserve_side_has_minor_detects_any_minor_row() {
+    let result = ReserveSideResult {
+      rows: vec![ok_row(0, 100), ok_row(5, 10_000)], // PERFECT + MINOR
+      fetch_error: None,
+    };
+    assert!(reserve_side_has_minor(&result));
+    assert!(!reserve_side_has_significant(&result));
+  }
+
+  #[test]
+  fn reserve_side_has_errors_when_fetch_error_set() {
+    // Synthetic ERROR rows would also flip count_buckets().errors > 0, but the
+    // fetch_error marker alone is enough — even on an empty users list.
+    let result = ReserveSideResult {
+      rows: Vec::new(),
+      fetch_error: Some("rpc unreachable".to_string()),
+    };
+    assert!(reserve_side_has_errors(&result));
+  }
+
+  #[test]
+  fn reserve_side_has_errors_when_individual_row_errors() {
+    let mut row = ok_row(0, 100);
+    row.error = Some("boom".to_string());
+    let result = ReserveSideResult {
+      rows: vec![row],
+      fetch_error: None,
+    };
+    assert!(reserve_side_has_errors(&result));
+  }
+
+  #[test]
+  fn market_summary_json_emits_bucket_and_reserve_lists() {
+    let supply = BucketCounts {
+      perfect: 10,
+      excellent: 5,
+      minor: 1,
+      significant: 0,
+      errors: 0,
+    };
+    let borrow = BucketCounts {
+      perfect: 3,
+      excellent: 2,
+      minor: 0,
+      significant: 1,
+      errors: 0,
+    };
+    let non_green = MarketNonGreenReserves {
+      significant: vec![("sodaSUI".to_string(), "0xdc5b".to_string())],
+      minor: vec![("sodaSUI".to_string(), "0xdc5b".to_string())],
+      errors: vec![],
+    };
+    let v = build_market_summary_json(7, "supply + borrow", Some(supply), Some(borrow), &non_green);
+    assert_eq!(v["reservesProcessed"], 7);
+    assert_eq!(v["mode"], "supply + borrow");
+    assert_eq!(v["supply"]["totalUsers"], 16);
+    assert_eq!(v["supply"]["perfect"], 10);
+    assert_eq!(v["supply"]["minor"], 1);
+    assert_eq!(v["borrow"]["totalUsers"], 6);
+    assert_eq!(v["borrow"]["significant"], 1);
+    assert_eq!(v["reservesWithSignificant"][0]["symbol"], "sodaSUI");
+    assert_eq!(v["reservesWithSignificant"][0]["reserve"], "0xdc5b");
+    assert_eq!(v["reservesWithMinor"].as_array().unwrap().len(), 1);
+    assert_eq!(v["reservesWithErrors"].as_array().unwrap().len(), 0);
+  }
+
+  #[test]
+  fn market_summary_json_emits_null_for_skipped_side() {
+    // Mode = supply only → borrow bucket is None and should serialize as null so JSON
+    // consumers can distinguish "skipped" from "zero users".
+    let supply = BucketCounts::default();
+    let v = build_market_summary_json(
+      0,
+      "supply only",
+      Some(supply),
+      None,
+      &MarketNonGreenReserves::default(),
+    );
+    assert!(v["supply"].is_object());
+    assert!(v["borrow"].is_null());
   }
 }
