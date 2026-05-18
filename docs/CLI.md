@@ -4,7 +4,7 @@ Complete reference for every flag accepted by the analyzer CLI.
 
 The binary is invoked as either `target/release/sodax_backend_analizer <flags...>` after `cargo build --release` (note: the package name in `Cargo.toml` is `sodax_backend_analizer` — with underscores and the legacy "analizer" spelling), or — most commonly during development — `cargo run -- <flags...>`. This document uses the latter form in examples; both behave identically.
 
-If invoked with no flags, the parser exits with status 1 and prints `Error parsing flags: Not enough arguments`. Use `--help` to print the help message.
+If invoked with no flags, the tool prints the help message and exits with status 0 (equivalent to passing `--help`).
 
 ## Contents
 
