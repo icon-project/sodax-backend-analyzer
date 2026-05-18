@@ -2606,42 +2606,74 @@ impl ReserveReplayRow {
   }
 }
 
+type EventsCache = std::collections::HashMap<String, Result<Vec<MoneyMarketEventDocument>, String>>;
+
+fn err_row(user: String, msg: String) -> ReserveReplayRow {
+  ReserveReplayRow {
+    user,
+    scaled: 0,
+    real: 0,
+    on_chain: 0,
+    diff: 0,
+    pct: 0.0,
+    last_event_block: 0,
+    error: Some(msg),
+  }
+}
+
+/// Fetch each user's events once, with bounded concurrency. Keyed by lowercased address.
+/// Errors are stored per-user so failures don't take down the whole scan.
+async fn prefetch_user_events(users: &[String]) -> EventsCache {
+  let semaphore = Arc::new(Semaphore::new(10));
+  let tasks: Vec<_> = users
+    .iter()
+    .map(|u| {
+      let user = u.clone();
+      let sem = Arc::clone(&semaphore);
+      task::spawn(async move {
+        let _permit = match sem.acquire().await {
+          Ok(p) => p,
+          Err(e) => return (user.to_lowercase(), Err(format!("semaphore: {}", e))),
+        };
+        let res = find_user_events(&user).await.map_err(|e| e.to_string());
+        (user.to_lowercase(), res)
+      })
+    })
+    .collect();
+
+  let mut map: EventsCache = std::collections::HashMap::with_capacity(users.len());
+  for (idx, join) in join_all(tasks).await.into_iter().enumerate() {
+    match join {
+      Ok((key, res)) => {
+        map.insert(key, res);
+      }
+      Err(e) => {
+        // Task panicked. Reconstruct the key from the original users slice so we still
+        // record an error against this user instead of dropping them silently.
+        if let Some(orig) = users.get(idx) {
+          map.insert(orig.to_lowercase(), Err(format!("prefetch task join: {}", e)));
+        }
+      }
+    }
+  }
+  map
+}
+
 async fn replay_one_user(
   user_address: String,
   token_address: String,
   current_index: u128,
   verbose: bool,
+  events: Result<Vec<MoneyMarketEventDocument>, String>,
 ) -> ReserveReplayRow {
-  let events = match find_user_events(&user_address).await {
+  let events = match events {
     Ok(e) => e,
-    Err(e) => {
-      return ReserveReplayRow {
-        user: user_address,
-        scaled: 0,
-        real: 0,
-        on_chain: 0,
-        diff: 0,
-        pct: 0.0,
-        last_event_block: 0,
-        error: Some(format!("fetch events: {}", e)),
-      };
-    }
+    Err(e) => return err_row(user_address, format!("fetch events: {}", e)),
   };
 
   let result = match process_user_token_events(&events, &user_address, &token_address, current_index, verbose) {
     Ok(r) => r,
-    Err(e) => {
-      return ReserveReplayRow {
-        user: user_address,
-        scaled: 0,
-        real: 0,
-        on_chain: 0,
-        diff: 0,
-        pct: 0.0,
-        last_event_block: 0,
-        error: Some(format!("replay: {}", e)),
-      };
-    }
+    Err(e) => return err_row(user_address, format!("replay: {}", e)),
   };
 
   // Compare against on-chain at the block of the last event (meaningful comparison).
@@ -2682,54 +2714,74 @@ async fn replay_one_user(
   }
 }
 
+/// Look up cached events for a user (case-insensitive). Returns the cloned Vec on hit,
+/// the stored fetch error on prefetch failure, or a "not in cache" sentinel error otherwise.
+fn lookup_events(
+  user: &str,
+  cache: &EventsCache,
+) -> Result<Vec<MoneyMarketEventDocument>, String> {
+  match cache.get(&user.to_lowercase()) {
+    Some(Ok(events)) => Ok(events.clone()),
+    Some(Err(e)) => Err(e.clone()),
+    None => Err("events not in prefetch cache".to_string()),
+  }
+}
+
 async fn replay_side(
   users: &[String],
   token_address: &str,
   current_index: u128,
   verbose: bool,
+  cache: &EventsCache,
 ) -> Vec<ReserveReplayRow> {
+  // Verbose mode interleaves per-event output! lines across users when run concurrently,
+  // making the promised per-user replay block unreadable. Force sequential execution so
+  // each user's block is contiguous.
+  if verbose {
+    let mut rows = Vec::with_capacity(users.len());
+    for user in users {
+      let events = lookup_events(user, cache);
+      let row = replay_one_user(
+        user.clone(),
+        token_address.to_string(),
+        current_index,
+        true,
+        events,
+      )
+      .await;
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // Concurrent path. Pair each JoinHandle with its user address so join failures stay
+  // attributable instead of producing anonymous "<task-panicked>" rows.
   let semaphore = Arc::new(Semaphore::new(10));
-  let tasks: Vec<_> = users
-    .iter()
-    .map(|user| {
-      let user = user.clone();
-      let token_address = token_address.to_string();
-      let sem = Arc::clone(&semaphore);
+  let mut tasks: Vec<(String, task::JoinHandle<ReserveReplayRow>)> =
+    Vec::with_capacity(users.len());
+  for user in users {
+    let user_owned = user.clone();
+    let token_address = token_address.to_string();
+    let sem = Arc::clone(&semaphore);
+    let events = lookup_events(user, cache);
+    let handle = {
+      let user_for_task = user_owned.clone();
       task::spawn(async move {
         let _permit = match sem.acquire().await {
           Ok(p) => p,
-          Err(e) => {
-            return ReserveReplayRow {
-              user,
-              scaled: 0,
-              real: 0,
-              on_chain: 0,
-              diff: 0,
-              pct: 0.0,
-              last_event_block: 0,
-              error: Some(format!("semaphore: {}", e)),
-            };
-          }
+          Err(e) => return err_row(user_for_task, format!("semaphore: {}", e)),
         };
-        replay_one_user(user, token_address, current_index, verbose).await
+        replay_one_user(user_for_task, token_address, current_index, false, events).await
       })
-    })
-    .collect();
+    };
+    tasks.push((user_owned, handle));
+  }
 
   let mut rows: Vec<ReserveReplayRow> = Vec::with_capacity(users.len());
-  for join in join_all(tasks).await {
-    match join {
+  for (user, handle) in tasks {
+    match handle.await {
       Ok(row) => rows.push(row),
-      Err(e) => rows.push(ReserveReplayRow {
-        user: "<task-panicked>".to_string(),
-        scaled: 0,
-        real: 0,
-        on_chain: 0,
-        diff: 0,
-        pct: 0.0,
-        last_event_block: 0,
-        error: Some(format!("task join: {}", e)),
-      }),
+      Err(e) => rows.push(err_row(user, format!("task join: {}", e))),
     }
   }
   rows
@@ -2900,6 +2952,27 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     output!("Suppliers: {} · Borrowers: {}", reserve_data.suppliers.len(), reserve_data.borrowers.len());
   }
 
+  // Prefetch events once for the union of suppliers + borrowers so cross-side users
+  // (in both lists) don't trigger duplicate DB fetches when both sides are selected.
+  let unique_users: Vec<String> = {
+    let mut set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    if do_supply {
+      for u in &reserve_data.suppliers {
+        set.insert(u.clone());
+      }
+    }
+    if do_borrow {
+      for u in &reserve_data.borrowers {
+        set.insert(u.clone());
+      }
+    }
+    set.into_iter().collect()
+  };
+  if !output_json {
+    output!("\nPrefetching events for {} unique users…", unique_users.len());
+  }
+  let events_cache = prefetch_user_events(&unique_users).await;
+
   // Run each selected side. In verbose mode, process_user_token_events prints per-event
   // detail as it runs, so we suppress the compact table afterward to avoid duplication.
   let supply_rows = if do_supply {
@@ -2911,6 +2984,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       &reserve_data.aTokenAddress,
       liquidity_index.expect("liquidity_index set when do_supply"),
       verbose && !output_json,
+      &events_cache,
     )
     .await
   } else {
@@ -2926,6 +3000,7 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
       &reserve_data.variableDebtTokenAddress,
       borrow_index.expect("borrow_index set when do_borrow"),
       verbose && !output_json,
+      &events_cache,
     )
     .await
   } else {

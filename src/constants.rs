@@ -52,9 +52,8 @@ BULK VALIDATION OPTIONS:
     --validate-from-events-all           Validate all users by replaying raw events
     --validate-partner-asset             Recompute partner_asset aggregates from solver_volume and report drift
     --partner <ADDRESS>                  Optional: limit --validate-partner-asset to a single receiver address
-    --json                               Optional: emit --validate-partner-asset output as JSON
+    --json                               Optional: emit JSON output (valid with --validate-partner-asset or --calculate-from-events-reserve)
     --threshold <PCT>                    Optional: rows within ±PCT of 1.0 are suppressed from the --validate-partner-asset table (default 0.0001)
-    --json                               (Re-used) Also valid with --calculate-from-events-reserve to emit JSON output
 
 SCALED VALIDATION:
     The --scaled flag can be combined with validation flags to compare scaled balances instead of real balances:

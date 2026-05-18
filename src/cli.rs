@@ -446,6 +446,13 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     if has_a_token_only && has_debt_token_only {
       return Err("--a-token-only and --debt-token-only are mutually exclusive.".into());
     }
+    // --verbose prints per-event detail; --json emits structured output. Combining them
+    // would silently drop the verbose output, so reject the combination outright.
+    let combo_verbose = flags.iter().any(|f| matches!(f, Flag::Verbose));
+    let combo_json = flags.iter().any(|f| matches!(f, Flag::Json));
+    if combo_verbose && combo_json {
+      return Err("--verbose and --json cannot be combined.".into());
+    }
   }
 
   // --partner and --threshold are only valid alongside --validate-partner-asset.

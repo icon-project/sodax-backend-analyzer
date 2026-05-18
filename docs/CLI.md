@@ -421,8 +421,13 @@ Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve
 
 **Output modes:**
 - Default: one compact table per side (user, scaled, real, on-chain, diff%, verdict) plus a per-side summary count.
-- `--verbose`: prints the full per-user replay block (matching `--calculate-from-events`) for every user. Useful for debugging a small reserve; noisy on large ones.
+- `--verbose`: prints the full per-user replay block (matching `--calculate-from-events`) for every user. Useful for debugging a small reserve; noisy on large ones. Replays run **sequentially** in this mode so each user's block stays contiguous (rather than interleaved across concurrent tasks).
 - `--json`: emits the full result (per-user rows + summary, per side) as a single JSON document for downstream tooling.
+- `--verbose` and `--json` are mutually exclusive.
+
+**Performance:**
+- Events are prefetched once per unique user (the union of `suppliers` and `borrowers`), so users present on both sides aren't fetched twice.
+- Non-verbose replays run with bounded concurrency (10 in parallel per side). Verbose runs sequentially.
 
 **Side selection:**
 - Default: process both supply and borrow.
@@ -542,6 +547,7 @@ You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single in
 **Reserve event-replay subgroup:**
 - `--calculate-from-events-reserve` accepts `--a-token-only`, `--debt-token-only`, `--verbose`, `--json` (all optional).
 - `--a-token-only` and `--debt-token-only` are mutually exclusive.
+- `--verbose` and `--json` are mutually exclusive.
 - `--a-token-only`, `--debt-token-only`, `--verbose` are rejected if used without `--calculate-from-events-reserve`.
 
 **Shared modifier:**
