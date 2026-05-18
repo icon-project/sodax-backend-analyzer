@@ -37,7 +37,7 @@ use crate::functions::{
 use crate::structs::{ReserveTokenField, Flag, FlagType, ThreeWayComparison, EventValidationResult};
 use crate::models::{
   ReserveTokenDocument, SolverVolumeDocument, MoneyMarketEventDocument, PartnerAssetDocument,
-  PartnerOutput,
+  PartnerOutput, UserAssetPositionDocument,
 };
 use crate::intent_data_decoder::{extract_fee_from_intent_data, FeeIntentData};
 use crate::constants::{HELP_MESSAGE, RAY};
@@ -2572,8 +2572,12 @@ pub async fn handle_validate_partner_asset(flags: Vec<Flag>) {
 #[derive(Debug, Clone)]
 struct ReserveReplayRow {
   user: String,
-  /// Scaled balance from event replay (the "DB view").
+  /// Scaled balance from event replay (the "DB events view").
   db_scaled: u128,
+  /// Scaled balance read from the `user_positions` collection for this (user, reserve, side).
+  /// `Ok` on hit; `Err` if the user_positions doc is missing, has no entry for this reserve,
+  /// or the prefetch itself failed. Surfaced as a separate column in the report.
+  position_scaled: Result<u128, String>,
   /// Scaled balance from on-chain `scaledBalanceOf`, pinned to `last_event_block`.
   chain_scaled: u128,
   diff: u128,
@@ -2655,12 +2659,26 @@ type CachedEvents = Result<Arc<Vec<MoneyMarketEventDocument>>, String>;
 /// means we never copy the event payload, even across multiple replays of the same user.
 type EventsCache = std::collections::HashMap<String, CachedEvents>;
 
+/// Per-user user_positions cache value. We need read-only access to the user's positions
+/// array (one entry per reserve they hold), keyed by reserve address.
+type CachedPositions = Result<Arc<Vec<UserAssetPositionDocument>>, String>;
+
+/// Per-user user_positions cache. Keyed by lowercased address. Mirrors EventsCache.
+type PositionsCache = std::collections::HashMap<String, CachedPositions>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PositionSide {
+  Supply,
+  Borrow,
+}
+
 const RESERVE_REPLAY_CONCURRENCY: usize = 10;
 
 fn err_row(user: String, msg: String) -> ReserveReplayRow {
   ReserveReplayRow {
     user,
     db_scaled: 0,
+    position_scaled: Err("not fetched (row errored before position lookup)".to_string()),
     chain_scaled: 0,
     diff: 0,
     pct: 0.0,
@@ -2703,15 +2721,78 @@ async fn prefetch_user_events(users: &[String]) -> EventsCache {
   map
 }
 
+/// Fetch each user's `user_positions` document once with bounded fan-out. Stores the
+/// returned positions array per user (across all reserves they hold) — we filter to the
+/// matching reserve at lookup time.
+async fn prefetch_user_positions(users: &[String]) -> PositionsCache {
+  use futures::stream::{self, StreamExt};
+
+  let results: Vec<(String, CachedPositions)> = stream::iter(users.iter().cloned())
+    .map(|user| async move {
+      let res = find_user_assets_position(&user)
+        .await
+        .map(Arc::new)
+        .map_err(|e| e.to_string());
+      (user.to_lowercase(), res)
+    })
+    .buffered(RESERVE_REPLAY_CONCURRENCY)
+    .collect()
+    .await;
+
+  let mut map: PositionsCache = std::collections::HashMap::with_capacity(results.len());
+  for (key, res) in results {
+    map.insert(key, res);
+  }
+  map
+}
+
+/// Look up the scaled balance recorded in `user_positions` for this (user, reserve, side).
+/// Returns:
+/// - `Ok(scaled)` on hit.
+/// - `Err(_)` if the prefetch failed for this user, the user has no positions document,
+///   or the document has no entry for this reserve.
+fn lookup_position_scaled(
+  user: &str,
+  reserve_address: &str,
+  side: PositionSide,
+  cache: &PositionsCache,
+) -> Result<u128, String> {
+  let positions = match cache.get(&user.to_lowercase()) {
+    Some(Ok(p)) => p,
+    Some(Err(e)) => return Err(format!("fetch position: {}", e)),
+    None => return Err("position not in prefetch cache".to_string()),
+  };
+
+  let reserve_lc = reserve_address.to_lowercase();
+  let pos = positions
+    .iter()
+    .find(|p| p.reserveAddress.to_lowercase() == reserve_lc);
+  let pos = match pos {
+    Some(p) => p,
+    None => return Err(format!("no position for reserve {}", reserve_address)),
+  };
+
+  let balance = match side {
+    PositionSide::Supply => pos.aTokenBalance,
+    PositionSide::Borrow => pos.variableDebtTokenBalance,
+  };
+  Ok(decimal128_to_u128(balance))
+}
+
 async fn replay_one_user(
   user_address: String,
   token_address: String,
   verbose: bool,
   events: CachedEvents,
+  position_scaled: Result<u128, String>,
 ) -> ReserveReplayRow {
   let events = match events {
     Ok(e) => e,
-    Err(e) => return err_row(user_address, format!("fetch events: {}", e)),
+    Err(e) => {
+      let mut row = err_row(user_address, format!("fetch events: {}", e));
+      row.position_scaled = position_scaled;
+      return row;
+    }
   };
 
   // We compare scaled-vs-scaled, so the `current_index` argument to
@@ -2719,7 +2800,11 @@ async fn replay_one_user(
   // function's verbose printout). Pass RAY (= 1.0) as a neutral placeholder.
   let result = match process_user_token_events(&events, &user_address, &token_address, RAY, verbose) {
     Ok(r) => r,
-    Err(e) => return err_row(user_address, format!("replay: {}", e)),
+    Err(e) => {
+      let mut row = err_row(user_address, format!("replay: {}", e));
+      row.position_scaled = position_scaled;
+      return row;
+    }
   };
 
   // Compare scaled balance from replay vs. scaled balance on-chain, both pinned to the
@@ -2732,6 +2817,7 @@ async fn replay_one_user(
       return ReserveReplayRow {
         user: user_address,
         db_scaled: result.scaled_balance,
+        position_scaled,
         chain_scaled: 0,
         diff: 0,
         pct: 0.0,
@@ -2751,6 +2837,7 @@ async fn replay_one_user(
   ReserveReplayRow {
     user: user_address,
     db_scaled: result.scaled_balance,
+    position_scaled,
     chain_scaled,
     diff,
     pct,
@@ -2773,8 +2860,11 @@ fn lookup_events(user: &str, cache: &EventsCache) -> CachedEvents {
 async fn replay_side(
   users: &[String],
   token_address: &str,
+  reserve_address: &str,
+  side: PositionSide,
   verbose: bool,
-  cache: &EventsCache,
+  events_cache: &EventsCache,
+  positions_cache: &PositionsCache,
 ) -> Vec<ReserveReplayRow> {
   use futures::stream::{self, StreamExt};
 
@@ -2783,12 +2873,14 @@ async fn replay_side(
   if verbose {
     let mut rows = Vec::with_capacity(users.len());
     for user in users {
-      let events = lookup_events(user, cache);
+      let events = lookup_events(user, events_cache);
+      let position = lookup_position_scaled(user, reserve_address, side, positions_cache);
       let row = replay_one_user(
         user.clone(),
         token_address.to_string(),
         true,
         events,
+        position,
       )
       .await;
       rows.push(row);
@@ -2802,9 +2894,10 @@ async fn replay_side(
   // RESERVE_REPLAY_CONCURRENCY futures in flight; no upfront fan-out.
   stream::iter(users.iter().cloned())
     .map(|user| {
-      let events = lookup_events(&user, cache);
+      let events = lookup_events(&user, events_cache);
+      let position = lookup_position_scaled(&user, reserve_address, side, positions_cache);
       let token_address = token_address.to_string();
-      async move { replay_one_user(user, token_address, false, events).await }
+      async move { replay_one_user(user, token_address, false, events, position).await }
     })
     .buffered(RESERVE_REPLAY_CONCURRENCY)
     .collect()
@@ -2818,19 +2911,23 @@ fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow
     return;
   }
   output!(
-    "{:<44} {:>26} {:>26} {:>10} {}",
-    "User", "DB Scaled", "Chain Scaled", "Diff%", "Verdict"
+    "{:<44} {:>26} {:>26} {:>26} {:>10} {}",
+    "User", "DB Events Scaled", "Position Scaled", "Chain Scaled", "Diff%", "Verdict"
   );
   for row in rows {
+    let position_cell = match &row.position_scaled {
+      Ok(v) => v.to_string(),
+      Err(_) => "-".to_string(),
+    };
     if let Some(err) = &row.error {
       output!(
-        "{:<44} {:>26} {:>26} {:>10} {} {}",
-        row.user, "-", "-", "-", row.verdict_symbol(), err
+        "{:<44} {:>26} {:>26} {:>26} {:>10} {} {}",
+        row.user, "-", position_cell, "-", "-", row.verdict_symbol(), err
       );
     } else {
       output!(
-        "{:<44} {:>26} {:>26} {:>9.4}% {}",
-        row.user, row.db_scaled, row.chain_scaled, row.pct, row.verdict_symbol()
+        "{:<44} {:>26} {:>26} {:>26} {:>9.4}% {}",
+        row.user, row.db_scaled, position_cell, row.chain_scaled, row.pct, row.verdict_symbol()
       );
     }
   }
@@ -2866,9 +2963,15 @@ fn rows_to_json(rows: &[ReserveReplayRow]) -> Vec<serde_json::Value> {
   rows
     .iter()
     .map(|r| {
+      let (position_scaled, position_error) = match &r.position_scaled {
+        Ok(v) => (serde_json::Value::String(v.to_string()), serde_json::Value::Null),
+        Err(e) => (serde_json::Value::Null, serde_json::Value::String(e.clone())),
+      };
       serde_json::json!({
         "user": r.user,
         "dbScaled": r.db_scaled.to_string(),
+        "positionScaled": position_scaled,
+        "positionError": position_error,
         "chainScaled": r.chain_scaled.to_string(),
         "diff": r.diff.to_string(),
         "percentage": r.pct,
@@ -2983,6 +3086,11 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
   }
   let events_cache = prefetch_user_events(&unique_users).await;
 
+  if !output_json {
+    output!("Prefetching user_positions for {} unique users…", unique_users.len());
+  }
+  let positions_cache = prefetch_user_positions(&unique_users).await;
+
   // Run each selected side. In verbose mode, process_user_token_events prints per-event
   // detail as it runs, so we suppress the compact table afterward to avoid duplication.
   let supply_rows = if do_supply {
@@ -2992,8 +3100,11 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     replay_side(
       &reserve_data.suppliers,
       &reserve_data.aTokenAddress,
+      &reserve_data.reserveAddress,
+      PositionSide::Supply,
       verbose && !output_json,
       &events_cache,
+      &positions_cache,
     )
     .await
   } else {
@@ -3007,8 +3118,11 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
     replay_side(
       &reserve_data.borrowers,
       &reserve_data.variableDebtTokenAddress,
+      &reserve_data.reserveAddress,
+      PositionSide::Borrow,
       verbose && !output_json,
       &events_cache,
+      &positions_cache,
     )
     .await
   } else {
@@ -3116,6 +3230,7 @@ mod tests {
     ReserveReplayRow {
       user: "0xuser".to_string(),
       db_scaled: 0,
+      position_scaled: Ok(0),
       chain_scaled,
       diff,
       pct,
@@ -3209,6 +3324,7 @@ mod tests {
     let row = ReserveReplayRow {
       user: "0xabc".to_string(),
       db_scaled: u128::MAX,
+      position_scaled: Ok(u128::MAX - 1),
       chain_scaled: 42,
       diff: 7,
       pct: 16.666_666_666_666_668,
@@ -3220,6 +3336,8 @@ mod tests {
     // u128 fields are stringified so they survive JSON without precision loss.
     assert_eq!(v["user"], "0xabc");
     assert_eq!(v["dbScaled"], u128::MAX.to_string());
+    assert_eq!(v["positionScaled"], (u128::MAX - 1).to_string());
+    assert!(v["positionError"].is_null());
     assert_eq!(v["chainScaled"], "42");
     assert_eq!(v["diff"], "7");
     assert_eq!(v["percentage"], 16.666_666_666_666_668);
@@ -3233,6 +3351,7 @@ mod tests {
     let row = ReserveReplayRow {
       user: "0xdef".to_string(),
       db_scaled: 0,
+      position_scaled: Err("no position for reserve 0xreserve".to_string()),
       chain_scaled: 0,
       diff: 0,
       pct: 0.0,
@@ -3243,6 +3362,31 @@ mod tests {
     let v = &arr[0];
     assert_eq!(v["verdict"], "ERROR");
     assert_eq!(v["error"], "on-chain scaledBalanceOf: rpc unreachable");
+    // Position fields surface independently of the main error.
+    assert!(v["positionScaled"].is_null());
+    assert_eq!(v["positionError"], "no position for reserve 0xreserve");
+  }
+
+  #[test]
+  fn rows_to_json_emits_position_error_as_string() {
+    // Even when the row is otherwise green, a position lookup failure surfaces in
+    // positionError so the report can flag "events match chain but user_positions is
+    // missing" cases.
+    let row = ReserveReplayRow {
+      user: "0xghi".to_string(),
+      db_scaled: 100,
+      position_scaled: Err("no position for reserve 0xunknown".to_string()),
+      chain_scaled: 100,
+      diff: 0,
+      pct: 0.0,
+      last_event_block: 50,
+      error: None,
+    };
+    let arr = rows_to_json(&[row]);
+    let v = &arr[0];
+    assert_eq!(v["verdict"], "PERFECT");
+    assert!(v["positionScaled"].is_null());
+    assert_eq!(v["positionError"], "no position for reserve 0xunknown");
   }
 
   // ----------------------------------------------------------
