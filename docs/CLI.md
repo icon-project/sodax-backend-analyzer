@@ -1,10 +1,10 @@
 # CLI Reference
 
-Complete reference for every flag accepted by `sodax-backend-analyzer`.
+Complete reference for every flag accepted by the analyzer CLI.
 
-The binary is invoked as either `sodax-backend-analyzer <flags...>` after `cargo build --release`, or — most commonly during development — `cargo run -- <flags...>`. This document uses the latter form in examples; both behave identically.
+The binary is invoked as either `target/release/sodax_backend_analizer <flags...>` after `cargo build --release` (note: the package name in `Cargo.toml` is `sodax_backend_analizer` — with underscores and the legacy "analizer" spelling), or — most commonly during development — `cargo run -- <flags...>`. This document uses the latter form in examples; both behave identically.
 
-If invoked with no flags, the tool prints the help message and exits.
+If invoked with no flags, the parser exits with status 1 and prints `Error parsing flags: Not enough arguments`. Use `--help` to print the help message.
 
 ## Contents
 
@@ -474,10 +474,12 @@ Combines with: `--validate-user-supply`, `--validate-user-borrow`, `--validate-t
 Enforced by the parser in [`src/cli.rs`](../src/cli.rs):
 
 **Standalone (cannot combine with anything):**
-`--help`, `--last-block`, `--all-tokens`, `--orderbook`, `--timestamp-coverage`, `--get-all-users`, `--get-all-reserves`, `--get-all-a-token`, `--get-all-debt-token`, `--validate-all-reserve-indexes`. The argument-bearing variants `--validate-timestamps`, `--get-token-events`, `--get-user-events`, `--validate-reserve-indexes` are similarly standalone (only their own arg).
+`--help`, `--last-block`, `--all-tokens`, `--orderbook`, `--timestamp-coverage`, `--get-all-users`, `--get-all-reserves`, `--get-all-a-token`, `--get-all-debt-token`, `--validate-all-reserve-indexes`, `--validate-from-events-all`. The argument-bearing variants `--validate-timestamps`, `--get-token-events`, `--get-user-events`, `--validate-reserve-indexes` are similarly standalone (only their own arg).
+
+> Note: the parser will accept `--validate-from-events-all --scaled` without an error, but the dispatch in `main.rs` always calls the non-scaled handler — `--scaled` is silently ignored for this flag.
 
 **Combinable only with `--scaled`:**
-`--validate-users-all`, `--validate-user-all`, `--validate-token-all`, `--validate-all`, `--validate-from-events-all`.
+`--validate-users-all`, `--validate-user-all`, `--validate-token-all`, `--validate-all`.
 
 **Token-flag mutual exclusion:**
 You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single invocation.
@@ -497,10 +499,12 @@ You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single in
 
 ## Reports
 
-Every command (except `--help`) automatically writes a report file to `reports/report_<unix_timestamp>.txt` containing the same output streamed to stdout. The path is printed on exit:
+By default, every command (except `--help`) writes a report file to `reports/report_<unix_timestamp>.txt`. The path is printed on exit:
 
 ```
 Report saved to: reports/report_1747200123.txt
 ```
 
 Pass `--no-report` to skip this. The directory must be writable; the `reports/` directory exists in the repo and is gitignored by default.
+
+**Caveat — what gets captured:** report files capture only lines emitted through the internal `output!` macro. Handlers that print with `println!` (currently `handle_validate_from_events` and `handle_validate_from_events_all`, i.e. `--validate-from-events` and `--validate-from-events-all`) write to stdout only, so their report files will be empty / incomplete relative to terminal output. Treat the report file as a best-effort transcript, not a guaranteed mirror of stdout.
