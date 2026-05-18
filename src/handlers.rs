@@ -2606,7 +2606,15 @@ impl ReserveReplayRow {
   }
 }
 
-type EventsCache = std::collections::HashMap<String, Result<Vec<MoneyMarketEventDocument>, String>>;
+/// Per-user event cache value. `Arc<Vec<_>>` lets us share the same vector across both
+/// supply and borrow replays for users present on both sides — no clones of the event payload.
+type CachedEvents = Result<Arc<Vec<MoneyMarketEventDocument>>, String>;
+
+/// Per-user event cache. Keyed by lowercased address. Storing the events behind an `Arc`
+/// means we never copy the event payload, even across multiple replays of the same user.
+type EventsCache = std::collections::HashMap<String, CachedEvents>;
+
+const RESERVE_REPLAY_CONCURRENCY: usize = 10;
 
 fn err_row(user: String, msg: String) -> ReserveReplayRow {
   ReserveReplayRow {
@@ -2621,40 +2629,29 @@ fn err_row(user: String, msg: String) -> ReserveReplayRow {
   }
 }
 
-/// Fetch each user's events once, with bounded concurrency. Keyed by lowercased address.
-/// Errors are stored per-user so failures don't take down the whole scan.
+/// Fetch each user's events once. Bounded fan-out via `buffer_unordered` keeps at most
+/// `RESERVE_REPLAY_CONCURRENCY` futures in flight at any time — no upfront spawn of N tasks,
+/// so memory stays flat on large reserves. Errors are stored per-user so failures don't
+/// take down the whole scan.
 async fn prefetch_user_events(users: &[String]) -> EventsCache {
-  let semaphore = Arc::new(Semaphore::new(10));
-  let tasks: Vec<_> = users
-    .iter()
-    .map(|u| {
-      let user = u.clone();
-      let sem = Arc::clone(&semaphore);
-      task::spawn(async move {
-        let _permit = match sem.acquire().await {
-          Ok(p) => p,
-          Err(e) => return (user.to_lowercase(), Err(format!("semaphore: {}", e))),
-        };
-        let res = find_user_events(&user).await.map_err(|e| e.to_string());
+  use futures::stream::{self, StreamExt};
+
+  let results: Vec<(String, CachedEvents)> =
+    stream::iter(users.iter().cloned())
+      .map(|user| async move {
+        let res = find_user_events(&user)
+          .await
+          .map(Arc::new)
+          .map_err(|e| e.to_string());
         (user.to_lowercase(), res)
       })
-    })
-    .collect();
+      .buffer_unordered(RESERVE_REPLAY_CONCURRENCY)
+      .collect()
+      .await;
 
-  let mut map: EventsCache = std::collections::HashMap::with_capacity(users.len());
-  for (idx, join) in join_all(tasks).await.into_iter().enumerate() {
-    match join {
-      Ok((key, res)) => {
-        map.insert(key, res);
-      }
-      Err(e) => {
-        // Task panicked. Reconstruct the key from the original users slice so we still
-        // record an error against this user instead of dropping them silently.
-        if let Some(orig) = users.get(idx) {
-          map.insert(orig.to_lowercase(), Err(format!("prefetch task join: {}", e)));
-        }
-      }
-    }
+  let mut map: EventsCache = std::collections::HashMap::with_capacity(results.len());
+  for (key, res) in results {
+    map.insert(key, res);
   }
   map
 }
@@ -2664,7 +2661,7 @@ async fn replay_one_user(
   token_address: String,
   current_index: u128,
   verbose: bool,
-  events: Result<Vec<MoneyMarketEventDocument>, String>,
+  events: CachedEvents,
 ) -> ReserveReplayRow {
   let events = match events {
     Ok(e) => e,
@@ -2714,14 +2711,12 @@ async fn replay_one_user(
   }
 }
 
-/// Look up cached events for a user (case-insensitive). Returns the cloned Vec on hit,
-/// the stored fetch error on prefetch failure, or a "not in cache" sentinel error otherwise.
-fn lookup_events(
-  user: &str,
-  cache: &EventsCache,
-) -> Result<Vec<MoneyMarketEventDocument>, String> {
+/// Look up cached events for a user (case-insensitive). Returns a clone of the shared
+/// `Arc` on hit (no payload copy), the stored fetch error on prefetch failure, or a
+/// "not in cache" sentinel otherwise.
+fn lookup_events(user: &str, cache: &EventsCache) -> CachedEvents {
   match cache.get(&user.to_lowercase()) {
-    Some(Ok(events)) => Ok(events.clone()),
+    Some(Ok(events)) => Ok(Arc::clone(events)),
     Some(Err(e)) => Err(e.clone()),
     None => Err("events not in prefetch cache".to_string()),
   }
@@ -2734,9 +2729,10 @@ async fn replay_side(
   verbose: bool,
   cache: &EventsCache,
 ) -> Vec<ReserveReplayRow> {
-  // Verbose mode interleaves per-event output! lines across users when run concurrently,
-  // making the promised per-user replay block unreadable. Force sequential execution so
-  // each user's block is contiguous.
+  use futures::stream::{self, StreamExt};
+
+  // Verbose mode: per-event output! lines from concurrent users would interleave, making
+  // the "per-user replay block" unreadable. Run sequentially so each block stays contiguous.
   if verbose {
     let mut rows = Vec::with_capacity(users.len());
     for user in users {
@@ -2754,37 +2750,17 @@ async fn replay_side(
     return rows;
   }
 
-  // Concurrent path. Pair each JoinHandle with its user address so join failures stay
-  // attributable instead of producing anonymous "<task-panicked>" rows.
-  let semaphore = Arc::new(Semaphore::new(10));
-  let mut tasks: Vec<(String, task::JoinHandle<ReserveReplayRow>)> =
-    Vec::with_capacity(users.len());
-  for user in users {
-    let user_owned = user.clone();
-    let token_address = token_address.to_string();
-    let sem = Arc::clone(&semaphore);
-    let events = lookup_events(user, cache);
-    let handle = {
-      let user_for_task = user_owned.clone();
-      task::spawn(async move {
-        let _permit = match sem.acquire().await {
-          Ok(p) => p,
-          Err(e) => return err_row(user_for_task, format!("semaphore: {}", e)),
-        };
-        replay_one_user(user_for_task, token_address, current_index, false, events).await
-      })
-    };
-    tasks.push((user_owned, handle));
-  }
-
-  let mut rows: Vec<ReserveReplayRow> = Vec::with_capacity(users.len());
-  for (user, handle) in tasks {
-    match handle.await {
-      Ok(row) => rows.push(row),
-      Err(e) => rows.push(err_row(user, format!("task join: {}", e))),
-    }
-  }
-  rows
+  // Concurrent path: bounded by `buffer_unordered` — at most RESERVE_REPLAY_CONCURRENCY
+  // futures in flight, no upfront fan-out, no JoinHandle bookkeeping.
+  stream::iter(users.iter().cloned())
+    .map(|user| {
+      let events = lookup_events(&user, cache);
+      let token_address = token_address.to_string();
+      async move { replay_one_user(user, token_address, current_index, false, events).await }
+    })
+    .buffer_unordered(RESERVE_REPLAY_CONCURRENCY)
+    .collect()
+    .await
 }
 
 fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow]) {
@@ -2954,16 +2930,18 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
 
   // Prefetch events once for the union of suppliers + borrowers so cross-side users
   // (in both lists) don't trigger duplicate DB fetches when both sides are selected.
+  // De-dup is case-insensitive so addresses that differ only in casing across the two
+  // lists collapse to a single entry (matching how the cache keys are stored).
   let unique_users: Vec<String> = {
     let mut set: std::collections::HashSet<String> = std::collections::HashSet::new();
     if do_supply {
       for u in &reserve_data.suppliers {
-        set.insert(u.clone());
+        set.insert(u.to_lowercase());
       }
     }
     if do_borrow {
       for u in &reserve_data.borrowers {
-        set.insert(u.clone());
+        set.insert(u.to_lowercase());
       }
     }
     set.into_iter().collect()
@@ -3092,5 +3070,143 @@ mod tests {
       "0x996752752f887000c8136cefb023d12719dad24a",
     );
     assert_eq!(id, "100-0xabc-5");
+  }
+
+  // ----------------------------------------------------------
+  // --calculate-from-events-reserve verdict / JSON tests
+  // ----------------------------------------------------------
+
+  fn ok_row(scaled: u128, real: u128, on_chain: u128, diff: u128, pct: f64) -> ReserveReplayRow {
+    ReserveReplayRow {
+      user: "0xuser".to_string(),
+      scaled,
+      real,
+      on_chain,
+      diff,
+      pct,
+      last_event_block: 100,
+      error: None,
+    }
+  }
+
+  #[test]
+  fn verdict_perfect_when_diff_zero() {
+    let row = ok_row(100, 100, 100, 0, 0.0);
+    assert_eq!(row.verdict(), "PERFECT");
+    assert_eq!(row.verdict_symbol(), "✅");
+  }
+
+  #[test]
+  fn verdict_excellent_below_thresh_0_01() {
+    let row = ok_row(100, 101, 100, 1, 0.005);
+    assert_eq!(row.verdict(), "EXCELLENT");
+    assert_eq!(row.verdict_symbol(), "✅");
+  }
+
+  #[test]
+  fn verdict_minor_below_thresh_1_pct() {
+    let row = ok_row(100, 105, 100, 5, 0.5);
+    assert_eq!(row.verdict(), "MINOR");
+    assert_eq!(row.verdict_symbol(), "⚠️");
+  }
+
+  #[test]
+  fn verdict_significant_at_or_above_1_pct() {
+    let at = ok_row(100, 101, 100, 1, 1.0);
+    assert_eq!(at.verdict(), "SIGNIFICANT");
+    assert_eq!(at.verdict_symbol(), "❌");
+    let above = ok_row(100, 200, 100, 100, 100.0);
+    assert_eq!(above.verdict(), "SIGNIFICANT");
+  }
+
+  #[test]
+  fn verdict_error_when_error_set() {
+    let mut row = ok_row(0, 0, 0, 0, 0.0);
+    row.error = Some("boom".to_string());
+    assert_eq!(row.verdict(), "ERROR");
+    assert_eq!(row.verdict_symbol(), "‼️");
+  }
+
+  #[test]
+  fn verdict_error_dominates_zero_diff() {
+    // Even if numerically perfect, an error should classify as ERROR.
+    let mut row = ok_row(100, 100, 100, 0, 0.0);
+    row.error = Some("fetch failed".to_string());
+    assert_eq!(row.verdict(), "ERROR");
+  }
+
+  #[test]
+  fn boundary_just_under_excellent_threshold() {
+    // diff>0 with pct=0.009% — well below the 0.01 EXCELLENT threshold.
+    let row = ok_row(100, 100, 100, 1, 0.009);
+    assert_eq!(row.verdict(), "EXCELLENT");
+  }
+
+  #[test]
+  fn rows_summary_counts_each_bucket() {
+    // diff must be >0 for non-PERFECT verdicts — verdict() short-circuits on diff==0.
+    let rows = vec![
+      ok_row(0, 0, 0, 0, 0.0),       // PERFECT (diff=0)
+      ok_row(0, 0, 0, 1, 0.005),     // EXCELLENT
+      ok_row(0, 0, 0, 5, 0.5),       // MINOR
+      ok_row(0, 0, 0, 1, 1.0),       // SIGNIFICANT
+      ok_row(0, 0, 0, 50, 50.0),     // SIGNIFICANT
+      {
+        let mut r = ok_row(0, 0, 0, 0, 0.0);
+        r.error = Some("err".to_string());
+        r
+      },
+    ];
+    let summary = rows_summary_json(&rows);
+    assert_eq!(summary["totalUsers"], 6);
+    assert_eq!(summary["perfect"], 1);
+    assert_eq!(summary["excellent"], 1);
+    assert_eq!(summary["minor"], 1);
+    assert_eq!(summary["significant"], 2);
+    assert_eq!(summary["errors"], 1);
+  }
+
+  #[test]
+  fn rows_to_json_emits_u128_as_strings() {
+    let row = ReserveReplayRow {
+      user: "0xabc".to_string(),
+      scaled: u128::MAX,
+      real: u128::MAX - 1,
+      on_chain: 42,
+      diff: 7,
+      pct: 0.25,
+      last_event_block: 12345,
+      error: None,
+    };
+    let arr = rows_to_json(&[row]);
+    let v = &arr[0];
+    // u128 fields are stringified so they survive JSON without precision loss.
+    assert_eq!(v["user"], "0xabc");
+    assert_eq!(v["scaled"], u128::MAX.to_string());
+    assert_eq!(v["real"], (u128::MAX - 1).to_string());
+    assert_eq!(v["onChain"], "42");
+    assert_eq!(v["diff"], "7");
+    assert_eq!(v["percentage"], 0.25);
+    assert_eq!(v["lastEventBlock"], 12345);
+    assert_eq!(v["verdict"], "MINOR");
+    assert!(v["error"].is_null());
+  }
+
+  #[test]
+  fn rows_to_json_preserves_error_message() {
+    let row = ReserveReplayRow {
+      user: "0xdef".to_string(),
+      scaled: 0,
+      real: 0,
+      on_chain: 0,
+      diff: 0,
+      pct: 0.0,
+      last_event_block: 0,
+      error: Some("on-chain balance: rpc unreachable".to_string()),
+    };
+    let arr = rows_to_json(&[row]);
+    let v = &arr[0];
+    assert_eq!(v["verdict"], "ERROR");
+    assert_eq!(v["error"], "on-chain balance: rpc unreachable");
   }
 }
