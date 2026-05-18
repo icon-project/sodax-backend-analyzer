@@ -78,11 +78,15 @@ Source of truth for the parser and dispatch:
 | `--validate-token-all` | — | opt. `--scaled` | Validate every reserve |
 | `--validate-all` | — | opt. `--scaled` | Validate every reserve + every user |
 | `--calculate-from-events` | user | one token flag | Reconstruct balance from event history |
+| `--calculate-from-events-reserve` | reserve | opt. `--a-token-only`/`--debt-token-only`, `--verbose`, `--json` | Reconstruct balances for every user in a reserve |
+| `--a-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to supply side |
+| `--debt-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to debt side |
+| `--verbose` | — | `--calculate-from-events-reserve` | Print full per-user replay block instead of the compact table |
 | `--validate-from-events` | user | opt. `--reserve-token` | 3-way validate (events vs DB vs chain) for one user |
 | `--validate-from-events-all` | — | none | 3-way validate every user |
 | `--validate-partner-asset` | — | opt. `--partner`, `--json`, `--threshold` | Recompute `partner_asset` aggregates and report drift |
 | `--partner` | address | `--validate-partner-asset` | Restrict to one receiver |
-| `--json` | — | `--validate-partner-asset` | Emit JSON output |
+| `--json` | — | `--validate-partner-asset` or `--calculate-from-events-reserve` | Emit JSON output |
 | `--threshold` | float | `--validate-partner-asset` | Suppress rows within ±PCT of 1.0 (default 0.0001) |
 | `--scaled` | — | validation flags | Compare scaled (raw) balances instead of real |
 
@@ -402,6 +406,73 @@ cargo run -- --calculate-from-events 0xuser... --a-token 0xatoken...
 cargo run -- --calculate-from-events 0xuser... --debt-token 0xdebt...
 ```
 
+### `--calculate-from-events-reserve <RESERVE_ADDRESS>`
+
+Reserve-scoped event-replay reconstruction: iterates **every user with a position in the reserve** (both supply and borrow sides by default) and produces a **three-way** scaled balance comparison for each user.
+
+The three columns are:
+
+| Column | Source | What it represents |
+|---|---|---|
+| **DB Events Scaled** | This tool's replay of `money_market_events` | The scaled balance our replay reconstructs from raw events |
+| **Position Scaled** | `user_positions.positions[].aTokenBalance` / `.variableDebtTokenBalance` | The scaled balance the SODAX backend derived from events and stored in `user_positions` |
+| **Chain Scaled** | `scaledBalanceOf(user)` pinned to `last_event_block` | The scaled balance the chain actually has |
+
+This isolates two independent integrity gates:
+
+- **DB Events Scaled vs Chain Scaled** (the primary `Diff%` and `Verdict` columns) — does the event log we ingest match what the chain applied? Failures here mean missed / wrong events in `money_market_events`.
+- **DB Events Scaled vs Position Scaled** (eyeball comparison) — does the backend's `user_positions` derivation logic agree with our replay of the same events? Failures here mean a bug in how the backend computes `user_positions` from `money_market_events`.
+
+The handler fetches the full token-event stream **once per side** (one query for the aToken, one for the variable-debt token) via `find_token_events_sorted`. That stream is shared by `Arc` across every user's replay. For each user × selected side, the handler then:
+
+1. Runs `process_user_token_events` against the **full token-event stream**. The function filters the deltas to the target user internally, but processes every event in block / logIndex order first — so `last_index` is updated by any mint/burn by *any* user before our user's transfer events land. (Earlier per-user-only fetches missed cross-user mints that defined the pool's liquidity index at transfer time, which caused transfers-as-first-event to credit an inflated scaled balance.)
+2. The result is the **scaled** balance (raw value before liquidity / variable-borrow index is applied) plus the user's `last_event_block`.
+3. Looks up the user's `user_positions` document and pulls the scaled balance for this reserve + side.
+4. Calls `scaledBalanceOf(user)` on the chain, **pinned to the user's last event block** (alloy's `.block(N)` historical call). This sidesteps the liquidity / variable-borrow index entirely — no f64 conversion, no question of whether the index was queried at the same block as the balance, no drift from interest accrual between snapshots. If `last_event_block == 0` (no matching events found for the user in the token stream), the row is classified `ERROR` rather than degrading to an unpinned latest-block comparison.
+5. Compares `db_scaled` to `chain_scaled` and classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
+
+> **Why scaled, not real?** Real balances on Aave-style markets are `scaledBalance × index / RAY` where `index` keeps moving as interest accrues. Comparing real-vs-real requires both sides to agree on the index at exactly the same block; comparing scaled-vs-scaled is a direct integer equality check that needs no index at all. Both `user_positions` and `scaledBalanceOf` are stored / computed in scaled units, so the three-way comparison is apples-to-apples.
+
+Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve_tokens.borrowers`. Within a single side, up to 10 user replays run in parallel; the two sides are processed sequentially (supply then borrow), so peak concurrency across the whole command is ~10 — not 20. Row order in the output matches the input user list (the implementation uses an ordered `buffered` stream).
+
+**Output modes:**
+- Default: one compact table per side (User, DB Events Scaled, Position Scaled, Chain Scaled, Diff%, Verdict) plus a per-side summary count. `Position Scaled` shows `-` if the user has no `user_positions` document or no entry for this reserve.
+- `--verbose`: prints the full per-user replay block (matching `--calculate-from-events`) for every user. Useful for debugging a small reserve; noisy on large ones. Replays run **sequentially** in this mode so each user's block stays contiguous (rather than interleaved across concurrent tasks).
+- `--json`: emits the full result (per-user rows + summary, per side) as a single JSON document for downstream tooling. Each user row has `dbScaled`, `positionScaled` (string or `null`), `positionError` (string or `null`), `chainScaled`, `diff` (all u128 as strings to survive JSON precision), `percentage` (f64, display), `lastEventBlock`, `verdict`, and `error`. `positionScaled` and `positionError` are mutually exclusive — exactly one is populated.
+- `--verbose` and `--json` are mutually exclusive.
+
+**Performance:**
+- Events are fetched **once per side** (one query for the aToken, one for the variable-debt token) and shared across every user via `Arc`. This is N=2 DB queries for events regardless of user count, and — crucially — captures mints/burns by *every* user for the token. `process_user_token_events` filters to the target user internally, but sees the full stream first, so `last_index` is always up-to-date by the time a user's transfer lands. (Earlier per-user-only fetches missed cross-user mints that defined the pool's liquidity index at transfer time, which produced inflated scaled balances for users whose first event for a token was a transfer.)
+- `user_positions` are prefetched once per unique user (case-insensitive union of `suppliers` and `borrowers`) with bounded fan-out (`buffered(10)`).
+- Non-verbose replays use bounded concurrency (10 in flight). Supply and borrow sides are processed sequentially, so peak concurrency is ~10 across the command. Verbose runs sequentially.
+
+**Verdict math:**
+- The verdict bucket is computed from `diff` and `chain_scaled` with u128 integer arithmetic, so it's exact regardless of balance magnitude. `percentage` is f64 for display only.
+- When `chain_scaled == 0` but `diff > 0` (DB replay produced a balance the chain doesn't have), the row is classified `SIGNIFICANT`. This aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat this handler as authoritative.
+
+**Side selection:**
+- Default: process both supply and borrow.
+- `--a-token-only`: skip the borrow side.
+- `--debt-token-only`: skip the supply side.
+- `--a-token-only` and `--debt-token-only` are mutually exclusive.
+
+```bash
+# Both sides
+cargo run -- --calculate-from-events-reserve 0xreserve...
+
+# Supply only
+cargo run -- --calculate-from-events-reserve 0xreserve... --a-token-only
+
+# Debt only
+cargo run -- --calculate-from-events-reserve 0xreserve... --debt-token-only
+
+# Verbose per-user output
+cargo run -- --calculate-from-events-reserve 0xreserve... --verbose
+
+# Machine-readable
+cargo run -- --calculate-from-events-reserve 0xreserve... --json
+```
+
 ### `--validate-from-events <USER_ADDRESS>`
 
 3-way validation for one user across all positions (or one position when filtered):
@@ -492,7 +563,16 @@ You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single in
 
 **Partner-asset subgroup:**
 - `--validate-partner-asset` accepts `--partner`, `--json`, `--threshold` (all optional).
-- `--partner`, `--json`, `--threshold` are rejected if used without `--validate-partner-asset`.
+- `--partner` and `--threshold` are rejected if used without `--validate-partner-asset`.
+
+**Reserve event-replay subgroup:**
+- `--calculate-from-events-reserve` accepts `--a-token-only`, `--debt-token-only`, `--verbose`, `--json` (all optional).
+- `--a-token-only` and `--debt-token-only` are mutually exclusive.
+- `--verbose` and `--json` are mutually exclusive.
+- `--a-token-only`, `--debt-token-only`, `--verbose` are rejected if used without `--calculate-from-events-reserve`.
+
+**Shared modifier:**
+- `--json` is valid with either `--validate-partner-asset` or `--calculate-from-events-reserve`; rejected otherwise.
 
 **Event-replay companions:**
 - `--validate-from-events` accepts `--reserve-token` (optional). No other combinations.
