@@ -417,7 +417,7 @@ For each user × selected side, the handler:
 3. Compares against the on-chain balance at the user's last event block (latest block as fallback if the user has no events).
 4. Classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
 
-Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve_tokens.borrowers`. Replays run with bounded concurrency (10 in parallel per side) to avoid file-descriptor exhaustion.
+Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve_tokens.borrowers`. Within a single side, up to 10 user replays run in parallel; the two sides are processed sequentially (supply then borrow), so peak concurrency across the whole command is ~10 — not 20. Row order in the output matches the input user list (the implementation uses an ordered `buffered` stream).
 
 **Output modes:**
 - Default: one compact table per side (user, scaled, real, on-chain, diff%, verdict) plus a per-side summary count.
@@ -426,8 +426,12 @@ Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve
 - `--verbose` and `--json` are mutually exclusive.
 
 **Performance:**
-- Events are prefetched once per unique user (the union of `suppliers` and `borrowers`), so users present on both sides aren't fetched twice.
-- Non-verbose replays run with bounded concurrency (10 in parallel per side). Verbose runs sequentially.
+- Events are prefetched once per unique user (the union of `suppliers` and `borrowers`, case-insensitive), so users present on both sides aren't fetched twice. Total memory still scales with the sum of all users' event payloads — only the concurrent fan-out is bounded, not the cache itself.
+- Non-verbose replays run with up to 10 users in parallel within a side; supply and borrow are processed sequentially, so peak concurrency is ~10 across the command. Verbose runs sequentially.
+
+**Verdict math:**
+- The verdict bucket (`PERFECT` / `EXCELLENT` / `MINOR` / `SIGNIFICANT` / `ERROR`) is computed from `diff` and `on_chain` with u128 integer arithmetic, so it's exact regardless of balance magnitude. The `percentage` field in the JSON / table is f64 for display only.
+- When `on_chain == 0` but `diff > 0` (DB shows a balance the chain doesn't have), the row is classified `SIGNIFICANT`. This aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat the reserve handler as authoritative.
 
 **Side selection:**
 - Default: process both supply and borrow.

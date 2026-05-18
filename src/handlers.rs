@@ -2583,17 +2583,7 @@ struct ReserveReplayRow {
 
 impl ReserveReplayRow {
   fn verdict(&self) -> &'static str {
-    if self.error.is_some() {
-      "ERROR"
-    } else if self.diff == 0 {
-      "PERFECT"
-    } else if self.pct < 0.01 {
-      "EXCELLENT"
-    } else if self.pct < 1.0 {
-      "MINOR"
-    } else {
-      "SIGNIFICANT"
-    }
+    classify_verdict(self.diff, self.on_chain, self.error.is_some())
   }
 
   fn verdict_symbol(&self) -> &'static str {
@@ -2604,6 +2594,53 @@ impl ReserveReplayRow {
       _ => "❌",
     }
   }
+}
+
+/// Classifies a (diff, on_chain) pair into a verdict using integer math.
+///
+/// The `pct` field on `ReserveReplayRow` is f64 for display, but f64 loses precision once
+/// values exceed ~2^53 — large enough that a balance comparison could flip buckets purely
+/// from rounding. This function compares against the 1% and 0.01% thresholds with u128
+/// arithmetic so the verdict stays exact regardless of balance magnitude.
+///
+/// Semantics:
+/// - error set → `"ERROR"` (precedence over numeric verdict)
+/// - diff == 0 → `"PERFECT"`
+/// - on_chain == 0 with diff > 0 → `"SIGNIFICANT"` (db has a balance, chain has none — total mismatch).
+///   Note: this differs from `--calculate-from-events`, which reports such cases as 0% / "Excellent".
+///   The reserve handler aligns with `EntryState::new` in `structs.rs` instead.
+/// - diff/on_chain ≥ 1/100 → `"SIGNIFICANT"`   (≥ 1%)
+/// - diff/on_chain ≥ 1/10000 → `"MINOR"`       (≥ 0.01%)
+/// - otherwise → `"EXCELLENT"`
+///
+/// `checked_mul` overflows are treated as threshold-met (a `diff` so large that
+/// `diff * 100` or `diff * 10000` overflows u128 implies the ratio against `on_chain` is
+/// astronomically high — well past any threshold).
+fn classify_verdict(diff: u128, on_chain: u128, has_error: bool) -> &'static str {
+  if has_error {
+    return "ERROR";
+  }
+  if diff == 0 {
+    return "PERFECT";
+  }
+  if on_chain == 0 {
+    return "SIGNIFICANT";
+  }
+  // diff/on_chain ≥ 1/100  ⟺  diff*100 ≥ on_chain
+  let geq_1pct = diff
+    .checked_mul(100)
+    .is_none_or(|v| v >= on_chain);
+  if geq_1pct {
+    return "SIGNIFICANT";
+  }
+  // diff/on_chain ≥ 1/10000  ⟺  diff*10000 ≥ on_chain
+  let geq_0_01pct = diff
+    .checked_mul(10000)
+    .is_none_or(|v| v >= on_chain);
+  if geq_0_01pct {
+    return "MINOR";
+  }
+  "EXCELLENT"
 }
 
 /// Per-user event cache value. `Arc<Vec<_>>` lets us share the same vector across both
@@ -2629,10 +2666,17 @@ fn err_row(user: String, msg: String) -> ReserveReplayRow {
   }
 }
 
-/// Fetch each user's events once. Bounded fan-out via `buffer_unordered` keeps at most
-/// `RESERVE_REPLAY_CONCURRENCY` futures in flight at any time — no upfront spawn of N tasks,
-/// so memory stays flat on large reserves. Errors are stored per-user so failures don't
-/// take down the whole scan.
+/// Fetch each user's events once. Fan-out is bounded by `buffered` — at most
+/// `RESERVE_REPLAY_CONCURRENCY` futures in flight at any time, no upfront spawn of N tasks.
+/// `buffered` (rather than `buffer_unordered`) preserves the input order; only the order
+/// here is incidental since the cache is keyed by address, but it keeps the function
+/// behavior deterministic.
+///
+/// Note: the function still buffers every user's events into the returned cache, so total
+/// memory scales with the sum of all users' event payloads. Only the *concurrent fan-out*
+/// is bounded — this is not a streaming pipeline.
+///
+/// Errors are stored per-user so a single failure doesn't take down the whole scan.
 async fn prefetch_user_events(users: &[String]) -> EventsCache {
   use futures::stream::{self, StreamExt};
 
@@ -2645,7 +2689,7 @@ async fn prefetch_user_events(users: &[String]) -> EventsCache {
           .map_err(|e| e.to_string());
         (user.to_lowercase(), res)
       })
-      .buffer_unordered(RESERVE_REPLAY_CONCURRENCY)
+      .buffered(RESERVE_REPLAY_CONCURRENCY)
       .collect()
       .await;
 
@@ -2750,15 +2794,17 @@ async fn replay_side(
     return rows;
   }
 
-  // Concurrent path: bounded by `buffer_unordered` — at most RESERVE_REPLAY_CONCURRENCY
-  // futures in flight, no upfront fan-out, no JoinHandle bookkeeping.
+  // Concurrent path. `buffered` (vs. `buffer_unordered`) preserves input order so the
+  // emitted table / JSON is deterministic across runs on the same data — important for
+  // downstream tooling (snapshot tests, diff-based monitoring). At most
+  // RESERVE_REPLAY_CONCURRENCY futures in flight; no upfront fan-out.
   stream::iter(users.iter().cloned())
     .map(|user| {
       let events = lookup_events(&user, cache);
       let token_address = token_address.to_string();
       async move { replay_one_user(user, token_address, current_index, false, events).await }
     })
-    .buffer_unordered(RESERVE_REPLAY_CONCURRENCY)
+    .buffered(RESERVE_REPLAY_CONCURRENCY)
     .collect()
     .await
 }
@@ -3076,11 +3122,19 @@ mod tests {
   // --calculate-from-events-reserve verdict / JSON tests
   // ----------------------------------------------------------
 
-  fn ok_row(scaled: u128, real: u128, on_chain: u128, diff: u128, pct: f64) -> ReserveReplayRow {
+  /// Build a row where the diff/on_chain ratio falls into the target verdict bucket.
+  /// `pct` is set consistently with diff/on_chain (it's now display-only — verdict reads
+  /// the integer fields directly).
+  fn ok_row(diff: u128, on_chain: u128) -> ReserveReplayRow {
+    let pct = if on_chain == 0 {
+      if diff == 0 { 0.0 } else { 100.0 }
+    } else {
+      (diff as f64 / on_chain as f64) * 100.0
+    };
     ReserveReplayRow {
       user: "0xuser".to_string(),
-      scaled,
-      real,
+      scaled: 0,
+      real: 0,
       on_chain,
       diff,
       pct,
@@ -3091,37 +3145,40 @@ mod tests {
 
   #[test]
   fn verdict_perfect_when_diff_zero() {
-    let row = ok_row(100, 100, 100, 0, 0.0);
+    let row = ok_row(0, 100);
     assert_eq!(row.verdict(), "PERFECT");
     assert_eq!(row.verdict_symbol(), "✅");
   }
 
   #[test]
   fn verdict_excellent_below_thresh_0_01() {
-    let row = ok_row(100, 101, 100, 1, 0.005);
+    // 1/20_000 = 0.005% — well under the 0.01% EXCELLENT cutoff.
+    let row = ok_row(1, 20_000);
     assert_eq!(row.verdict(), "EXCELLENT");
     assert_eq!(row.verdict_symbol(), "✅");
   }
 
   #[test]
   fn verdict_minor_below_thresh_1_pct() {
-    let row = ok_row(100, 105, 100, 5, 0.5);
+    // 5/10_000 = 0.05% — between the EXCELLENT and SIGNIFICANT thresholds.
+    let row = ok_row(5, 10_000);
     assert_eq!(row.verdict(), "MINOR");
     assert_eq!(row.verdict_symbol(), "⚠️");
   }
 
   #[test]
   fn verdict_significant_at_or_above_1_pct() {
-    let at = ok_row(100, 101, 100, 1, 1.0);
+    // 1/100 = exactly 1% → SIGNIFICANT (≥ branch).
+    let at = ok_row(1, 100);
     assert_eq!(at.verdict(), "SIGNIFICANT");
     assert_eq!(at.verdict_symbol(), "❌");
-    let above = ok_row(100, 200, 100, 100, 100.0);
+    let above = ok_row(100, 200);
     assert_eq!(above.verdict(), "SIGNIFICANT");
   }
 
   #[test]
   fn verdict_error_when_error_set() {
-    let mut row = ok_row(0, 0, 0, 0, 0.0);
+    let mut row = ok_row(0, 0);
     row.error = Some("boom".to_string());
     assert_eq!(row.verdict(), "ERROR");
     assert_eq!(row.verdict_symbol(), "‼️");
@@ -3130,29 +3187,28 @@ mod tests {
   #[test]
   fn verdict_error_dominates_zero_diff() {
     // Even if numerically perfect, an error should classify as ERROR.
-    let mut row = ok_row(100, 100, 100, 0, 0.0);
+    let mut row = ok_row(0, 100);
     row.error = Some("fetch failed".to_string());
     assert_eq!(row.verdict(), "ERROR");
   }
 
   #[test]
   fn boundary_just_under_excellent_threshold() {
-    // diff>0 with pct=0.009% — well below the 0.01 EXCELLENT threshold.
-    let row = ok_row(100, 100, 100, 1, 0.009);
+    // 1/10_001 ≈ 0.0099% — just under the 0.01% threshold.
+    let row = ok_row(1, 10_001);
     assert_eq!(row.verdict(), "EXCELLENT");
   }
 
   #[test]
   fn rows_summary_counts_each_bucket() {
-    // diff must be >0 for non-PERFECT verdicts — verdict() short-circuits on diff==0.
     let rows = vec![
-      ok_row(0, 0, 0, 0, 0.0),       // PERFECT (diff=0)
-      ok_row(0, 0, 0, 1, 0.005),     // EXCELLENT
-      ok_row(0, 0, 0, 5, 0.5),       // MINOR
-      ok_row(0, 0, 0, 1, 1.0),       // SIGNIFICANT
-      ok_row(0, 0, 0, 50, 50.0),     // SIGNIFICANT
+      ok_row(0, 100),                // PERFECT
+      ok_row(1, 20_000),             // EXCELLENT
+      ok_row(5, 10_000),             // MINOR
+      ok_row(1, 100),                // SIGNIFICANT (exactly 1%)
+      ok_row(50, 100),               // SIGNIFICANT (50%)
       {
-        let mut r = ok_row(0, 0, 0, 0, 0.0);
+        let mut r = ok_row(0, 0);
         r.error = Some("err".to_string());
         r
       },
@@ -3168,13 +3224,14 @@ mod tests {
 
   #[test]
   fn rows_to_json_emits_u128_as_strings() {
+    // diff=7, on_chain=42: ratio ≈ 16.7% → SIGNIFICANT under integer math.
     let row = ReserveReplayRow {
       user: "0xabc".to_string(),
       scaled: u128::MAX,
       real: u128::MAX - 1,
       on_chain: 42,
       diff: 7,
-      pct: 0.25,
+      pct: 16.666_666_666_666_668,
       last_event_block: 12345,
       error: None,
     };
@@ -3186,9 +3243,9 @@ mod tests {
     assert_eq!(v["real"], (u128::MAX - 1).to_string());
     assert_eq!(v["onChain"], "42");
     assert_eq!(v["diff"], "7");
-    assert_eq!(v["percentage"], 0.25);
+    assert_eq!(v["percentage"], 16.666_666_666_666_668);
     assert_eq!(v["lastEventBlock"], 12345);
-    assert_eq!(v["verdict"], "MINOR");
+    assert_eq!(v["verdict"], "SIGNIFICANT");
     assert!(v["error"].is_null());
   }
 
@@ -3208,5 +3265,67 @@ mod tests {
     let v = &arr[0];
     assert_eq!(v["verdict"], "ERROR");
     assert_eq!(v["error"], "on-chain balance: rpc unreachable");
+  }
+
+  // ----------------------------------------------------------
+  // classify_verdict (integer math, no f64) edge cases
+  // ----------------------------------------------------------
+
+  #[test]
+  fn classify_error_takes_precedence_over_perfect() {
+    assert_eq!(classify_verdict(0, 0, true), "ERROR");
+    assert_eq!(classify_verdict(0, 100, true), "ERROR");
+  }
+
+  #[test]
+  fn classify_perfect_when_diff_zero() {
+    assert_eq!(classify_verdict(0, 0, false), "PERFECT");
+    assert_eq!(classify_verdict(0, u128::MAX, false), "PERFECT");
+  }
+
+  #[test]
+  fn classify_on_chain_zero_with_diff_is_significant() {
+    // db has a balance but chain reports zero: aligns with EntryState::new in structs.rs.
+    assert_eq!(classify_verdict(1, 0, false), "SIGNIFICANT");
+    assert_eq!(classify_verdict(u128::MAX, 0, false), "SIGNIFICANT");
+  }
+
+  #[test]
+  fn classify_thresholds_around_1_percent() {
+    // 1.0% exactly (diff*100 == on_chain) → SIGNIFICANT
+    assert_eq!(classify_verdict(1, 100, false), "SIGNIFICANT");
+    // Just under 1.0% (diff*100 < on_chain) → MINOR
+    assert_eq!(classify_verdict(99, 10_000, false), "MINOR");
+  }
+
+  #[test]
+  fn classify_thresholds_around_0_01_percent() {
+    // 0.01% exactly (diff*10000 == on_chain) → MINOR
+    assert_eq!(classify_verdict(1, 10_000, false), "MINOR");
+    // Just under 0.01% → EXCELLENT
+    assert_eq!(classify_verdict(99, 1_000_000, false), "EXCELLENT");
+  }
+
+  #[test]
+  fn classify_large_balances_precise_at_threshold() {
+    // Values well past 2^53 (f64's safe integer range) where the float pct would round
+    // ambiguously. Integer math still decides correctly.
+    //
+    // diff = 1e20, on_chain = 1e22 → ratio 1/100 = exactly 1% → SIGNIFICANT
+    let diff = 100_000_000_000_000_000_000u128;
+    let on_chain = 10_000_000_000_000_000_000_000u128;
+    assert_eq!(classify_verdict(diff, on_chain, false), "SIGNIFICANT");
+
+    // Same scale but one unit under threshold — should be MINOR, not SIGNIFICANT.
+    let diff_minus = diff - 1;
+    assert_eq!(classify_verdict(diff_minus, on_chain, false), "MINOR");
+  }
+
+  #[test]
+  fn classify_overflow_on_diff_times_100_means_significant() {
+    // diff so large that diff*100 overflows u128. Any sane on_chain is dwarfed → SIGNIFICANT.
+    let diff = u128::MAX / 50; // diff*100 overflows
+    assert_eq!(classify_verdict(diff, 1, false), "SIGNIFICANT");
+    assert_eq!(classify_verdict(diff, u128::MAX, false), "SIGNIFICANT");
   }
 }
