@@ -74,6 +74,8 @@ RPC_PROVIDER=https://rpc.soniclabs.com/
 
 ## 🎯 Usage
 
+> **Full CLI reference:** every flag, its arguments, valid combinations, and examples are documented in [`docs/CLI.md`](docs/CLI.md). The sections below cover a few flags in extra depth; the reference is the canonical source.
+
 ### Inspecting User Positions
 
 The `--inspect-user-position` flag allows you to audit a user's balance history for a specific token and detect any missed events:

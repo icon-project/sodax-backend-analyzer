@@ -1,0 +1,506 @@
+# CLI Reference
+
+Complete reference for every flag accepted by `sodax-backend-analyzer`.
+
+The binary is invoked as either `sodax-backend-analyzer <flags...>` after `cargo build --release`, or — most commonly during development — `cargo run -- <flags...>`. This document uses the latter form in examples; both behave identically.
+
+If invoked with no flags, the tool prints the help message and exits.
+
+## Contents
+
+- [Conventions](#conventions)
+- [Quick reference](#quick-reference)
+- [Meta & help](#meta--help)
+- [Read-only data lookup](#read-only-data-lookup)
+- [Token data](#token-data)
+- [User position & balance](#user-position--balance)
+- [Event queries](#event-queries)
+- [Position inspection](#position-inspection)
+- [Timestamp validation](#timestamp-validation)
+- [Reserve index validation](#reserve-index-validation)
+- [Single-target balance validation](#single-target-balance-validation)
+- [Bulk balance validation](#bulk-balance-validation)
+- [Event-replay validation](#event-replay-validation)
+- [Partner asset validation](#partner-asset-validation)
+- [Modifiers](#modifiers)
+- [Combination rules](#combination-rules)
+- [Reports](#reports)
+
+## Conventions
+
+Placeholders used below:
+
+- `<USER_ADDRESS>` — an EOA / wallet address (`0x...`)
+- `<TOKEN_ADDRESS>` — an ERC-20 / reserve / aToken / variable-debt-token address
+- `<RESERVE_ADDRESS>` — the underlying reserve asset address (not the aToken or debt token)
+- `<BLOCK_NUMBER>` — a `u64` block height
+- `<PARTNER_ADDRESS>` — a partner-asset receiver address
+
+Source of truth for the parser and dispatch:
+- Flag enum: [`src/structs.rs`](../src/structs.rs)
+- Parsing & validation rules: [`src/cli.rs`](../src/cli.rs)
+- Dispatch: [`src/main.rs`](../src/main.rs)
+- Behavior: [`src/handlers.rs`](../src/handlers.rs)
+- Built-in help text: [`src/constants.rs`](../src/constants.rs)
+
+## Quick reference
+
+| Flag | Arg | Companion | Purpose |
+|---|---|---|---|
+| `--help` | — | none | Print help and exit |
+| `--no-report` | — | any | Disable automatic report file generation |
+| `--all-tokens` | — | none | List every reserve token in the DB |
+| `--last-block` | — | none | Latest block from RPC |
+| `--orderbook` | — | none | Dump pending orderbook intents |
+| `--get-all-users` | — | none | Print all user addresses |
+| `--get-all-reserves` | — | none | Print reserve addresses + symbols |
+| `--get-all-a-token` | — | none | Print aToken addresses + symbols |
+| `--get-all-debt-token` | — | none | Print variable-debt-token addresses + symbols |
+| `--reserve-token` | address | — | Show reserve data; also acts as token selector |
+| `--a-token` | address | — | Show reserve data; also acts as token selector |
+| `--debt-token` | address | — | Show reserve data; also acts as token selector |
+| `--user-position` | user | one token flag | Show user position for a token |
+| `--balance-of` | user | one token flag, opt. `--block` | On-chain ERC-20 balance |
+| `--block` | block | `--balance-of` | Query a specific block |
+| `--get-token-events` | token | none | Events for a token |
+| `--get-user-events` | user | none | Events for a user |
+| `--inspect-user-position` | user | `--a-token` or `--debt-token` | Detect missed events vs. balance history |
+| `--timestamp-coverage` | — | none | % of docs with non-null timestamps |
+| `--validate-timestamps` | opt. count (1-100) | none | Validate DB timestamps vs. on-chain block timestamps |
+| `--validate-reserve-indexes` | reserve | none | Validate liquidity/borrow indexes for one reserve |
+| `--validate-all-reserve-indexes` | — | none | Validate indexes across all reserves |
+| `--validate-user-supply` | user | `--reserve-token` (+ opt. `--scaled`) | Validate one user's aToken balance |
+| `--validate-user-borrow` | user | `--reserve-token` (+ opt. `--scaled`) | Validate one user's debt balance |
+| `--validate-token-supply` | — | `--reserve-token` (+ opt. `--scaled`) | Validate a reserve's total aToken supply |
+| `--validate-token-borrow` | — | `--reserve-token` (+ opt. `--scaled`) | Validate a reserve's total debt supply |
+| `--validate-user-all` | user | opt. `--scaled` | Validate every position for one user |
+| `--validate-users-all` | — | opt. `--scaled` | Validate every position for every user |
+| `--validate-token-all` | — | opt. `--scaled` | Validate every reserve |
+| `--validate-all` | — | opt. `--scaled` | Validate every reserve + every user |
+| `--calculate-from-events` | user | one token flag | Reconstruct balance from event history |
+| `--validate-from-events` | user | opt. `--reserve-token` | 3-way validate (events vs DB vs chain) for one user |
+| `--validate-from-events-all` | — | none | 3-way validate every user |
+| `--validate-partner-asset` | — | opt. `--partner`, `--json`, `--threshold` | Recompute `partner_asset` aggregates and report drift |
+| `--partner` | address | `--validate-partner-asset` | Restrict to one receiver |
+| `--json` | — | `--validate-partner-asset` | Emit JSON output |
+| `--threshold` | float | `--validate-partner-asset` | Suppress rows within ±PCT of 1.0 (default 0.0001) |
+| `--scaled` | — | validation flags | Compare scaled (raw) balances instead of real |
+
+---
+
+## Meta & help
+
+### `--help`
+
+Print the full help message and exit. Cannot be combined with any other flag.
+
+```bash
+cargo run -- --help
+```
+
+### `--no-report`
+
+Disable automatic report file generation for the current invocation. By default every command (except `--help`) writes its output to `reports/report_<unix_timestamp>.txt`. This flag is consumed in `main.rs` before flag parsing, so it pairs with any other command.
+
+```bash
+cargo run -- --validate-all --no-report
+```
+
+## Read-only data lookup
+
+These flags all run standalone — they cannot be combined with anything else.
+
+### `--all-tokens`
+
+Lists every entry in the `reserve_tokens` collection with full data per reserve.
+
+```bash
+cargo run -- --all-tokens
+```
+
+### `--last-block`
+
+Queries the RPC provider for the latest block number.
+
+```bash
+cargo run -- --last-block
+```
+
+### `--orderbook`
+
+Dumps the entire `orderbook` collection (pending intents).
+
+```bash
+cargo run -- --orderbook
+```
+
+### `--get-all-users`
+
+Prints every user address known to the DB (from `user_positions`).
+
+```bash
+cargo run -- --get-all-users
+```
+
+### `--get-all-reserves`
+
+Prints `(reserveAddress, symbol)` pairs for every reserve.
+
+```bash
+cargo run -- --get-all-reserves
+```
+
+### `--get-all-a-token`
+
+Prints `(aTokenAddress, symbol)` pairs for every reserve.
+
+```bash
+cargo run -- --get-all-a-token
+```
+
+### `--get-all-debt-token`
+
+Prints `(variableDebtTokenAddress, symbol)` pairs for every reserve.
+
+```bash
+cargo run -- --get-all-debt-token
+```
+
+## Token data
+
+The three token flags below have a dual purpose:
+
+1. **Standalone** — look up reserve data via that token type and print it.
+2. **As a selector for another flag** (e.g. `--balance-of`, `--user-position`, `--calculate-from-events`, etc.) — pick which of the three addresses on a reserve to operate against.
+
+They are mutually exclusive (`--reserve-token` + `--a-token` is rejected, etc.).
+
+### `--reserve-token <RESERVE_ADDRESS>`
+
+Reserve data keyed by the underlying asset address.
+
+```bash
+cargo run -- --reserve-token 0x1234...
+```
+
+### `--a-token <ATOKEN_ADDRESS>`
+
+Reserve data keyed by the aToken address.
+
+```bash
+cargo run -- --a-token 0x5c50...
+```
+
+### `--debt-token <DEBT_TOKEN_ADDRESS>`
+
+Reserve data keyed by the variable-debt-token address.
+
+```bash
+cargo run -- --debt-token 0x5c50...
+```
+
+## User position & balance
+
+### `--user-position <USER_ADDRESS>`
+
+Returns the user's position for the selected token. Requires exactly one of `--reserve-token`, `--a-token`, or `--debt-token`.
+
+```bash
+cargo run -- --user-position 0xuser... --reserve-token 0xtoken...
+```
+
+### `--balance-of <USER_ADDRESS>`
+
+On-chain ERC-20 balance for the user, against the selected token. Requires exactly one of `--reserve-token`, `--a-token`, or `--debt-token`. Optionally takes `--block` to query at a specific height.
+
+```bash
+cargo run -- --balance-of 0xuser... --reserve-token 0xtoken...
+cargo run -- --balance-of 0xuser... --a-token 0xatoken... --block 12345678
+```
+
+### `--block <BLOCK_NUMBER>`
+
+Pin the block height for an on-chain query. Only valid alongside `--balance-of`.
+
+```bash
+cargo run -- --balance-of 0xuser... --reserve-token 0xtoken... --block 12345678
+```
+
+## Event queries
+
+### `--get-token-events <TOKEN_ADDRESS>`
+
+Print all events recorded for a token (works against any reserve / aToken / debt token address). Standalone — combines with nothing else.
+
+```bash
+cargo run -- --get-token-events 0xtoken...
+```
+
+### `--get-user-events <USER_ADDRESS>`
+
+Print all events recorded for a user. Standalone — combines with nothing else.
+
+```bash
+cargo run -- --get-user-events 0xuser...
+```
+
+## Position inspection
+
+### `--inspect-user-position <USER_ADDRESS>`
+
+Audits a user's balance history for one token by cross-checking two sources:
+
+1. Money market events from the `money_market_events` collection.
+2. Event IDs recorded against the user's balance history in `user_positions` (plus the dedicated `user_balance_events` collection).
+
+Reports any events that exist in (1) but are missing from (2) — i.e. events the indexer failed to attribute to the user's balance history.
+
+Requires exactly one of `--a-token` or `--debt-token` (you must pick which token type to inspect).
+
+```bash
+cargo run -- --inspect-user-position 0xuser... --a-token 0xatoken...
+cargo run -- --inspect-user-position 0xuser... --debt-token 0xdebt...
+```
+
+Output is JSON with `eventsOnMoneyMarketEventCollection`, `eventsOnUserBalanceHistory`, `eventsMissedCount`, and `missedEvents`.
+
+## Timestamp validation
+
+### `--timestamp-coverage`
+
+Reports the percentage of documents (across event-bearing collections) that have a non-null `timestamp` field. Standalone.
+
+```bash
+cargo run -- --timestamp-coverage
+```
+
+### `--validate-timestamps [COUNT]`
+
+Validates database timestamps against on-chain block timestamps. Optional integer argument `COUNT` (1-100) limits the number of entries checked; omitting it validates all entries.
+
+```bash
+cargo run -- --validate-timestamps
+cargo run -- --validate-timestamps 50
+```
+
+## Reserve index validation
+
+### `--validate-reserve-indexes <RESERVE_ADDRESS>`
+
+For one reserve, validates the stored liquidity index and variable borrow index against the on-chain values returned by the pool. Standalone.
+
+```bash
+cargo run -- --validate-reserve-indexes 0xreserve...
+```
+
+### `--validate-all-reserve-indexes`
+
+Runs `--validate-reserve-indexes` against every reserve sequentially. Standalone.
+
+```bash
+cargo run -- --validate-all-reserve-indexes
+```
+
+## Single-target balance validation
+
+All four flags below require `--reserve-token` and optionally accept `--scaled` (see [Modifiers](#modifiers)). They compare the database value to the on-chain value and report `database_amount`, `on_chain_amount`, `difference`, and `percentage`.
+
+### `--validate-user-supply <USER_ADDRESS>`
+
+Validate one user's supplied (aToken) balance for a reserve.
+
+```bash
+cargo run -- --validate-user-supply 0xuser... --reserve-token 0xtoken...
+cargo run -- --validate-user-supply 0xuser... --reserve-token 0xtoken... --scaled
+```
+
+### `--validate-user-borrow <USER_ADDRESS>`
+
+Validate one user's variable-debt balance for a reserve.
+
+```bash
+cargo run -- --validate-user-borrow 0xuser... --reserve-token 0xtoken...
+cargo run -- --validate-user-borrow 0xuser... --reserve-token 0xtoken... --scaled
+```
+
+### `--validate-token-supply`
+
+Validate the total aToken supply for a reserve (sum across users vs. on-chain `totalSupply`).
+
+```bash
+cargo run -- --validate-token-supply --reserve-token 0xtoken...
+cargo run -- --validate-token-supply --reserve-token 0xtoken... --scaled
+```
+
+### `--validate-token-borrow`
+
+Validate the total variable-debt supply for a reserve.
+
+```bash
+cargo run -- --validate-token-borrow --reserve-token 0xtoken...
+cargo run -- --validate-token-borrow --reserve-token 0xtoken... --scaled
+```
+
+## Bulk balance validation
+
+These run the four single-target checks across many targets, with bounded concurrency (10 users × 5 positions per user). All optionally accept `--scaled`.
+
+### `--validate-user-all <USER_ADDRESS>`
+
+Validate every position belonging to one user.
+
+```bash
+cargo run -- --validate-user-all 0xuser...
+cargo run -- --validate-user-all 0xuser... --scaled
+```
+
+### `--validate-users-all`
+
+Validate every position for every user.
+
+```bash
+cargo run -- --validate-users-all
+cargo run -- --validate-users-all --scaled
+```
+
+### `--validate-token-all`
+
+Validate every reserve's totals (supply + borrow).
+
+```bash
+cargo run -- --validate-token-all
+cargo run -- --validate-token-all --scaled
+```
+
+### `--validate-all`
+
+Run `--validate-token-all` + `--validate-users-all` in one invocation.
+
+```bash
+cargo run -- --validate-all
+cargo run -- --validate-all --scaled
+```
+
+## Event-replay validation
+
+These flags reconstruct balances by replaying the raw event log and compare the reconstruction to the database snapshot and the on-chain value.
+
+### `--calculate-from-events <USER_ADDRESS>`
+
+Reconstructs a user's token balance from money market events and compares the reconstruction to the on-chain balance:
+
+1. Resolves the reserve via the supplied token flag and looks up the relevant current index (liquidity index for aToken/reserve, variable borrow index for debt token).
+2. Fetches all events for the user, replays them to produce the scaled balance, then derives the real balance using the current index.
+3. Compares against on-chain balance **at the block of the last event** (the meaningful comparison) and at the **latest block** (informational).
+4. Prints a verdict: perfect / `< 0.01%` / `< 1%` / `>= 1%` mismatch.
+
+Requires exactly one of `--reserve-token`, `--a-token`, or `--debt-token`.
+
+```bash
+cargo run -- --calculate-from-events 0xuser... --reserve-token 0xtoken...
+cargo run -- --calculate-from-events 0xuser... --a-token 0xatoken...
+cargo run -- --calculate-from-events 0xuser... --debt-token 0xdebt...
+```
+
+### `--validate-from-events <USER_ADDRESS>`
+
+3-way validation for one user across all positions (or one position when filtered):
+
+- **events** — replayed from `money_market_events`
+- **DB** — stored `user_positions` snapshot
+- **chain** — on-chain balance
+
+Reports pairwise diffs and percentages for `events_vs_chain`, `db_vs_chain`, and `events_vs_db`. Only `--reserve-token` may be combined (optional, to filter to one reserve).
+
+```bash
+cargo run -- --validate-from-events 0xuser...
+cargo run -- --validate-from-events 0xuser... --reserve-token 0xtoken...
+```
+
+### `--validate-from-events-all`
+
+Runs `--validate-from-events` across every user with bounded concurrency (10 in parallel). Standalone.
+
+```bash
+cargo run -- --validate-from-events-all
+```
+
+## Partner asset validation
+
+### `--validate-partner-asset`
+
+Recomputes `partner_asset` aggregates from `solver_volume` (the authoritative source) and reports drift between the stored aggregates and the recomputed values. For each `(receiver, asset, chainId) × outputToken` row it reports:
+
+- `txCount`, `totalFeeIn`, `totalVolumeOut` — stored vs. computed
+- Ratios per metric; rows within `±threshold` of 1.0 are suppressed from the printed table
+- Status: `OK`, `DRIFT`, `MISSING_IN_STORED`, or `EXTRA_IN_STORED`
+
+Optional companions: `--partner`, `--json`, `--threshold`.
+
+```bash
+cargo run -- --validate-partner-asset
+cargo run -- --validate-partner-asset --partner 0xpartner...
+cargo run -- --validate-partner-asset --threshold 0
+cargo run -- --validate-partner-asset --json
+```
+
+### `--partner <PARTNER_ADDRESS>`
+
+Restricts `--validate-partner-asset` to a single receiver address. Only valid alongside `--validate-partner-asset`.
+
+### `--json`
+
+Emit `--validate-partner-asset` output as JSON instead of a table. Only valid alongside `--validate-partner-asset`.
+
+### `--threshold <PCT>`
+
+Drift tolerance for `--validate-partner-asset`: rows whose stored/computed ratios are all within `±PCT` of 1.0 are suppressed from the table. Default `0.0001`. Only valid alongside `--validate-partner-asset`.
+
+## Modifiers
+
+### `--scaled`
+
+Switches validation flags from comparing real balances to comparing scaled (raw) balances.
+
+- **Real balance** (default) = `scaled_balance × current_index / 10^27` — what a user can actually withdraw or owes.
+- **Scaled balance** = the raw value stored in `user_positions` before index application.
+
+Use `--scaled` to detect drift in the underlying scaled values without the noise introduced by index updates between snapshot time and validation time.
+
+Combines with: `--validate-user-supply`, `--validate-user-borrow`, `--validate-token-supply`, `--validate-token-borrow`, `--validate-user-all`, `--validate-users-all`, `--validate-token-all`, `--validate-all`.
+
+## Combination rules
+
+Enforced by the parser in [`src/cli.rs`](../src/cli.rs):
+
+**Standalone (cannot combine with anything):**
+`--help`, `--last-block`, `--all-tokens`, `--orderbook`, `--timestamp-coverage`, `--get-all-users`, `--get-all-reserves`, `--get-all-a-token`, `--get-all-debt-token`, `--validate-all-reserve-indexes`. The argument-bearing variants `--validate-timestamps`, `--get-token-events`, `--get-user-events`, `--validate-reserve-indexes` are similarly standalone (only their own arg).
+
+**Combinable only with `--scaled`:**
+`--validate-users-all`, `--validate-user-all`, `--validate-token-all`, `--validate-all`, `--validate-from-events-all`.
+
+**Token-flag mutual exclusion:**
+You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single invocation.
+
+**Companion-required:**
+- `--balance-of`, `--user-position`, `--calculate-from-events` → require one of `--reserve-token` / `--a-token` / `--debt-token`.
+- `--inspect-user-position` → requires one of `--a-token` / `--debt-token` (no `--reserve-token`).
+- `--validate-user-supply`, `--validate-user-borrow`, `--validate-token-supply`, `--validate-token-borrow` → require `--reserve-token`.
+- `--block` → only valid with `--balance-of`.
+
+**Partner-asset subgroup:**
+- `--validate-partner-asset` accepts `--partner`, `--json`, `--threshold` (all optional).
+- `--partner`, `--json`, `--threshold` are rejected if used without `--validate-partner-asset`.
+
+**Event-replay companions:**
+- `--validate-from-events` accepts `--reserve-token` (optional). No other combinations.
+
+## Reports
+
+Every command (except `--help`) automatically writes a report file to `reports/report_<unix_timestamp>.txt` containing the same output streamed to stdout. The path is printed on exit:
+
+```
+Report saved to: reports/report_1747200123.txt
+```
+
+Pass `--no-report` to skip this. The directory must be writable; the `reports/` directory exists in the repo and is gitignored by default.
