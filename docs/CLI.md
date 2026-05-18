@@ -78,11 +78,15 @@ Source of truth for the parser and dispatch:
 | `--validate-token-all` | — | opt. `--scaled` | Validate every reserve |
 | `--validate-all` | — | opt. `--scaled` | Validate every reserve + every user |
 | `--calculate-from-events` | user | one token flag | Reconstruct balance from event history |
+| `--calculate-from-events-reserve` | reserve | opt. `--a-token-only`/`--debt-token-only`, `--verbose`, `--json` | Reconstruct balances for every user in a reserve |
+| `--a-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to supply side |
+| `--debt-token-only` | — | `--calculate-from-events-reserve` | Limit reserve replay to debt side |
+| `--verbose` | — | `--calculate-from-events-reserve` | Print full per-user replay block instead of the compact table |
 | `--validate-from-events` | user | opt. `--reserve-token` | 3-way validate (events vs DB vs chain) for one user |
 | `--validate-from-events-all` | — | none | 3-way validate every user |
 | `--validate-partner-asset` | — | opt. `--partner`, `--json`, `--threshold` | Recompute `partner_asset` aggregates and report drift |
 | `--partner` | address | `--validate-partner-asset` | Restrict to one receiver |
-| `--json` | — | `--validate-partner-asset` | Emit JSON output |
+| `--json` | — | `--validate-partner-asset` or `--calculate-from-events-reserve` | Emit JSON output |
 | `--threshold` | float | `--validate-partner-asset` | Suppress rows within ±PCT of 1.0 (default 0.0001) |
 | `--scaled` | — | validation flags | Compare scaled (raw) balances instead of real |
 
@@ -402,6 +406,47 @@ cargo run -- --calculate-from-events 0xuser... --a-token 0xatoken...
 cargo run -- --calculate-from-events 0xuser... --debt-token 0xdebt...
 ```
 
+### `--calculate-from-events-reserve <RESERVE_ADDRESS>`
+
+Reserve-scoped version of `--calculate-from-events`: runs the same per-user event replay + on-chain comparison, but iterates **every user with a position in the reserve** (both supply and borrow sides by default).
+
+For each user × selected side, the handler:
+
+1. Pulls the user's events for that token from `money_market_events`.
+2. Replays them to compute the scaled balance, then derives the real balance using the current liquidity index (supply) or variable borrow index (borrow).
+3. Compares against the on-chain balance at the user's last event block (latest block as fallback if the user has no events).
+4. Classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
+
+Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve_tokens.borrowers`. Replays run with bounded concurrency (10 in parallel per side) to avoid file-descriptor exhaustion.
+
+**Output modes:**
+- Default: one compact table per side (user, scaled, real, on-chain, diff%, verdict) plus a per-side summary count.
+- `--verbose`: prints the full per-user replay block (matching `--calculate-from-events`) for every user. Useful for debugging a small reserve; noisy on large ones.
+- `--json`: emits the full result (per-user rows + summary, per side) as a single JSON document for downstream tooling.
+
+**Side selection:**
+- Default: process both supply and borrow.
+- `--a-token-only`: skip the borrow side.
+- `--debt-token-only`: skip the supply side.
+- `--a-token-only` and `--debt-token-only` are mutually exclusive.
+
+```bash
+# Both sides
+cargo run -- --calculate-from-events-reserve 0xreserve...
+
+# Supply only
+cargo run -- --calculate-from-events-reserve 0xreserve... --a-token-only
+
+# Debt only
+cargo run -- --calculate-from-events-reserve 0xreserve... --debt-token-only
+
+# Verbose per-user output
+cargo run -- --calculate-from-events-reserve 0xreserve... --verbose
+
+# Machine-readable
+cargo run -- --calculate-from-events-reserve 0xreserve... --json
+```
+
 ### `--validate-from-events <USER_ADDRESS>`
 
 3-way validation for one user across all positions (or one position when filtered):
@@ -492,7 +537,15 @@ You cannot mix `--reserve-token`, `--a-token`, and `--debt-token` in a single in
 
 **Partner-asset subgroup:**
 - `--validate-partner-asset` accepts `--partner`, `--json`, `--threshold` (all optional).
-- `--partner`, `--json`, `--threshold` are rejected if used without `--validate-partner-asset`.
+- `--partner` and `--threshold` are rejected if used without `--validate-partner-asset`.
+
+**Reserve event-replay subgroup:**
+- `--calculate-from-events-reserve` accepts `--a-token-only`, `--debt-token-only`, `--verbose`, `--json` (all optional).
+- `--a-token-only` and `--debt-token-only` are mutually exclusive.
+- `--a-token-only`, `--debt-token-only`, `--verbose` are rejected if used without `--calculate-from-events-reserve`.
+
+**Shared modifier:**
+- `--json` is valid with either `--validate-partner-asset` or `--calculate-from-events-reserve`; rejected otherwise.
 
 **Event-replay companions:**
 - `--validate-from-events` accepts `--reserve-token` (optional). No other combinations.

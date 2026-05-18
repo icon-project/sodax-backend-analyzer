@@ -25,6 +25,7 @@ pub fn extract_optional_value_from_flags(flags: &[Flag], flag_type: FlagType) ->
     (Flag::GetTokenEvents(value), FlagType::GetTokenEvents) => Some(value.clone()),
     (Flag::GetUserEvents(value), FlagType::GetUserEvents) => Some(value.clone()),
     (Flag::CalculateFromEvents(value), FlagType::CalculateFromEvents) => Some(value.clone()),
+    (Flag::CalculateFromEventsReserve(value), FlagType::CalculateFromEventsReserve) => Some(value.clone()),
     (Flag::ValidateTimestamps(value_opt), FlagType::ValidateTimestamps) => value_opt.clone(),
     (Flag::InspectUserPosition(value), FlagType::InspectUserPosition) => Some(value.clone()),
     (Flag::ValidateFromEvents(value), FlagType::ValidateFromEvents) => Some(value.clone()),

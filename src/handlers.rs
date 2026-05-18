@@ -2565,6 +2565,414 @@ pub async fn handle_validate_partner_asset(flags: Vec<Flag>) {
   output!("\n=== Partner Asset Validation Complete ===");
 }
 
+// ============================================================
+// --calculate-from-events-reserve handler
+// ============================================================
+
+#[derive(Debug, Clone)]
+struct ReserveReplayRow {
+  user: String,
+  scaled: u128,
+  real: u128,
+  on_chain: u128,
+  diff: u128,
+  pct: f64,
+  last_event_block: u64,
+  error: Option<String>,
+}
+
+impl ReserveReplayRow {
+  fn verdict(&self) -> &'static str {
+    if self.error.is_some() {
+      "ERROR"
+    } else if self.diff == 0 {
+      "PERFECT"
+    } else if self.pct < 0.01 {
+      "EXCELLENT"
+    } else if self.pct < 1.0 {
+      "MINOR"
+    } else {
+      "SIGNIFICANT"
+    }
+  }
+
+  fn verdict_symbol(&self) -> &'static str {
+    match self.verdict() {
+      "PERFECT" | "EXCELLENT" => "✅",
+      "MINOR" => "⚠️",
+      "ERROR" => "‼️",
+      _ => "❌",
+    }
+  }
+}
+
+async fn replay_one_user(
+  user_address: String,
+  token_address: String,
+  current_index: u128,
+  verbose: bool,
+) -> ReserveReplayRow {
+  let events = match find_user_events(&user_address).await {
+    Ok(e) => e,
+    Err(e) => {
+      return ReserveReplayRow {
+        user: user_address,
+        scaled: 0,
+        real: 0,
+        on_chain: 0,
+        diff: 0,
+        pct: 0.0,
+        last_event_block: 0,
+        error: Some(format!("fetch events: {}", e)),
+      };
+    }
+  };
+
+  let result = match process_user_token_events(&events, &user_address, &token_address, current_index, verbose) {
+    Ok(r) => r,
+    Err(e) => {
+      return ReserveReplayRow {
+        user: user_address,
+        scaled: 0,
+        real: 0,
+        on_chain: 0,
+        diff: 0,
+        pct: 0.0,
+        last_event_block: 0,
+        error: Some(format!("replay: {}", e)),
+      };
+    }
+  };
+
+  // Compare against on-chain at the block of the last event (meaningful comparison).
+  // Fall back to latest block only if no events were observed for this token.
+  let block = if result.last_event_block > 0 { Some(result.last_event_block) } else { None };
+  let on_chain = match get_balance_of(&token_address, &user_address, block).await {
+    Ok(b) => b,
+    Err(e) => {
+      return ReserveReplayRow {
+        user: user_address,
+        scaled: result.scaled_balance,
+        real: result.real_balance,
+        on_chain: 0,
+        diff: 0,
+        pct: 0.0,
+        last_event_block: result.last_event_block,
+        error: Some(format!("on-chain balance: {}", e)),
+      };
+    }
+  };
+
+  let diff = result.real_balance.abs_diff(on_chain);
+  let pct = if on_chain == 0 {
+    if diff == 0 { 0.0 } else { 100.0 }
+  } else {
+    (diff as f64 / on_chain as f64) * 100.0
+  };
+
+  ReserveReplayRow {
+    user: user_address,
+    scaled: result.scaled_balance,
+    real: result.real_balance,
+    on_chain,
+    diff,
+    pct,
+    last_event_block: result.last_event_block,
+    error: None,
+  }
+}
+
+async fn replay_side(
+  users: &[String],
+  token_address: &str,
+  current_index: u128,
+  verbose: bool,
+) -> Vec<ReserveReplayRow> {
+  let semaphore = Arc::new(Semaphore::new(10));
+  let tasks: Vec<_> = users
+    .iter()
+    .map(|user| {
+      let user = user.clone();
+      let token_address = token_address.to_string();
+      let sem = Arc::clone(&semaphore);
+      task::spawn(async move {
+        let _permit = match sem.acquire().await {
+          Ok(p) => p,
+          Err(e) => {
+            return ReserveReplayRow {
+              user,
+              scaled: 0,
+              real: 0,
+              on_chain: 0,
+              diff: 0,
+              pct: 0.0,
+              last_event_block: 0,
+              error: Some(format!("semaphore: {}", e)),
+            };
+          }
+        };
+        replay_one_user(user, token_address, current_index, verbose).await
+      })
+    })
+    .collect();
+
+  let mut rows: Vec<ReserveReplayRow> = Vec::with_capacity(users.len());
+  for join in join_all(tasks).await {
+    match join {
+      Ok(row) => rows.push(row),
+      Err(e) => rows.push(ReserveReplayRow {
+        user: "<task-panicked>".to_string(),
+        scaled: 0,
+        real: 0,
+        on_chain: 0,
+        diff: 0,
+        pct: 0.0,
+        last_event_block: 0,
+        error: Some(format!("task join: {}", e)),
+      }),
+    }
+  }
+  rows
+}
+
+fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow]) {
+  output!("\n=== {} ({}) ===", label, token_address);
+  if rows.is_empty() {
+    output!("(no users)");
+    return;
+  }
+  output!(
+    "{:<44} {:>22} {:>22} {:>22} {:>10} {}",
+    "User", "Scaled", "Real", "On-chain", "Diff%", "Verdict"
+  );
+  for row in rows {
+    if let Some(err) = &row.error {
+      output!(
+        "{:<44} {:>22} {:>22} {:>22} {:>10} {} {}",
+        row.user, "-", "-", "-", "-", row.verdict_symbol(), err
+      );
+    } else {
+      output!(
+        "{:<44} {:>22} {:>22} {:>22} {:>9.4}% {}",
+        row.user, row.scaled, row.real, row.on_chain, row.pct, row.verdict_symbol()
+      );
+    }
+  }
+
+  let mut perfect = 0usize;
+  let mut excellent = 0usize;
+  let mut minor = 0usize;
+  let mut significant = 0usize;
+  let mut error_count = 0usize;
+  for row in rows {
+    match row.verdict() {
+      "PERFECT" => perfect += 1,
+      "EXCELLENT" => excellent += 1,
+      "MINOR" => minor += 1,
+      "SIGNIFICANT" => significant += 1,
+      "ERROR" => error_count += 1,
+      _ => {}
+    }
+  }
+  output!(
+    "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+    label,
+    rows.len(),
+    perfect,
+    excellent,
+    minor,
+    significant,
+    error_count,
+  );
+}
+
+fn rows_to_json(rows: &[ReserveReplayRow]) -> Vec<serde_json::Value> {
+  rows
+    .iter()
+    .map(|r| {
+      serde_json::json!({
+        "user": r.user,
+        "scaled": r.scaled.to_string(),
+        "real": r.real.to_string(),
+        "onChain": r.on_chain.to_string(),
+        "diff": r.diff.to_string(),
+        "percentage": r.pct,
+        "lastEventBlock": r.last_event_block,
+        "verdict": r.verdict(),
+        "error": r.error,
+      })
+    })
+    .collect()
+}
+
+fn rows_summary_json(rows: &[ReserveReplayRow]) -> serde_json::Value {
+  let mut perfect = 0u64;
+  let mut excellent = 0u64;
+  let mut minor = 0u64;
+  let mut significant = 0u64;
+  let mut error_count = 0u64;
+  for r in rows {
+    match r.verdict() {
+      "PERFECT" => perfect += 1,
+      "EXCELLENT" => excellent += 1,
+      "MINOR" => minor += 1,
+      "SIGNIFICANT" => significant += 1,
+      "ERROR" => error_count += 1,
+      _ => {}
+    }
+  }
+  serde_json::json!({
+    "totalUsers": rows.len(),
+    "perfect": perfect,
+    "excellent": excellent,
+    "minor": minor,
+    "significant": significant,
+    "errors": error_count,
+  })
+}
+
+pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
+  let reserve_address_raw = extract_value_from_flags_or_exit(
+    flags.clone(),
+    FlagType::CalculateFromEventsReserve,
+    "Error: --calculate-from-events-reserve requires a reserve address to be specified.",
+  );
+
+  let a_token_only = flags.iter().any(|f| matches!(f, Flag::ATokenOnly));
+  let debt_token_only = flags.iter().any(|f| matches!(f, Flag::DebtTokenOnly));
+  let verbose = flags.iter().any(|f| matches!(f, Flag::Verbose));
+  let output_json = flags.iter().any(|f| matches!(f, Flag::Json));
+
+  let do_supply = !debt_token_only;
+  let do_borrow = !a_token_only;
+
+  // Resolve reserve data
+  let reserve_data = match find_reserve_for_token(&reserve_address_raw, ReserveTokenField::Reserve).await {
+    Ok(Some(data)) => data,
+    Ok(None) => {
+      eprintln!("Reserve not found: {}", reserve_address_raw);
+      std::process::exit(1);
+    }
+    Err(e) => {
+      eprintln!("Error fetching reserve data: {}", e);
+      std::process::exit(1);
+    }
+  };
+
+  // Fetch indexes only for the sides we'll process
+  let liquidity_index = if do_supply {
+    match get_atoken_liquidity_index(&reserve_data.reserveAddress).await {
+      Ok(idx) => Some(idx),
+      Err(e) => {
+        eprintln!("Error fetching aToken liquidity index: {}", e);
+        std::process::exit(1);
+      }
+    }
+  } else {
+    None
+  };
+  let borrow_index = if do_borrow {
+    match get_variable_borrow_index(&reserve_data.reserveAddress).await {
+      Ok(idx) => Some(idx),
+      Err(e) => {
+        eprintln!("Error fetching variable borrow index: {}", e);
+        std::process::exit(1);
+      }
+    }
+  } else {
+    None
+  };
+
+  let mode_label = if a_token_only {
+    "supply only"
+  } else if debt_token_only {
+    "borrow only"
+  } else {
+    "supply + borrow"
+  };
+
+  if !output_json {
+    output!("\n=== Reserve Event-Replay Reconstruction ===");
+    output!("Reserve: {} ({})", reserve_data.reserveAddress, reserve_data.symbol);
+    output!("aToken:  {}", reserve_data.aTokenAddress);
+    output!("Debt:    {}", reserve_data.variableDebtTokenAddress);
+    output!("Mode:    {}", mode_label);
+    output!("Suppliers: {} · Borrowers: {}", reserve_data.suppliers.len(), reserve_data.borrowers.len());
+  }
+
+  // Run each selected side. In verbose mode, process_user_token_events prints per-event
+  // detail as it runs, so we suppress the compact table afterward to avoid duplication.
+  let supply_rows = if do_supply {
+    if !output_json {
+      output!("\nReplaying {} suppliers (aToken)…", reserve_data.suppliers.len());
+    }
+    replay_side(
+      &reserve_data.suppliers,
+      &reserve_data.aTokenAddress,
+      liquidity_index.expect("liquidity_index set when do_supply"),
+      verbose && !output_json,
+    )
+    .await
+  } else {
+    Vec::new()
+  };
+
+  let borrow_rows = if do_borrow {
+    if !output_json {
+      output!("\nReplaying {} borrowers (variable debt)…", reserve_data.borrowers.len());
+    }
+    replay_side(
+      &reserve_data.borrowers,
+      &reserve_data.variableDebtTokenAddress,
+      borrow_index.expect("borrow_index set when do_borrow"),
+      verbose && !output_json,
+    )
+    .await
+  } else {
+    Vec::new()
+  };
+
+  if output_json {
+    let mut out = serde_json::json!({
+      "reserve": reserve_data.reserveAddress,
+      "symbol": reserve_data.symbol,
+      "aTokenAddress": reserve_data.aTokenAddress,
+      "variableDebtTokenAddress": reserve_data.variableDebtTokenAddress,
+      "mode": mode_label,
+    });
+    if do_supply {
+      out["supply"] = serde_json::json!({
+        "currentIndex": liquidity_index.unwrap().to_string(),
+        "users": rows_to_json(&supply_rows),
+        "summary": rows_summary_json(&supply_rows),
+      });
+    }
+    if do_borrow {
+      out["borrow"] = serde_json::json!({
+        "currentIndex": borrow_index.unwrap().to_string(),
+        "users": rows_to_json(&borrow_rows),
+        "summary": rows_summary_json(&borrow_rows),
+      });
+    }
+    output!("{}", serde_json::to_string_pretty(&out).unwrap());
+    return;
+  }
+
+  if verbose {
+    // Per-user details were already printed inline by process_user_token_events.
+    output!("\n(verbose mode: per-user replay detail printed above)");
+  } else {
+    if do_supply {
+      print_replay_table("Supply", &reserve_data.aTokenAddress, &supply_rows);
+    }
+    if do_borrow {
+      print_replay_table("Borrow", &reserve_data.variableDebtTokenAddress, &borrow_rows);
+    }
+  }
+
+  output!("\n=== Reserve Event-Replay Reconstruction Complete ===");
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

@@ -103,6 +103,24 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
         flags.push(Flag::CalculateFromEvents(args[i + 1].clone()));
         consumed_next_arg = true;
       }
+      "--calculate-from-events-reserve" => {
+        validate_flag_accepts_argument(i, args.len())?;
+        validate_next_argument_is_not_flag(i, &args)?;
+        flags.push(Flag::CalculateFromEventsReserve(args[i + 1].clone()));
+        consumed_next_arg = true;
+      }
+      "--a-token-only" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::ATokenOnly);
+      }
+      "--debt-token-only" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::DebtTokenOnly);
+      }
+      "--verbose" => {
+        validate_flag_does_not_accept_argument(i, &args)?;
+        flags.push(Flag::Verbose);
+      }
       "--validate-all-reserve-indexes" => {
         validate_flag_does_not_accept_argument(i, &args)?;
         flags.push(Flag::ValidateAllReserveIndexes);
@@ -404,15 +422,51 @@ pub fn parse_args() -> Result<Vec<Flag>, Box<dyn std::error::Error>> {
     }
   }
 
-  // --partner, --json and --threshold are only valid alongside --validate-partner-asset
-  let has_partner_companion = flags.iter().any(|flag| {
-    matches!(
-      flag,
-      Flag::Partner(_) | Flag::Json | Flag::Threshold(_)
-    )
-  });
-  if has_partner_companion && !has_validate_partner_asset {
-    return Err("--partner, --json and --threshold can only be used with --validate-partner-asset.".into());
+  // --calculate-from-events-reserve can be combined with --a-token-only,
+  // --debt-token-only (mutually exclusive), --verbose, --json (all optional)
+  let has_calculate_from_events_reserve = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::CalculateFromEventsReserve(_)));
+  let has_a_token_only = flags.iter().any(|flag| matches!(flag, Flag::ATokenOnly));
+  let has_debt_token_only = flags.iter().any(|flag| matches!(flag, Flag::DebtTokenOnly));
+  if has_calculate_from_events_reserve {
+    let allowed_companions = flags.iter().all(|flag| {
+      matches!(
+        flag,
+        Flag::CalculateFromEventsReserve(_)
+          | Flag::ATokenOnly
+          | Flag::DebtTokenOnly
+          | Flag::Verbose
+          | Flag::Json
+      )
+    });
+    if !allowed_companions {
+      return Err("--calculate-from-events-reserve can only be combined with --a-token-only, --debt-token-only, --verbose, --json. Use --help for more information.".into());
+    }
+    if has_a_token_only && has_debt_token_only {
+      return Err("--a-token-only and --debt-token-only are mutually exclusive.".into());
+    }
+  }
+
+  // --partner and --threshold are only valid alongside --validate-partner-asset.
+  // --json is valid with --validate-partner-asset OR --calculate-from-events-reserve.
+  // --a-token-only, --debt-token-only, --verbose are only valid alongside
+  // --calculate-from-events-reserve.
+  let has_partner_only_companion = flags
+    .iter()
+    .any(|flag| matches!(flag, Flag::Partner(_) | Flag::Threshold(_)));
+  if has_partner_only_companion && !has_validate_partner_asset {
+    return Err("--partner and --threshold can only be used with --validate-partner-asset.".into());
+  }
+
+  let has_json = flags.iter().any(|flag| matches!(flag, Flag::Json));
+  if has_json && !has_validate_partner_asset && !has_calculate_from_events_reserve {
+    return Err("--json can only be used with --validate-partner-asset or --calculate-from-events-reserve.".into());
+  }
+
+  let has_verbose = flags.iter().any(|flag| matches!(flag, Flag::Verbose));
+  if (has_a_token_only || has_debt_token_only || has_verbose) && !has_calculate_from_events_reserve {
+    return Err("--a-token-only, --debt-token-only and --verbose can only be used with --calculate-from-events-reserve.".into());
   }
 
   // the following flags need to be used acompanied by
