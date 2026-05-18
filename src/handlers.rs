@@ -2921,7 +2921,11 @@ pub async fn handle_calculate_from_events_reserve(flags: Vec<Flag>) {
   let do_borrow = !a_token_only;
 
   // Resolve reserve data
-  let reserve_data = match find_reserve_for_token(&reserve_address_raw, ReserveTokenField::Reserve).await {
+  // reserve_tokens.reserveAddress is stored lowercase (see docs/sodax-backend/COLLECTIONS.md),
+  // and find_reserve_for_token does an exact match — so checksummed / mixed-case input
+  // would silently fail to find a real reserve. Normalize once here.
+  let reserve_address_lc = reserve_address_raw.to_lowercase();
+  let reserve_data = match find_reserve_for_token(&reserve_address_lc, ReserveTokenField::Reserve).await {
     Ok(Some(data)) => data,
     Ok(None) => {
       eprintln!("Reserve not found: {}", reserve_address_raw);
