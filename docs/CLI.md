@@ -478,7 +478,7 @@ cargo run -- --calculate-from-events-reserve 0xreserve... --json
 
 Market-wide variant of `--calculate-from-events-reserve`: iterates **every reserve** returned by `find_all_reserves()` and runs the same per-user × per-side scaled-vs-scaled comparison for each. Designed for a regular health check across the whole money market — no need to keep a hand-maintained list of reserve addresses in sync.
 
-For each reserve the output mirrors the single-reserve flag's compact-table format (one supply table + one borrow table, with the same `Position Scaled` column and `Verdict` classification). At the end, the handler prints a **market-wide summary**: total reserves processed, aggregate verdict bucket counts (separately per side), and the list of reserves that contributed any `SIGNIFICANT` (❌), `MINOR` (⚠️), or `ERROR` (‼️) row on either side.
+For each reserve the output mirrors the single-reserve flag's compact-table format (one supply table + one borrow table, with the same `Position Scaled` column and `Verdict` classification). At the end, the handler prints a **market-wide summary**: total reserves processed, aggregate verdict bucket counts (separately per side), and the list of reserves that contributed any `SIGNIFICANT` ([FAIL]), `MINOR` ([WARN]), or `ERROR` ([ERR]) row on either side.
 
 **Per-reserve behavior:**
 - Reuses the existing replay helpers (`replay_side`, `print_replay_table`, `rows_summary_json`, `count_buckets`) — no separate code path for the per-reserve work.
