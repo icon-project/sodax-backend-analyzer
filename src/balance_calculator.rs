@@ -335,21 +335,12 @@ pub fn process_user_token_events(
       last_index = event_index;
     }
 
-    // Skip a-token-transfer events involving the zero address (mint/burn shadows already
-    // handled via Mint/Burn arms). The check is also defensive for the new code path:
-    // a-token-transfer events are no longer applied to balance — we use the paired
-    // a-token-balance-transfer event instead — so this short-circuits before the
-    // extract_event_data fall-through.
-    if should_skip_transfer_event(event) {
-      if verbose {
-        output!(
-          "{:03}. Skipping transfer event at block {}",
-          idx + 1,
-          event.block_number()
-        );
-      }
-      continue;
-    }
+    // `should_skip_transfer_event` is intentionally NOT called here: every event reaching
+    // this point already has a non-None `get_event_token_address` arm (Mint, Burn,
+    // ATokenBalanceTransfer, DebtTokenMint, DebtTokenBurn). None match
+    // `should_skip_transfer_event`'s ATokenTransfer arm, so the call would be unreachable.
+    // The helper remains `pub` for use by `handle_inspect_user_position`, which iterates
+    // a different event stream that still includes ATokenTransfer.
 
     // Extract event data - skip if user is not involved
     let event_data = match extract_event_data(event, &user_lower)? {
