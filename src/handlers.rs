@@ -875,12 +875,12 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
         if let Some(error) = &validation_result.error {
           error_count += 1;
           output!(
-            "❌ Reserve {}: ERROR - {}",
+            "[FAIL] Reserve {}: ERROR - {}",
             validation_result.reserve_address, error
           );
         } else {
           output!(
-            "✅ Reserve {} validated successfully",
+            "[OK] Reserve {} validated successfully",
             validation_result.reserve_address
           );
           output!(
@@ -901,11 +901,11 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
       }
       Ok(Err(e)) => {
         error_count += 1;
-        output!("❌ Validation failed: {}", e);
+        output!("[FAIL] Validation failed: {}", e);
       }
       Err(e) => {
         error_count += 1;
-        output!("❌ Task failed: {}", e);
+        output!("[FAIL] Task failed: {}", e);
       }
     }
   }
@@ -984,7 +984,7 @@ pub async fn handle_validate_users_all_generic(scaled: bool) {
       }
       Err(e) => {
         error_count += 1;
-        output!("❌ Task failed: {}", e);
+        output!("[FAIL] Task failed: {}", e);
       }
     }
   }
@@ -1049,14 +1049,14 @@ async fn handle_user_validation_generic(user_address: &str, exit_on_error: bool,
     }
   };
   output!(
-    "✅ User {}: {} positions validated",
+    "[OK] User {}: {} positions validated",
     result.user_address,
     result.positions.len()
   );
   for position in &result.positions {
     if let Some(error) = &position.error {
       output!(
-        "  ❌ Reserve {}: ERROR - {}",
+        "  [FAIL] Reserve {}: ERROR - {}",
         position.reserve_address, error
       );
     } else {
@@ -1542,13 +1542,13 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           output!("Percentage:         {:.4}%", percentage);
 
           if diff == 0 {
-            output!("\n✅ Perfect match!");
+            output!("\n[OK] Perfect match!");
           } else if percentage < 0.01 {
-            output!("\n✅ Excellent match (< 0.01% difference)");
+            output!("\n[OK] Excellent match (< 0.01% difference)");
           } else if percentage < 1.0 {
-            output!("\n⚠️  Minor mismatch (< 1% difference)");
+            output!("\n[WARN] Minor mismatch (< 1% difference)");
           } else {
-            output!("\n❌ Significant mismatch (>= 1% difference)");
+            output!("\n[FAIL] Significant mismatch (>= 1% difference)");
           }
         }
         Err(e) => {
@@ -1730,7 +1730,7 @@ pub async fn handle_validate_from_events_all() {
           if let Some(ref err) = result.error {
             error_count += 1;
             println!(
-              "  ❌ User {} | Reserve {}: {}",
+              "  [FAIL] User {} | Reserve {}: {}",
               result.user_address, result.reserve_address, err
             );
             continue;
@@ -1885,7 +1885,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  ⚠️  Supply validation error for reserve {}: {}",
+          "  [WARN] Supply validation error for reserve {}: {}",
           reserve_address, e
         );
       }
@@ -1914,7 +1914,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  ⚠️  Borrow validation error for reserve {}: {}",
+          "  [WARN] Borrow validation error for reserve {}: {}",
           reserve_address, e
         );
       }
@@ -2045,7 +2045,7 @@ async fn validate_side_from_events(
 fn print_event_validation_result(result: &EventValidationResult) {
   if let Some(ref err) = result.error {
     println!(
-      "❌ User {} | Reserve {}: {}",
+      "[FAIL] User {} | Reserve {}: {}",
       result.user_address, result.reserve_address, err
     );
   }
@@ -2079,14 +2079,14 @@ fn print_three_way(
     && comparison.db_vs_chain_diff == 0
     && comparison.events_vs_db_diff == 0
   {
-    "✅"
+    "[OK]"
   } else if comparison.events_vs_chain_pct < 1.0
     && comparison.db_vs_chain_pct < 1.0
     && comparison.events_vs_db_pct < 1.0
   {
-    "⚠️"
+    "[WARN]"
   } else {
-    "❌"
+    "[FAIL]"
   };
 
   println!(
@@ -2593,13 +2593,22 @@ impl ReserveReplayRow {
 
   fn verdict_symbol(&self) -> &'static str {
     match self.verdict() {
-      "PERFECT" | "EXCELLENT" => "✅",
-      "MINOR" => "⚠️",
-      "ERROR" => "‼️",
-      _ => "❌",
+      "PERFECT" | "EXCELLENT" | "DUST" => "[OK]",
+      "MINOR" => "[WARN]",
+      "ERROR" => "[ERR]",
+      _ => "[FAIL]",
     }
   }
 }
+
+/// Noise floor for the verdict classifier. Diffs at or below this many scaled wei are
+/// classified as `"DUST"` regardless of percentage. Set to absorb sub-economic rounding
+/// drift — most notably the Aave `rayDiv` half-up vs. our truncating division mismatch,
+/// which leaks at most ~1 scaled wei per event and accumulates linearly across a user's
+/// event history. A diff of 7 vs 8 on a tiny borrow is not a data-integrity signal;
+/// flagging it as [FAIL] buries the real failures. Threshold is in scaled units, so it's
+/// independent of the underlying token's decimals.
+const DUST_DIFF_THRESHOLD: u128 = 1000;
 
 /// Classifies a (diff, baseline) pair into a verdict using integer math.
 ///
@@ -2611,12 +2620,15 @@ impl ReserveReplayRow {
 /// `baseline` is the denominator — in this command's caller it's the on-chain scaled
 /// balance, so the percentage is "how far does the replayed value drift from chain?"
 ///
-/// Semantics:
+/// Semantics (precedence top-to-bottom):
 /// - error set → `"ERROR"` (precedence over numeric verdict)
 /// - diff == 0 → `"PERFECT"`
-/// - baseline == 0 with diff > 0 → `"SIGNIFICANT"` (db replay produced a balance, chain has none).
-///   Note: this differs from `--calculate-from-events`, which reports such cases as 0% /
-///   "Excellent". The reserve handler aligns with `EntryState::new` in `structs.rs` instead.
+/// - diff ≤ DUST_DIFF_THRESHOLD → `"DUST"` (sub-economic; absorbs rayDiv-rounding drift
+///   even when chain == 0 or when the % looks large because baseline is itself tiny)
+/// - baseline == 0 with diff > DUST_DIFF_THRESHOLD → `"SIGNIFICANT"` (db replay produced
+///   a non-trivial balance, chain has none). Differs from `--calculate-from-events`,
+///   which reports such cases as 0% / "Excellent". Aligns with `EntryState::new` in
+///   `structs.rs` instead.
 /// - diff/baseline ≥ 1/100 → `"SIGNIFICANT"`   (≥ 1%)
 /// - diff/baseline ≥ 1/10000 → `"MINOR"`       (≥ 0.01%)
 /// - otherwise → `"EXCELLENT"`
@@ -2630,6 +2642,9 @@ fn classify_verdict(diff: u128, baseline: u128, has_error: bool) -> &'static str
   }
   if diff == 0 {
     return "PERFECT";
+  }
+  if diff <= DUST_DIFF_THRESHOLD {
+    return "DUST";
   }
   if baseline == 0 {
     return "SIGNIFICANT";
@@ -2896,6 +2911,7 @@ async fn replay_side(
 struct BucketCounts {
   perfect: u64,
   excellent: u64,
+  dust: u64,
   minor: u64,
   significant: u64,
   errors: u64,
@@ -2903,12 +2919,13 @@ struct BucketCounts {
 
 impl BucketCounts {
   fn total(&self) -> u64 {
-    self.perfect + self.excellent + self.minor + self.significant + self.errors
+    self.perfect + self.excellent + self.dust + self.minor + self.significant + self.errors
   }
 
   fn add(&mut self, other: &BucketCounts) {
     self.perfect += other.perfect;
     self.excellent += other.excellent;
+    self.dust += other.dust;
     self.minor += other.minor;
     self.significant += other.significant;
     self.errors += other.errors;
@@ -2921,6 +2938,7 @@ fn count_buckets(rows: &[ReserveReplayRow]) -> BucketCounts {
     match row.verdict() {
       "PERFECT" => counts.perfect += 1,
       "EXCELLENT" => counts.excellent += 1,
+      "DUST" => counts.dust += 1,
       "MINOR" => counts.minor += 1,
       "SIGNIFICANT" => counts.significant += 1,
       "ERROR" => counts.errors += 1,
@@ -2960,11 +2978,12 @@ fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow
 
   let c = count_buckets(rows);
   output!(
-    "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+    "\nSummary ({}): {} users  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
     label,
     rows.len(),
     c.perfect,
     c.excellent,
+    c.dust,
     c.minor,
     c.significant,
     c.errors,
@@ -3001,6 +3020,7 @@ fn rows_summary_json(rows: &[ReserveReplayRow]) -> serde_json::Value {
     "totalUsers": rows.len(),
     "perfect": c.perfect,
     "excellent": c.excellent,
+    "dust": c.dust,
     "minor": c.minor,
     "significant": c.significant,
     "errors": c.errors,
@@ -3299,17 +3319,18 @@ fn print_reserve_side(label: &str, token_address: &str, result: &ReserveSideResu
       // one error line plus the standard summary so aggregate counts stay readable.
       output!("\n=== {} ({}) ===", label, token_address);
       output!(
-        "‼️ Fetch failed: {} ({} users counted as ERROR)",
+        "[ERR] Fetch failed: {} ({} users counted as ERROR)",
         err,
         result.rows.len()
       );
       let c = count_buckets(&result.rows);
       output!(
-        "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+        "\nSummary ({}): {} users  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
         label,
         result.rows.len(),
         c.perfect,
         c.excellent,
+        c.dust,
         c.minor,
         c.significant,
         c.errors,
@@ -3366,6 +3387,7 @@ fn build_market_summary_json(
       "totalUsers": c.total(),
       "perfect": c.perfect,
       "excellent": c.excellent,
+      "dust": c.dust,
       "minor": c.minor,
       "significant": c.significant,
       "errors": c.errors,
@@ -3576,10 +3598,11 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
   output!("Reserves processed: {}", total);
   if do_supply {
     output!(
-      "Supply users: {}  ·  ✅ {} / {}  ·  ⚠️ {}  ·  ❌ {}  ·  ‼️ {}",
+      "Supply users: {}  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
       market_supply.total(),
       market_supply.perfect,
       market_supply.excellent,
+      market_supply.dust,
       market_supply.minor,
       market_supply.significant,
       market_supply.errors,
@@ -3587,10 +3610,11 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
   }
   if do_borrow {
     output!(
-      "Borrow users: {}  ·  ✅ {} / {}  ·  ⚠️ {}  ·  ❌ {}  ·  ‼️ {}",
+      "Borrow users: {}  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
       market_borrow.total(),
       market_borrow.perfect,
       market_borrow.excellent,
+      market_borrow.dust,
       market_borrow.minor,
       market_borrow.significant,
       market_borrow.errors,
@@ -3607,15 +3631,15 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
     format!("{} ({})", list.len(), items.join(", "))
   };
   output!(
-    "Reserves with at least one ❌: {}",
+    "Reserves with at least one [FAIL]: {}",
     fmt_list(&non_green.significant)
   );
   output!(
-    "Reserves with at least one ⚠️: {}",
+    "Reserves with at least one [WARN]: {}",
     fmt_list(&non_green.minor)
   );
   output!(
-    "Reserves with at least one ‼️: {}",
+    "Reserves with at least one [ERR]: {}",
     fmt_list(&non_green.errors)
   );
   output!("\n=== Money Market Event-Replay Reconstruction Complete ===");
@@ -3695,32 +3719,35 @@ mod tests {
   fn verdict_perfect_when_diff_zero() {
     let row = ok_row(0, 100);
     assert_eq!(row.verdict(), "PERFECT");
-    assert_eq!(row.verdict_symbol(), "✅");
+    assert_eq!(row.verdict_symbol(), "[OK]");
   }
 
   #[test]
   fn verdict_excellent_below_thresh_0_01() {
-    // 1/20_000 = 0.005% — well under the 0.01% EXCELLENT cutoff.
-    let row = ok_row(1, 20_000);
+    // 10_000/200_000_000 = 0.005% — well under the 0.01% EXCELLENT cutoff. Diff is above
+    // DUST_DIFF_THRESHOLD so the percentage logic applies, not the noise-floor short-circuit.
+    let row = ok_row(10_000, 200_000_000);
     assert_eq!(row.verdict(), "EXCELLENT");
-    assert_eq!(row.verdict_symbol(), "✅");
+    assert_eq!(row.verdict_symbol(), "[OK]");
   }
 
   #[test]
   fn verdict_minor_below_thresh_1_pct() {
-    // 5/10_000 = 0.05% — between the EXCELLENT and SIGNIFICANT thresholds.
-    let row = ok_row(5, 10_000);
+    // 2_000/400_000 = 0.5% — between the EXCELLENT and SIGNIFICANT thresholds. Diff is
+    // above DUST_DIFF_THRESHOLD so the percentage logic applies.
+    let row = ok_row(2_000, 400_000);
     assert_eq!(row.verdict(), "MINOR");
-    assert_eq!(row.verdict_symbol(), "⚠️");
+    assert_eq!(row.verdict_symbol(), "[WARN]");
   }
 
   #[test]
   fn verdict_significant_at_or_above_1_pct() {
-    // 1/100 = exactly 1% → SIGNIFICANT (≥ branch).
-    let at = ok_row(1, 100);
+    // 1_001/100_100 = exactly 1% → SIGNIFICANT (≥ branch). Diff above DUST_DIFF_THRESHOLD.
+    let at = ok_row(1_001, 100_100);
     assert_eq!(at.verdict(), "SIGNIFICANT");
-    assert_eq!(at.verdict_symbol(), "❌");
-    let above = ok_row(100, 200);
+    assert_eq!(at.verdict_symbol(), "[FAIL]");
+    // Well above 1%.
+    let above = ok_row(10_000, 20_000);
     assert_eq!(above.verdict(), "SIGNIFICANT");
   }
 
@@ -3729,7 +3756,7 @@ mod tests {
     let mut row = ok_row(0, 0);
     row.error = Some("boom".to_string());
     assert_eq!(row.verdict(), "ERROR");
-    assert_eq!(row.verdict_symbol(), "‼️");
+    assert_eq!(row.verdict_symbol(), "[ERR]");
   }
 
   #[test]
@@ -3742,19 +3769,21 @@ mod tests {
 
   #[test]
   fn boundary_just_under_excellent_threshold() {
-    // 1/10_001 ≈ 0.0099% — just under the 0.01% threshold.
-    let row = ok_row(1, 10_001);
+    // 1_001/10_020_000 ≈ 0.00999% — just under the 0.01% threshold. Diff above
+    // DUST_DIFF_THRESHOLD so the percentage logic applies.
+    let row = ok_row(1_001, 10_020_000);
     assert_eq!(row.verdict(), "EXCELLENT");
   }
 
   #[test]
   fn rows_summary_counts_each_bucket() {
     let rows = vec![
-      ok_row(0, 100),                // PERFECT
-      ok_row(1, 20_000),             // EXCELLENT
-      ok_row(5, 10_000),             // MINOR
-      ok_row(1, 100),                // SIGNIFICANT (exactly 1%)
-      ok_row(50, 100),               // SIGNIFICANT (50%)
+      ok_row(0, 100),                       // PERFECT
+      ok_row(10_000, 200_000_000),          // EXCELLENT (0.005%)
+      ok_row(500, 100_000),                 // DUST (diff ≤ 1000)
+      ok_row(2_000, 400_000),               // MINOR (0.5%)
+      ok_row(1_001, 100_100),               // SIGNIFICANT (exactly 1%)
+      ok_row(10_000, 20_000),               // SIGNIFICANT (50%)
       {
         let mut r = ok_row(0, 0);
         r.error = Some("err".to_string());
@@ -3762,9 +3791,10 @@ mod tests {
       },
     ];
     let summary = rows_summary_json(&rows);
-    assert_eq!(summary["totalUsers"], 6);
+    assert_eq!(summary["totalUsers"], 7);
     assert_eq!(summary["perfect"], 1);
     assert_eq!(summary["excellent"], 1);
+    assert_eq!(summary["dust"], 1);
     assert_eq!(summary["minor"], 1);
     assert_eq!(summary["significant"], 2);
     assert_eq!(summary["errors"], 1);
@@ -3772,13 +3802,14 @@ mod tests {
 
   #[test]
   fn rows_to_json_emits_u128_as_strings() {
-    // diff=7, chain_scaled=42: ratio ≈ 16.7% → SIGNIFICANT under integer math.
+    // diff=7000, chain_scaled=42_000: ratio ≈ 16.7% → SIGNIFICANT under integer math.
+    // (Diff is intentionally above DUST_DIFF_THRESHOLD so the percentage logic decides.)
     let row = ReserveReplayRow {
       user: "0xabc".to_string(),
       db_scaled: u128::MAX,
       position_scaled: Ok(u128::MAX - 1),
-      chain_scaled: 42,
-      diff: 7,
+      chain_scaled: 42_000,
+      diff: 7_000,
       pct: 16.666_666_666_666_668,
       last_event_block: 12345,
       error: None,
@@ -3790,8 +3821,8 @@ mod tests {
     assert_eq!(v["dbScaled"], u128::MAX.to_string());
     assert_eq!(v["positionScaled"], (u128::MAX - 1).to_string());
     assert!(v["positionError"].is_null());
-    assert_eq!(v["chainScaled"], "42");
-    assert_eq!(v["diff"], "7");
+    assert_eq!(v["chainScaled"], "42000");
+    assert_eq!(v["diff"], "7000");
     assert_eq!(v["percentage"], 16.666_666_666_666_668);
     assert_eq!(v["lastEventBlock"], 12345);
     assert_eq!(v["verdict"], "SIGNIFICANT");
@@ -3858,26 +3889,110 @@ mod tests {
   }
 
   #[test]
-  fn classify_on_chain_zero_with_diff_is_significant() {
-    // db has a balance but chain reports zero: aligns with EntryState::new in structs.rs.
-    assert_eq!(classify_verdict(1, 0, false), "SIGNIFICANT");
+  fn classify_on_chain_zero_with_diff_above_dust_is_significant() {
+    // db has a non-trivial balance but chain reports zero: aligns with EntryState::new in
+    // structs.rs. Diff must exceed DUST_DIFF_THRESHOLD or the noise-floor short-circuit
+    // (which takes precedence) would classify as DUST instead.
+    assert_eq!(classify_verdict(1_001, 0, false), "SIGNIFICANT");
     assert_eq!(classify_verdict(u128::MAX, 0, false), "SIGNIFICANT");
   }
 
   #[test]
   fn classify_thresholds_around_1_percent() {
-    // 1.0% exactly (diff*100 == on_chain) → SIGNIFICANT
-    assert_eq!(classify_verdict(1, 100, false), "SIGNIFICANT");
-    // Just under 1.0% (diff*100 < on_chain) → MINOR
-    assert_eq!(classify_verdict(99, 10_000, false), "MINOR");
+    // 1.0% exactly (diff*100 == on_chain) → SIGNIFICANT. Diff above DUST_DIFF_THRESHOLD.
+    assert_eq!(classify_verdict(1_001, 100_100, false), "SIGNIFICANT");
+    // Just under 1.0% (diff*100 < on_chain) → MINOR.
+    assert_eq!(classify_verdict(9_900, 1_000_000, false), "MINOR");
   }
 
   #[test]
   fn classify_thresholds_around_0_01_percent() {
-    // 0.01% exactly (diff*10000 == on_chain) → MINOR
-    assert_eq!(classify_verdict(1, 10_000, false), "MINOR");
-    // Just under 0.01% → EXCELLENT
-    assert_eq!(classify_verdict(99, 1_000_000, false), "EXCELLENT");
+    // 0.01% exactly (diff*10000 == on_chain) → MINOR. Diff above DUST_DIFF_THRESHOLD.
+    assert_eq!(classify_verdict(1_001, 10_010_000, false), "MINOR");
+    // Just under 0.01% → EXCELLENT.
+    assert_eq!(classify_verdict(9_900, 100_000_000, false), "EXCELLENT");
+  }
+
+  // ----------------------------------------------------------
+  // DUST verdict — sub-economic noise floor
+  // ----------------------------------------------------------
+  //
+  // Motivation: Aave's `rayDiv` rounds half-up; our replay uses truncating integer
+  // division. The drift is at most ~1 scaled wei per event and accumulates linearly. The
+  // canary on issue #571 surfaced rows like `8 vs 7` and `0 vs 1` getting classified as
+  // SIGNIFICANT (14% / 100%) purely because the absolute balance is tiny. The DUST bucket
+  // absorbs those without hiding real failures.
+
+  #[test]
+  fn classify_dust_at_threshold_boundary() {
+    // Exactly at the threshold → DUST.
+    assert_eq!(classify_verdict(DUST_DIFF_THRESHOLD, 100, false), "DUST");
+    // One past the threshold → falls back to percentage logic (1001/100 ≫ 1% → SIGNIFICANT).
+    assert_eq!(
+      classify_verdict(DUST_DIFF_THRESHOLD + 1, 100, false),
+      "SIGNIFICANT"
+    );
+  }
+
+  #[test]
+  fn classify_dust_overrides_significant_when_chain_zero() {
+    // Pre-fix: any non-zero diff with chain=0 was SIGNIFICANT. Now, sub-threshold diffs
+    // get DUST instead — the `DB=0 vs Chain=1` rounding-truncation case from the canary.
+    assert_eq!(classify_verdict(1, 0, false), "DUST");
+    assert_eq!(classify_verdict(500, 0, false), "DUST");
+  }
+
+  #[test]
+  fn classify_dust_overrides_high_percentage_on_tiny_baseline() {
+    // The exact canary cases. 8 vs 7 = 14.3% drift, 0 vs 1 = 100% drift — both DUST now.
+    // Diff is 1 in each, well under the noise floor.
+    assert_eq!(classify_verdict(1, 7, false), "DUST"); // 8 vs 7 reported in canary
+    assert_eq!(classify_verdict(1, 1, false), "DUST"); // 0 vs 1 / 2 vs 1
+    assert_eq!(classify_verdict(3, 210, false), "DUST"); // 207 vs 210
+  }
+
+  #[test]
+  fn classify_perfect_still_wins_over_dust() {
+    // diff == 0 is PERFECT, not DUST. PERFECT is a stronger statement and the bucket
+    // counts should reflect that distinction.
+    assert_eq!(classify_verdict(0, 0, false), "PERFECT");
+    assert_eq!(classify_verdict(0, 100, false), "PERFECT");
+  }
+
+  #[test]
+  fn classify_error_still_wins_over_dust() {
+    // Errors dominate every other verdict, including DUST.
+    assert_eq!(classify_verdict(1, 0, true), "ERROR");
+    assert_eq!(classify_verdict(500, 1_000_000, true), "ERROR");
+  }
+
+  #[test]
+  fn classify_large_diff_with_large_baseline_unaffected_by_dust() {
+    // Real drift well above the noise floor classifies normally. Guards against the
+    // DUST short-circuit hiding actual SIGNIFICANT cases on big balances.
+    // 1e20 vs 1e22 = 1% exactly → SIGNIFICANT.
+    let diff = 100_000_000_000_000_000_000u128;
+    let baseline = 10_000_000_000_000_000_000_000u128;
+    assert_eq!(classify_verdict(diff, baseline, false), "SIGNIFICANT");
+  }
+
+  #[test]
+  fn dust_row_uses_green_check_symbol() {
+    // DUST users surface under [OK] alongside PERFECT/EXCELLENT in the per-side table.
+    let row = ok_row(500, 100_000);
+    assert_eq!(row.verdict(), "DUST");
+    assert_eq!(row.verdict_symbol(), "[OK]");
+  }
+
+  #[test]
+  fn rows_summary_emits_dust_field_independently() {
+    // Smoke-test that the JSON consumer sees a dedicated "dust" key — distinguishable
+    // from EXCELLENT so external tooling can track noise-floor drift over time.
+    let rows = vec![ok_row(500, 100_000), ok_row(1, 0)]; // both DUST
+    let summary = rows_summary_json(&rows);
+    assert_eq!(summary["dust"], 2);
+    assert_eq!(summary["excellent"], 0);
+    assert_eq!(summary["significant"], 0);
   }
 
   #[test]
@@ -3912,11 +4027,12 @@ mod tests {
     let c = BucketCounts {
       perfect: 1,
       excellent: 2,
+      dust: 6,
       minor: 3,
       significant: 4,
       errors: 5,
     };
-    assert_eq!(c.total(), 15);
+    assert_eq!(c.total(), 21);
   }
 
   #[test]
@@ -3924,6 +4040,7 @@ mod tests {
     let mut a = BucketCounts {
       perfect: 1,
       excellent: 2,
+      dust: 6,
       minor: 3,
       significant: 4,
       errors: 5,
@@ -3931,6 +4048,7 @@ mod tests {
     let b = BucketCounts {
       perfect: 10,
       excellent: 20,
+      dust: 60,
       minor: 30,
       significant: 40,
       errors: 50,
@@ -3938,10 +4056,11 @@ mod tests {
     a.add(&b);
     assert_eq!(a.perfect, 11);
     assert_eq!(a.excellent, 22);
+    assert_eq!(a.dust, 66);
     assert_eq!(a.minor, 33);
     assert_eq!(a.significant, 44);
     assert_eq!(a.errors, 55);
-    assert_eq!(a.total(), 165);
+    assert_eq!(a.total(), 231);
   }
 
   #[test]
@@ -3949,6 +4068,7 @@ mod tests {
     let mut a = BucketCounts {
       perfect: 7,
       excellent: 0,
+      dust: 0,
       minor: 0,
       significant: 1,
       errors: 0,
@@ -3975,8 +4095,9 @@ mod tests {
 
   #[test]
   fn reserve_side_has_significant_detects_any_significant_row() {
+    // diff above DUST_DIFF_THRESHOLD so the percentage logic applies (1001/100_100 = 1%).
     let result = ReserveSideResult {
-      rows: vec![ok_row(0, 100), ok_row(1, 100)], // PERFECT + SIGNIFICANT (1%)
+      rows: vec![ok_row(0, 100), ok_row(1_001, 100_100)],
       fetch_error: None,
     };
     assert!(reserve_side_has_significant(&result));
@@ -3984,8 +4105,9 @@ mod tests {
 
   #[test]
   fn reserve_side_has_minor_detects_any_minor_row() {
+    // diff above DUST_DIFF_THRESHOLD so the percentage logic applies (2000/400_000 = 0.5%).
     let result = ReserveSideResult {
-      rows: vec![ok_row(0, 100), ok_row(5, 10_000)], // PERFECT + MINOR
+      rows: vec![ok_row(0, 100), ok_row(2_000, 400_000)],
       fetch_error: None,
     };
     assert!(reserve_side_has_minor(&result));
@@ -4019,6 +4141,7 @@ mod tests {
     let supply = BucketCounts {
       perfect: 10,
       excellent: 5,
+      dust: 2,
       minor: 1,
       significant: 0,
       errors: 0,
@@ -4026,6 +4149,7 @@ mod tests {
     let borrow = BucketCounts {
       perfect: 3,
       excellent: 2,
+      dust: 0,
       minor: 0,
       significant: 1,
       errors: 0,
@@ -4038,10 +4162,12 @@ mod tests {
     let v = build_market_summary_json(7, "supply + borrow", Some(supply), Some(borrow), &non_green);
     assert_eq!(v["reservesProcessed"], 7);
     assert_eq!(v["mode"], "supply + borrow");
-    assert_eq!(v["supply"]["totalUsers"], 16);
+    assert_eq!(v["supply"]["totalUsers"], 18);
     assert_eq!(v["supply"]["perfect"], 10);
+    assert_eq!(v["supply"]["dust"], 2);
     assert_eq!(v["supply"]["minor"], 1);
     assert_eq!(v["borrow"]["totalUsers"], 6);
+    assert_eq!(v["borrow"]["dust"], 0);
     assert_eq!(v["borrow"]["significant"], 1);
     assert_eq!(v["reservesWithSignificant"][0]["symbol"], "sodaSUI");
     assert_eq!(v["reservesWithSignificant"][0]["reserve"], "0xdc5b");

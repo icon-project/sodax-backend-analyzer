@@ -160,7 +160,7 @@ pub fn compare_and_report_diff(
   description: &str,
 ) -> String {
   if calculated_amount == on_chain_amount {
-    format!("✅ {} amounts match: {}", description, calculated_amount)
+    format!("[OK] {} amounts match: {}", description, calculated_amount)
   } else {
     let diff = calculated_amount.abs_diff(on_chain_amount);
     let percentage = (diff as f64 / on_chain_amount as f64) * 100.0;
@@ -170,7 +170,7 @@ pub fn compare_and_report_diff(
     // this value is 1000000 wei
     if diff < 1_000_000 {
       return format!(
-        "⚠️ Minor mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
+        "[WARN] Minor mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
         description, calculated_amount, on_chain_amount, diff, percentage
       );
     }
@@ -180,12 +180,12 @@ pub fn compare_and_report_diff(
     // percentage is below 0.01%
     if percentage < 0.01 {
       return format!(
-        "⚠️ Minor mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
+        "[WARN] Minor mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
         description, calculated_amount, on_chain_amount, diff, percentage
       );
     }
     format!(
-      "❌ Mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
+      "[FAIL] Mismatch for {}: calculated = {}, on-chain = {}, diff = {} ({:.4})%",
       description, calculated_amount, on_chain_amount, diff, percentage
     )
   }

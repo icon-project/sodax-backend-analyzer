@@ -430,7 +430,7 @@ The handler fetches the full token-event stream **once per side** (one query for
 2. The result is the **scaled** balance (raw value before liquidity / variable-borrow index is applied) plus the user's `last_event_block`.
 3. Looks up the user's `user_positions` document and pulls the scaled balance for this reserve + side.
 4. Calls `scaledBalanceOf(user)` on the chain, **pinned to the user's last event block** (alloy's `.block(N)` historical call). This sidesteps the liquidity / variable-borrow index entirely — no f64 conversion, no question of whether the index was queried at the same block as the balance, no drift from interest accrual between snapshots. If `last_event_block == 0` (no matching events found for the user in the token stream), the row is classified `ERROR` rather than degrading to an unpinned latest-block comparison.
-5. Compares `db_scaled` to `chain_scaled` and classifies the row: `PERFECT` / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`.
+5. Compares `db_scaled` to `chain_scaled` and classifies the row: `PERFECT` (diff == 0) / `DUST` (diff ≤ 1000 scaled wei — noise floor that absorbs Aave-rayDiv-vs-truncation rounding) / `EXCELLENT` (<0.01%) / `MINOR` (<1%) / `SIGNIFICANT` (≥1%) / `ERROR`. `PERFECT`, `DUST`, and `EXCELLENT` all surface as `[OK]`; `MINOR` as `[WARN]`; `SIGNIFICANT` as `[FAIL]`; `ERROR` as `[ERR]`.
 
 > **Why scaled, not real?** Real balances on Aave-style markets are `scaledBalance × index / RAY` where `index` keeps moving as interest accrues. Comparing real-vs-real requires both sides to agree on the index at exactly the same block; comparing scaled-vs-scaled is a direct integer equality check that needs no index at all. Both `user_positions` and `scaledBalanceOf` are stored / computed in scaled units, so the three-way comparison is apples-to-apples.
 
@@ -449,7 +449,7 @@ Suppliers are pulled from `reserve_tokens.suppliers` and borrowers from `reserve
 
 **Verdict math:**
 - The verdict bucket is computed from `diff` and `chain_scaled` with u128 integer arithmetic, so it's exact regardless of balance magnitude. `percentage` is f64 for display only.
-- When `chain_scaled == 0` but `diff > 0` (DB replay produced a balance the chain doesn't have), the row is classified `SIGNIFICANT`. This aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat this handler as authoritative.
+- When `chain_scaled == 0` but `diff > 0` (DB replay produced a balance the chain doesn't have), the row is classified `SIGNIFICANT` — **unless** `diff ≤ DUST_DIFF_THRESHOLD` (1000 scaled wei), in which case the noise-floor short-circuit fires first and the row is `DUST`. The `chain_scaled == 0 && diff > DUST_DIFF_THRESHOLD` rule aligns with `EntryState::new` in `structs.rs` and **differs from `--calculate-from-events`**, which reports such cases as 0% / "Excellent". If you need to cross-reference, treat this handler as authoritative.
 
 **Side selection:**
 - Default: process both supply and borrow.
@@ -478,7 +478,7 @@ cargo run -- --calculate-from-events-reserve 0xreserve... --json
 
 Market-wide variant of `--calculate-from-events-reserve`: iterates **every reserve** returned by `find_all_reserves()` and runs the same per-user × per-side scaled-vs-scaled comparison for each. Designed for a regular health check across the whole money market — no need to keep a hand-maintained list of reserve addresses in sync.
 
-For each reserve the output mirrors the single-reserve flag's compact-table format (one supply table + one borrow table, with the same `Position Scaled` column and `Verdict` classification). At the end, the handler prints a **market-wide summary**: total reserves processed, aggregate verdict bucket counts (separately per side), and the list of reserves that contributed any `SIGNIFICANT` (❌), `MINOR` (⚠️), or `ERROR` (‼️) row on either side.
+For each reserve the output mirrors the single-reserve flag's compact-table format (one supply table + one borrow table, with the same `Position Scaled` column and `Verdict` classification). At the end, the handler prints a **market-wide summary**: total reserves processed, aggregate verdict bucket counts (separately per side), and the list of reserves that contributed any `SIGNIFICANT` ([FAIL]), `MINOR` ([WARN]), or `ERROR` ([ERR]) row on either side.
 
 **Per-reserve behavior:**
 - Reuses the existing replay helpers (`replay_side`, `print_replay_table`, `rows_summary_json`, `count_buckets`) — no separate code path for the per-reserve work.
