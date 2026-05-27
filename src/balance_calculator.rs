@@ -14,12 +14,19 @@ pub struct BalanceResult {
   pub last_event_block: u64,
 }
 
-/// Event type for calculation purposes
+/// Event type for calculation purposes.
+///
+/// `BalanceTransfer` represents Aave's `BalanceTransfer(from, to, amount.rayDiv(index), index)`
+/// event — the `value` field is ALREADY the scaled amount, so we apply it directly without
+/// dividing by index. We deliberately do not process the paired `a-token-transfer` (ERC-20
+/// Transfer) event for real user-to-user transfers: that's the same physical transfer in
+/// real units, and using it would either double-count or force us back onto a stale
+/// `last_known_index` approximation.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum EventType {
   Mint,
   Burn,
-  Transfer,
+  BalanceTransfer,
 }
 
 /// Gets the token address from an event
@@ -27,14 +34,18 @@ fn get_event_token_address(event: &MoneyMarketEventDocument) -> Option<&str> {
   match event {
     MoneyMarketEventDocument::ATokenMint(e) => Some(&e.tokenAddress),
     MoneyMarketEventDocument::ATokenBurn(e) => Some(&e.tokenAddress),
-    MoneyMarketEventDocument::ATokenTransfer(e) => Some(&e.tokenAddress),
+    MoneyMarketEventDocument::ATokenBalanceTransfer(e) => Some(&e.tokenAddress),
     MoneyMarketEventDocument::DebtTokenMint(e) => Some(&e.tokenAddress),
     MoneyMarketEventDocument::DebtTokenBurn(e) => Some(&e.tokenAddress),
     _ => None,
   }
 }
 
-/// Extracted data from an event for processing
+/// Extracted data from an event for processing.
+///
+/// `value` semantics depend on `event_type`:
+/// - `Mint`/`Burn`: the real token amount (Aave's `Mint`/`Burn` event `value` field).
+/// - `BalanceTransfer`: the scaled amount (Aave emits `amount.rayDiv(index)` directly).
 struct EventData {
   value: u128,
   balance_increase: u128,
@@ -48,12 +59,18 @@ struct EventData {
   transfer_info: Option<(String, String)>,
 }
 
-/// Extracts data from an event for processing
-/// Returns None if the user is not involved in the event
+/// Extracts data from an event for processing.
+/// Returns None if the user is not involved in the event.
+///
+/// `a-token-transfer` is intentionally ignored: every real user-to-user aToken transfer
+/// emits both a `BalanceTransfer` (carrying the scaled amount + the exact block index)
+/// and a paired ERC-20 `Transfer` (carrying the real amount). We process only the former
+/// — it's the lossless signal. The latter would either double-count or fall back to a
+/// stale `last_known_index` approximation. (Transfer events with zero from/to are
+/// mint/burn shadows already handled by the Mint/Burn arms.)
 fn extract_event_data(
   event: &MoneyMarketEventDocument,
   user_lower: &str,
-  last_known_index: u128,
 ) -> Result<Option<EventData>, Box<dyn std::error::Error>> {
   match event {
     MoneyMarketEventDocument::ATokenMint(e) => {
@@ -86,11 +103,13 @@ fn extract_event_data(
         transfer_info: None,
       }))
     }
-    MoneyMarketEventDocument::ATokenTransfer(e) => {
+    MoneyMarketEventDocument::ATokenBalanceTransfer(e) => {
       let is_sender = e.from.to_lowercase() == user_lower;
       let is_recipient = e.to.to_lowercase() == user_lower;
 
-      if !is_sender && !is_recipient {
+      // Skip if uninvolved, OR a self-transfer (net effect on this user's balance is zero —
+      // crediting +value once would be wrong by `value` scaled units).
+      if (!is_sender && !is_recipient) || (is_sender && is_recipient) {
         return Ok(None);
       }
 
@@ -99,10 +118,10 @@ fn extract_event_data(
       Ok(Some(EventData {
         value: decimal128_to_u128(e.value)?,
         balance_increase: 0,
-        index: last_known_index,
+        index: decimal128_to_u128(e.index)?,
         block_number: e.common.blockNumber,
-        event_type: EventType::Transfer,
-        event_name: "a-token-transfer",
+        event_type: EventType::BalanceTransfer,
+        event_name: "a-token-balance-transfer",
         balance_sign,
         transfer_info: Some((e.from.clone(), e.to.clone())),
       }))
@@ -141,12 +160,14 @@ fn extract_event_data(
   }
 }
 
-/// Extracts the index from a mint/burn event regardless of which user it belongs to.
-/// This keeps last_index up-to-date for transfer events that use it as an approximation.
+/// Extracts the index from any index-carrying event regardless of which user it belongs to.
+/// Used to keep `last_index` current for the final scaled→real conversion at the end of
+/// the replay.
 fn get_event_index(event: &MoneyMarketEventDocument) -> Option<u128> {
   match event {
     MoneyMarketEventDocument::ATokenMint(e) => decimal128_to_u128(e.index).ok(),
     MoneyMarketEventDocument::ATokenBurn(e) => decimal128_to_u128(e.index).ok(),
+    MoneyMarketEventDocument::ATokenBalanceTransfer(e) => decimal128_to_u128(e.index).ok(),
     MoneyMarketEventDocument::DebtTokenMint(e) => decimal128_to_u128(e.index).ok(),
     MoneyMarketEventDocument::DebtTokenBurn(e) => decimal128_to_u128(e.index).ok(),
     _ => None,
@@ -176,13 +197,13 @@ fn print_event_debug(
     output!("     To: {}", to);
   }
 
-  output!("     Value: {}", event_data.value);
-
-  if event_data.event_type != EventType::Transfer {
-    output!("     Balance Increase: {}", event_data.balance_increase);
+  if event_data.event_type == EventType::BalanceTransfer {
+    output!("     Scaled Amount: {}", event_data.value);
     output!("     Index: {}", event_data.index);
   } else {
-    output!("     Index (last known): {}", event_data.index);
+    output!("     Value: {}", event_data.value);
+    output!("     Balance Increase: {}", event_data.balance_increase);
+    output!("     Index: {}", event_data.index);
   }
 
   output!("     Scaled: {}", event_scaled);
@@ -201,24 +222,19 @@ pub fn should_skip_transfer_event(event: &MoneyMarketEventDocument) -> bool {
   }
 }
 
-/// Calculates the scaled balance from event parameters
+/// Calculates the scaled balance delta from event parameters.
 /// Based on the AAVE V3 protocol formulas:
 /// - Mint: (value - balanceIncrease) * RAY / index
 /// - Burn: (value + balanceIncrease) * RAY / index
-/// - Transfer: value * RAY / index
+/// - BalanceTransfer: value (already scaled — Aave emits `amount.rayDiv(index)`)
 fn calculate_scaled_balance(
   value: u128,
   index: u128,
   balance_increase: u128,
   event_type: EventType,
-  last_known_index: u128,
 ) -> Result<u128, Box<dyn std::error::Error>> {
   let big_value = U256::from(value);
-  let big_index = if event_type == EventType::Transfer {
-    U256::from(last_known_index)
-  } else {
-    U256::from(index)
-  };
+  let big_index = U256::from(index);
   let big_balance_increase = U256::from(balance_increase);
   let big_ray = U256::from(RAY);
 
@@ -243,13 +259,7 @@ fn calculate_scaled_balance(
         .ok_or("Overflow in burn multiplication")?;
       scaled.checked_div(big_index).ok_or("Division by zero")?
     }
-    EventType::Transfer => {
-      // value * RAY / index
-      let scaled = big_value
-        .checked_mul(big_ray)
-        .ok_or("Overflow in transfer multiplication")?;
-      scaled.checked_div(big_index).ok_or("Division by zero")?
-    }
+    EventType::BalanceTransfer => big_value,
   };
 
   result
@@ -318,15 +328,18 @@ pub fn process_user_token_events(
       continue;
     }
 
-    // Update last_index from any mint/burn event's index for this token (regardless of user).
-    // This keeps the index accurate for transfer events that rely on last_known_index,
-    // especially when the events list contains all users' events for this token.
+    // Update last_index from any index-carrying event for this token (regardless of
+    // user). This keeps last_index current for the final scaled→real conversion below.
     // (We already know the event matches our token from the filter above.)
     if let Some(event_index) = get_event_index(event) {
       last_index = event_index;
     }
 
-    // Skip transfer events involving zero address
+    // Skip a-token-transfer events involving the zero address (mint/burn shadows already
+    // handled via Mint/Burn arms). The check is also defensive for the new code path:
+    // a-token-transfer events are no longer applied to balance — we use the paired
+    // a-token-balance-transfer event instead — so this short-circuits before the
+    // extract_event_data fall-through.
     if should_skip_transfer_event(event) {
       if verbose {
         output!(
@@ -339,7 +352,7 @@ pub fn process_user_token_events(
     }
 
     // Extract event data - skip if user is not involved
-    let event_data = match extract_event_data(event, &user_lower, last_index)? {
+    let event_data = match extract_event_data(event, &user_lower)? {
       Some(data) => data,
       None => continue,
     };
@@ -350,16 +363,22 @@ pub fn process_user_token_events(
       event_data.index,
       event_data.balance_increase,
       event_data.event_type,
-      last_index,
     )?;
 
     // Store before values for debug printing
     let scaled_before = scaled_balance;
     let real_before = real_balance;
 
-    // Update balances
+    // Update balances. For BalanceTransfer, event_data.value IS the scaled amount, so the
+    // running real_balance counter (verbose display only) takes the real-equivalent via
+    // the event's own index. For Mint/Burn, value is already the real token amount.
     scaled_balance += event_data.balance_sign * event_scaled as i128;
-    real_balance += event_data.balance_sign * event_data.value as i128;
+    let real_delta = if event_data.event_type == EventType::BalanceTransfer {
+      convert_scaled_to_real_balance(event_data.value, event_data.index)?
+    } else {
+      event_data.value
+    };
+    real_balance += event_data.balance_sign * real_delta as i128;
     last_event_block = event_data.block_number;
 
     // Print debug information
@@ -408,4 +427,161 @@ pub fn process_user_token_events(
     last_index,
     last_event_block,
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::models::{ATokenBalanceTransferEvent, ATokenMintEvent, ATokenTransferEvent, CommonFields};
+  use mongodb::bson::oid::ObjectId;
+
+  const TOKEN: &str = "0x5c50cf875aaaaa0bbbbb1111111111111111aaaa";
+  const ALICE: &str = "0xaff2edb3057ed6f9c1da6c930b8dddf2bee573a5";
+  const BOB: &str = "0x1234567890abcdef1234567890abcdef12345678";
+  // 1.05 * RAY (typical Aave liquidity index a few percent above RAY).
+  const INDEX_1_05: u128 = 1_050_000_000_000_000_000_000_000_000;
+  // 1.10 * RAY (later block, more interest accrued).
+  const INDEX_1_10: u128 = 1_100_000_000_000_000_000_000_000_000;
+
+  fn common(block: u64, log_idx: i64) -> CommonFields {
+    CommonFields {
+      id: ObjectId::new(),
+      txHash: format!("0x{:064x}", block),
+      logIndex: log_idx,
+      chainId: 1,
+      blockNumber: block,
+      version: 0,
+    }
+  }
+
+  fn dec(n: u128) -> Decimal128 {
+    n.to_string().parse().unwrap()
+  }
+
+  fn balance_transfer(
+    block: u64,
+    log_idx: i64,
+    from: &str,
+    to: &str,
+    scaled_value: u128,
+    index: u128,
+  ) -> MoneyMarketEventDocument {
+    MoneyMarketEventDocument::ATokenBalanceTransfer(ATokenBalanceTransferEvent {
+      common: common(block, log_idx),
+      tokenAddress: TOKEN.to_string(),
+      from: from.to_string(),
+      to: to.to_string(),
+      value: dec(scaled_value),
+      index: dec(index),
+    })
+  }
+
+  fn a_token_transfer(
+    block: u64,
+    log_idx: i64,
+    from: &str,
+    to: &str,
+    real_value: u128,
+  ) -> MoneyMarketEventDocument {
+    MoneyMarketEventDocument::ATokenTransfer(ATokenTransferEvent {
+      common: common(block, log_idx),
+      tokenAddress: TOKEN.to_string(),
+      from: from.to_string(),
+      to: to.to_string(),
+      value: dec(real_value),
+    })
+  }
+
+  fn mint(
+    block: u64,
+    log_idx: i64,
+    on_behalf_of: &str,
+    real_value: u128,
+    balance_increase: u128,
+    index: u128,
+  ) -> MoneyMarketEventDocument {
+    MoneyMarketEventDocument::ATokenMint(ATokenMintEvent {
+      common: common(block, log_idx),
+      tokenAddress: TOKEN.to_string(),
+      caller: BOB.to_string(),
+      onBehalfOf: on_behalf_of.to_string(),
+      value: dec(real_value),
+      balanceIncrease: dec(balance_increase),
+      index: dec(index),
+    })
+  }
+
+  /// Regression for sodaAVAX bug (sodax-backend issue #577): a user whose only events on
+  /// a token are a-token-balance-transfer must end up with the scaled amount applied,
+  /// not silently dropped (which collapsed to DB Events Scaled = 0 in the canary run).
+  #[test]
+  fn transfer_only_user_credits_scaled_amount_from_balance_transfer() {
+    let events = vec![balance_transfer(100, 0, BOB, ALICE, 100, INDEX_1_05)];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.scaled_balance, 100);
+  }
+
+  /// A user that receives N scaled then sends the same N scaled out at a later (higher)
+  /// liquidity index ends at exactly 0 scaled. The pre-fix code, working from
+  /// a-token-transfer (real-amount) events with `last_known_index` stuck at RAY because
+  /// the user had no Mint/Burn, produced a net-negative balance that got clamped to 0.
+  /// Verify the new path nets cleanly without relying on the clamp.
+  #[test]
+  fn balance_transfer_in_then_out_nets_to_zero_across_index_growth() {
+    let events = vec![
+      balance_transfer(100, 0, BOB, ALICE, 100, INDEX_1_05),
+      balance_transfer(200, 0, ALICE, BOB, 100, INDEX_1_10),
+    ];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.scaled_balance, 0);
+  }
+
+  /// Every real Aave V3 aToken transfer emits BOTH a-token-balance-transfer (scaled +
+  /// index) and a paired a-token-transfer (real amount). The replay must apply the
+  /// balance-transfer once and ignore the paired ERC-20 transfer — otherwise the same
+  /// physical transfer would be counted twice (or fall back to a stale-index estimate).
+  #[test]
+  fn paired_a_token_transfer_is_not_double_counted() {
+    let events = vec![
+      balance_transfer(100, 0, BOB, ALICE, 100, INDEX_1_05),
+      // Paired ERC-20 view: 100 scaled at index 1.05 = 105 real.
+      a_token_transfer(100, 1, BOB, ALICE, 105),
+    ];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.scaled_balance, 100);
+  }
+
+  /// A self-transfer's net effect on the holder's scaled balance is zero (Aave's
+  /// `super._transfer(sender, recipient, scaled)` is a no-op when sender == recipient).
+  /// Crediting +scaled once because the user matched the `to` field would be wrong.
+  #[test]
+  fn self_transfer_is_noop() {
+    let events = vec![balance_transfer(100, 0, ALICE, ALICE, 100, INDEX_1_05)];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.scaled_balance, 0);
+  }
+
+  /// last_index is what drives the final scaled→real conversion in BalanceResult.
+  /// a-token-balance-transfer events carry the exact block index and must update
+  /// last_index — otherwise the returned real_balance would use RAY (1.0) for users
+  /// with no Mint/Burn events.
+  #[test]
+  fn balance_transfer_updates_last_index_for_final_real_conversion() {
+    let events = vec![balance_transfer(100, 0, BOB, ALICE, 100, INDEX_1_05)];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.last_index, INDEX_1_05);
+    // 100 scaled * 1.05 index = 105 real.
+    assert_eq!(result.real_balance, 105);
+  }
+
+  /// Mint events still produce the correct scaled delta after the refactor that dropped
+  /// the `last_known_index` parameter from calculate_scaled_balance. Guards against the
+  /// signature change breaking the supply path.
+  #[test]
+  fn mint_event_still_applies_correct_scaled_delta() {
+    // value=105, balance_increase=0, index=1.05 → (105 - 0) * RAY / 1.05 RAY = 100 scaled.
+    let events = vec![mint(100, 0, ALICE, 105, 0, INDEX_1_05)];
+    let result = process_user_token_events(&events, ALICE, TOKEN, RAY, false).unwrap();
+    assert_eq!(result.scaled_balance, 100);
+  }
 }
