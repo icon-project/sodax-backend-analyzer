@@ -430,7 +430,13 @@ pub fn process_user_token_events(
     scaled_balance += event_data.balance_sign * event_scaled as i128;
     let real_delta = match event_data.event_type {
       EventType::BalanceTransfer => convert_scaled_to_real_balance(event_data.value, event_data.index)?,
-      EventType::PhantomMintFromBurn => event_data.balance_increase - event_data.value,
+      // `mint_classification` only routes here when `value < balance_increase`, but mirror
+      // the defensive `checked_sub` used in `calculate_scaled_balance` so any future
+      // routing regression surfaces as an explicit error instead of an underflow panic.
+      EventType::PhantomMintFromBurn => event_data
+        .balance_increase
+        .checked_sub(event_data.value)
+        .ok_or("Underflow computing phantom-mint real_delta (value >= balanceIncrease should route to Mint)")?,
       EventType::Mint | EventType::Burn => event_data.value,
     };
     real_balance += event_data.balance_sign * real_delta as i128;
