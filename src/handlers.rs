@@ -1546,7 +1546,7 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           } else if percentage < 0.01 {
             output!("\n[OK] Excellent match (< 0.01% difference)");
           } else if percentage < 1.0 {
-            output!("\n[WARN]  Minor mismatch (< 1% difference)");
+            output!("\n[WARN] Minor mismatch (< 1% difference)");
           } else {
             output!("\n[FAIL] Significant mismatch (>= 1% difference)");
           }
@@ -1885,7 +1885,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  [WARN]  Supply validation error for reserve {}: {}",
+          "  [WARN] Supply validation error for reserve {}: {}",
           reserve_address, e
         );
       }
@@ -1914,7 +1914,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  [WARN]  Borrow validation error for reserve {}: {}",
+          "  [WARN] Borrow validation error for reserve {}: {}",
           reserve_address, e
         );
       }
