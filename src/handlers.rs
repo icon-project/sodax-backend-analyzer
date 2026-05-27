@@ -875,12 +875,12 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
         if let Some(error) = &validation_result.error {
           error_count += 1;
           output!(
-            "❌ Reserve {}: ERROR - {}",
+            "[FAIL] Reserve {}: ERROR - {}",
             validation_result.reserve_address, error
           );
         } else {
           output!(
-            "✅ Reserve {} validated successfully",
+            "[OK] Reserve {} validated successfully",
             validation_result.reserve_address
           );
           output!(
@@ -901,11 +901,11 @@ pub async fn handle_validate_token_all_generic(scaled: bool) {
       }
       Ok(Err(e)) => {
         error_count += 1;
-        output!("❌ Validation failed: {}", e);
+        output!("[FAIL] Validation failed: {}", e);
       }
       Err(e) => {
         error_count += 1;
-        output!("❌ Task failed: {}", e);
+        output!("[FAIL] Task failed: {}", e);
       }
     }
   }
@@ -984,7 +984,7 @@ pub async fn handle_validate_users_all_generic(scaled: bool) {
       }
       Err(e) => {
         error_count += 1;
-        output!("❌ Task failed: {}", e);
+        output!("[FAIL] Task failed: {}", e);
       }
     }
   }
@@ -1049,14 +1049,14 @@ async fn handle_user_validation_generic(user_address: &str, exit_on_error: bool,
     }
   };
   output!(
-    "✅ User {}: {} positions validated",
+    "[OK] User {}: {} positions validated",
     result.user_address,
     result.positions.len()
   );
   for position in &result.positions {
     if let Some(error) = &position.error {
       output!(
-        "  ❌ Reserve {}: ERROR - {}",
+        "  [FAIL] Reserve {}: ERROR - {}",
         position.reserve_address, error
       );
     } else {
@@ -1542,13 +1542,13 @@ pub async fn handle_calculate_from_events(flags: Vec<Flag>) {
           output!("Percentage:         {:.4}%", percentage);
 
           if diff == 0 {
-            output!("\n✅ Perfect match!");
+            output!("\n[OK] Perfect match!");
           } else if percentage < 0.01 {
-            output!("\n✅ Excellent match (< 0.01% difference)");
+            output!("\n[OK] Excellent match (< 0.01% difference)");
           } else if percentage < 1.0 {
-            output!("\n⚠️  Minor mismatch (< 1% difference)");
+            output!("\n[WARN]  Minor mismatch (< 1% difference)");
           } else {
-            output!("\n❌ Significant mismatch (>= 1% difference)");
+            output!("\n[FAIL] Significant mismatch (>= 1% difference)");
           }
         }
         Err(e) => {
@@ -1730,7 +1730,7 @@ pub async fn handle_validate_from_events_all() {
           if let Some(ref err) = result.error {
             error_count += 1;
             println!(
-              "  ❌ User {} | Reserve {}: {}",
+              "  [FAIL] User {} | Reserve {}: {}",
               result.user_address, result.reserve_address, err
             );
             continue;
@@ -1885,7 +1885,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  ⚠️  Supply validation error for reserve {}: {}",
+          "  [WARN]  Supply validation error for reserve {}: {}",
           reserve_address, e
         );
       }
@@ -1914,7 +1914,7 @@ async fn validate_position_from_events(
     Err(e) => {
       if verbose {
         println!(
-          "  ⚠️  Borrow validation error for reserve {}: {}",
+          "  [WARN]  Borrow validation error for reserve {}: {}",
           reserve_address, e
         );
       }
@@ -2045,7 +2045,7 @@ async fn validate_side_from_events(
 fn print_event_validation_result(result: &EventValidationResult) {
   if let Some(ref err) = result.error {
     println!(
-      "❌ User {} | Reserve {}: {}",
+      "[FAIL] User {} | Reserve {}: {}",
       result.user_address, result.reserve_address, err
     );
   }
@@ -2079,14 +2079,14 @@ fn print_three_way(
     && comparison.db_vs_chain_diff == 0
     && comparison.events_vs_db_diff == 0
   {
-    "✅"
+    "[OK]"
   } else if comparison.events_vs_chain_pct < 1.0
     && comparison.db_vs_chain_pct < 1.0
     && comparison.events_vs_db_pct < 1.0
   {
-    "⚠️"
+    "[WARN]"
   } else {
-    "❌"
+    "[FAIL]"
   };
 
   println!(
@@ -2593,10 +2593,10 @@ impl ReserveReplayRow {
 
   fn verdict_symbol(&self) -> &'static str {
     match self.verdict() {
-      "PERFECT" | "EXCELLENT" | "DUST" => "✅",
-      "MINOR" => "⚠️",
-      "ERROR" => "‼️",
-      _ => "❌",
+      "PERFECT" | "EXCELLENT" | "DUST" => "[OK]",
+      "MINOR" => "[WARN]",
+      "ERROR" => "[ERR]",
+      _ => "[FAIL]",
     }
   }
 }
@@ -2606,7 +2606,7 @@ impl ReserveReplayRow {
 /// drift — most notably the Aave `rayDiv` half-up vs. our truncating division mismatch,
 /// which leaks at most ~1 scaled wei per event and accumulates linearly across a user's
 /// event history. A diff of 7 vs 8 on a tiny borrow is not a data-integrity signal;
-/// flagging it as ❌ buries the real failures. Threshold is in scaled units, so it's
+/// flagging it as [FAIL] buries the real failures. Threshold is in scaled units, so it's
 /// independent of the underlying token's decimals.
 const DUST_DIFF_THRESHOLD: u128 = 1000;
 
@@ -2978,7 +2978,7 @@ fn print_replay_table(label: &str, token_address: &str, rows: &[ReserveReplayRow
 
   let c = count_buckets(rows);
   output!(
-    "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent / {} dust  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+    "\nSummary ({}): {} users  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
     label,
     rows.len(),
     c.perfect,
@@ -3319,13 +3319,13 @@ fn print_reserve_side(label: &str, token_address: &str, result: &ReserveSideResu
       // one error line plus the standard summary so aggregate counts stay readable.
       output!("\n=== {} ({}) ===", label, token_address);
       output!(
-        "‼️ Fetch failed: {} ({} users counted as ERROR)",
+        "[ERR] Fetch failed: {} ({} users counted as ERROR)",
         err,
         result.rows.len()
       );
       let c = count_buckets(&result.rows);
       output!(
-        "\nSummary ({}): {} users  ·  ✅ {} perfect / {} excellent / {} dust  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+        "\nSummary ({}): {} users  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
         label,
         result.rows.len(),
         c.perfect,
@@ -3598,7 +3598,7 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
   output!("Reserves processed: {}", total);
   if do_supply {
     output!(
-      "Supply users: {}  ·  ✅ {} perfect / {} excellent / {} dust  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+      "Supply users: {}  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
       market_supply.total(),
       market_supply.perfect,
       market_supply.excellent,
@@ -3610,7 +3610,7 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
   }
   if do_borrow {
     output!(
-      "Borrow users: {}  ·  ✅ {} perfect / {} excellent / {} dust  ·  ⚠️ {} minor  ·  ❌ {} significant  ·  ‼️ {} errors",
+      "Borrow users: {}  ·  [OK] {} perfect / {} excellent / {} dust  ·  [WARN] {} minor  ·  [FAIL] {} significant  ·  [ERR] {} errors",
       market_borrow.total(),
       market_borrow.perfect,
       market_borrow.excellent,
@@ -3631,15 +3631,15 @@ pub async fn handle_calculate_from_events_reserve_all(flags: Vec<Flag>) {
     format!("{} ({})", list.len(), items.join(", "))
   };
   output!(
-    "Reserves with at least one ❌: {}",
+    "Reserves with at least one [FAIL]: {}",
     fmt_list(&non_green.significant)
   );
   output!(
-    "Reserves with at least one ⚠️: {}",
+    "Reserves with at least one [WARN]: {}",
     fmt_list(&non_green.minor)
   );
   output!(
-    "Reserves with at least one ‼️: {}",
+    "Reserves with at least one [ERR]: {}",
     fmt_list(&non_green.errors)
   );
   output!("\n=== Money Market Event-Replay Reconstruction Complete ===");
@@ -3719,7 +3719,7 @@ mod tests {
   fn verdict_perfect_when_diff_zero() {
     let row = ok_row(0, 100);
     assert_eq!(row.verdict(), "PERFECT");
-    assert_eq!(row.verdict_symbol(), "✅");
+    assert_eq!(row.verdict_symbol(), "[OK]");
   }
 
   #[test]
@@ -3728,7 +3728,7 @@ mod tests {
     // DUST_DIFF_THRESHOLD so the percentage logic applies, not the noise-floor short-circuit.
     let row = ok_row(10_000, 200_000_000);
     assert_eq!(row.verdict(), "EXCELLENT");
-    assert_eq!(row.verdict_symbol(), "✅");
+    assert_eq!(row.verdict_symbol(), "[OK]");
   }
 
   #[test]
@@ -3737,7 +3737,7 @@ mod tests {
     // above DUST_DIFF_THRESHOLD so the percentage logic applies.
     let row = ok_row(2_000, 400_000);
     assert_eq!(row.verdict(), "MINOR");
-    assert_eq!(row.verdict_symbol(), "⚠️");
+    assert_eq!(row.verdict_symbol(), "[WARN]");
   }
 
   #[test]
@@ -3745,7 +3745,7 @@ mod tests {
     // 1_001/100_100 = exactly 1% → SIGNIFICANT (≥ branch). Diff above DUST_DIFF_THRESHOLD.
     let at = ok_row(1_001, 100_100);
     assert_eq!(at.verdict(), "SIGNIFICANT");
-    assert_eq!(at.verdict_symbol(), "❌");
+    assert_eq!(at.verdict_symbol(), "[FAIL]");
     // Well above 1%.
     let above = ok_row(10_000, 20_000);
     assert_eq!(above.verdict(), "SIGNIFICANT");
@@ -3756,7 +3756,7 @@ mod tests {
     let mut row = ok_row(0, 0);
     row.error = Some("boom".to_string());
     assert_eq!(row.verdict(), "ERROR");
-    assert_eq!(row.verdict_symbol(), "‼️");
+    assert_eq!(row.verdict_symbol(), "[ERR]");
   }
 
   #[test]
@@ -3978,10 +3978,10 @@ mod tests {
 
   #[test]
   fn dust_row_uses_green_check_symbol() {
-    // DUST users surface under ✅ alongside PERFECT/EXCELLENT in the per-side table.
+    // DUST users surface under [OK] alongside PERFECT/EXCELLENT in the per-side table.
     let row = ok_row(500, 100_000);
     assert_eq!(row.verdict(), "DUST");
-    assert_eq!(row.verdict_symbol(), "✅");
+    assert_eq!(row.verdict_symbol(), "[OK]");
   }
 
   #[test]
