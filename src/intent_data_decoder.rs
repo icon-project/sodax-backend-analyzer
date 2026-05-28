@@ -22,6 +22,15 @@ alloy::sol! {
     uint8 dataType;
     bytes data;
   }
+
+  // ARRAY payloads are encoded as a single tuple wrapping the dynamic array
+  // — `tuple(ArrayEntry[] data)` — NOT a bare top-level `ArrayEntry[]`. This
+  // matches the TS reference (`decodeTypedPayload` ARRAY case uses a
+  // `tuple` with a `tuple[]` component). The two layouts differ by one extra
+  // offset word, so decoding the wrapped form as a bare array overruns.
+  struct ArrayPayload {
+    ArrayEntry[] data;
+  }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,8 +64,10 @@ fn decode_fee(payload: &[u8]) -> Option<FeeIntentData> {
 }
 
 fn decode_array_and_find_fee(payload: &[u8]) -> Option<FeeIntentData> {
-  // ARRAY payload is encoded as a single dynamic array of (uint8, bytes) tuples.
-  let entries: Vec<ArrayEntry> = <Vec<ArrayEntry> as SolValue>::abi_decode_params(payload).ok()?;
+  // ARRAY payload is a single tuple wrapping the dynamic array of
+  // (uint8, bytes) tuples, so decode it as one tuple value (`abi_decode`),
+  // not as bare top-level params. See `ArrayPayload` above.
+  let entries: Vec<ArrayEntry> = <ArrayPayload as SolValue>::abi_decode(payload).ok()?.data;
   for entry in entries {
     let mut nested = Vec::with_capacity(1 + entry.data.len());
     nested.push(entry.dataType);
@@ -97,7 +108,12 @@ mod tests {
         data: Bytes::from(d),
       })
       .collect();
-    let payload = entries_alloy.abi_encode_params();
+    // Wrap the array in the tuple layout the real encoder uses (`abi_encode`,
+    // not `abi_encode_params`) so these round-trips match on-chain blobs.
+    let payload = ArrayPayload {
+      data: entries_alloy,
+    }
+    .abi_encode();
     let mut blob = Vec::with_capacity(1 + payload.len());
     blob.push(0u8);
     blob.extend_from_slice(&payload);
@@ -198,6 +214,23 @@ mod tests {
     let got = extract_fee_from_intent_data(&hex).unwrap();
     assert_eq!(got.fee, fee);
     assert_eq!(got.receiver, receiver);
+  }
+
+  #[test]
+  fn decodes_real_wrapped_fee_hook_array_from_solver_volume() {
+    // Exact `solver_volume.data` blob for intentHash 0x13388f… on apiv1-2
+    // (receiver 0xbc943f32…, fee 2e16). The ARRAY wraps a FEE entry plus a
+    // HOOK entry in the tuple layout the bare-array decoder could not parse —
+    // it was dropped into solverVolumeRowsSkippedNoFee, producing a phantom
+    // EXTRA_IN_STORED partner_asset row. Regression for the FEE-decode gap.
+    let blob = "0x00000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000470de4df820000000000000000000000000000bc943f32091dd327002169de5a3142e993849cbc0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000020000000000000000000000000b0e2ee3c1da131d4004f0b8cc2ca159faa129b8600000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000";
+
+    let got = extract_fee_from_intent_data(blob).unwrap();
+    assert_eq!(got.fee, U256::from(20_000_000_000_000_000u64));
+    assert_eq!(
+      got.receiver,
+      address!("0xbc943f32091dd327002169de5a3142e993849cbc")
+    );
   }
 
   #[test]
