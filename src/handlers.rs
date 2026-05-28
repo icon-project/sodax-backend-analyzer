@@ -2166,7 +2166,15 @@ fn u256_to_f64(value: &alloy::primitives::U256) -> f64 {
 
 fn safe_ratio(stored: f64, computed: f64) -> Option<f64> {
   if computed == 0.0 {
-    None
+    // 0 stored vs 0 computed is exact agreement (perfect ratio of 1.0), not
+    // drift — short-circuit so a 0/0 field never trips the threshold check.
+    // A non-zero stored over a zero computed is a genuine divergence (None),
+    // which keeps EXTRA_IN_STORED / DRIFT rows firing.
+    if stored == 0.0 {
+      Some(1.0)
+    } else {
+      None
+    }
   } else {
     Some(stored / computed)
   }
@@ -4189,5 +4197,40 @@ mod tests {
     );
     assert!(v["supply"].is_object());
     assert!(v["borrow"].is_null());
+  }
+
+  // ----------------------------------------------------------------------
+  // safe_ratio / ratio_within (partner_asset 0/0 false-positive regression)
+  // ----------------------------------------------------------------------
+
+  #[test]
+  fn safe_ratio_normal_division() {
+    assert_eq!(safe_ratio(10.0, 5.0), Some(2.0));
+    assert_eq!(safe_ratio(5.0, 5.0), Some(1.0));
+  }
+
+  #[test]
+  fn safe_ratio_both_zero_is_perfect_agreement() {
+    // 0 stored vs 0 computed is exact agreement, not drift. Must be Some(1.0)
+    // so ratio_within() treats it as within threshold. Regression for the
+    // 1,880 false-positive DRIFT rows on apiv1-2 where computedFee == "0".
+    assert_eq!(safe_ratio(0.0, 0.0), Some(1.0));
+    assert!(ratio_within(safe_ratio(0.0, 0.0), DEFAULT_PARTNER_ASSET_THRESHOLD));
+  }
+
+  #[test]
+  fn safe_ratio_zero_computed_nonzero_stored_is_divergence() {
+    // Stored has value the computed source can't back → genuine divergence.
+    // None → ratio_within is false → row still flags (EXTRA_IN_STORED / DRIFT).
+    assert_eq!(safe_ratio(20_000_000_000_000_000.0, 0.0), None);
+    assert!(!ratio_within(safe_ratio(20_000_000_000_000_000.0, 0.0), DEFAULT_PARTNER_ASSET_THRESHOLD));
+  }
+
+  #[test]
+  fn ratio_within_threshold_boundaries() {
+    assert!(ratio_within(Some(1.0), 0.0001));
+    assert!(ratio_within(Some(1.00005), 0.0001));
+    assert!(!ratio_within(Some(1.5), 0.0001));
+    assert!(!ratio_within(None, 0.0001));
   }
 }
