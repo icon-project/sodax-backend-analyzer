@@ -79,3 +79,50 @@ Detailed reference docs for the backend's MongoDB data model live in `docs/sodax
 - **Event collections use discriminators** on the `eventType` field — different variants have different fields present. Always filter by `eventType` when querying.
 - **`intentId` is NOT unique** — always use `intentHash` as the unique intent identifier.
 - **Scaled balance math**: `user_positions` stores scaled (not real) balances. Real balance = `scaledBalance × currentIndex / 10^27`.
+
+<!-- BEGIN LOCAL DEV RESOURCE COMMANDS -->
+## Resource-safe commands for AI agents (shared dev server)
+
+> **Read `~/CLAUDE.md` → "Shared dev-server resource policy" first.** It defines `dev-status`, the go/no-go thresholds (RAM < 8 GiB, swap > 8 GiB, load > 20, another heavy job running) and the `heavy-run` lock. This section only maps that policy onto this repo.
+>
+> These are **instructions for which commands an interactive AI agent runs on this dev box.** They change nothing for developers or CI, and **no `Cargo.toml`, `Makefile`, `rustfmt.toml`, or the cargo-husky hook may be edited to enforce them.**
+
+**Package manager / toolchain:** **Cargo** (Rust). No Node, no npm/pnpm in this repo.
+**Test runner:** **`cargo test` — no Vitest, no Jest.** All tests are integration tests in `tests/` and **require a running MongoDB with SODAX data** (see [Testing](#testing) above).
+**Existing commands** (see [Build & Development Commands](#build--development-commands) above — unchanged): `cargo build`, `cargo build --release`, `cargo check`, `cargo clippy`, `cargo fmt`, `cargo test`, and `make build` / `make lint` / `make fmt` / `make test` / `make clean`.
+
+### Cargo fans out across all 20 cores by default
+
+`cargo` uses one codegen job per core, and `cargo test` runs test binaries on one thread per core on top of that. Cap both **on the command line** — never in `Cargo.toml` or `.cargo/config.toml`:
+
+- `-j 4` — at most 4 build jobs
+- `-- --test-threads=4` — at most 4 concurrent tests
+
+### Targeted first — run these directly, no `heavy-run`
+
+```bash
+cargo check -j 4                                                  # fast, no codegen
+cargo fmt                                                         # trivial
+cargo test --test mongodb_integration_tests -j 4 -- --test-threads=4   # one test file
+cargo test some_test_name -j 4 -- --test-threads=4                # one test
+```
+
+### Repository-wide — `heavy-run`, and tell the user first
+
+```bash
+heavy-run timeout 20m cargo build -j 4
+heavy-run timeout 30m cargo build --release -j 4     # release codegen is the heaviest job here
+heavy-run timeout 20m cargo clippy -j 4
+heavy-run timeout 20m cargo test -j 4 -- --test-threads=4
+```
+
+Prefer the `cargo …` forms above over `make build` / `make lint` / `make test` when running as an agent — the `make` targets don't take `-j`, so they'll fan out across all 20 cores.
+
+### ⚠️ `git commit` triggers a build in this repo
+
+cargo-husky's pre-commit hook runs `cargo check` **and** `cargo clippy` (see [Pre-commit Hooks](#pre-commit-hooks)). On a cold `target/` that is a full build. Take the lock:
+
+```bash
+heavy-run timeout 20m git commit -m "…"
+```
+<!-- END LOCAL DEV RESOURCE COMMANDS -->
